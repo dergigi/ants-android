@@ -144,7 +144,8 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     return@launch
                 }
                 val identity = state.value.pubkey
-                val branches = withContext(Dispatchers.IO) { SearchQuery(relay.http, identity).parse(if (command == "tutorial") tutorialPointer else input) }
+                val branches = withContext(Dispatchers.IO) { SearchQuery(relay.http, identity).parse(if (command == "tutorial") tutorialPointer else input).mapNotNull { it.forRenderedResults() } }
+                require(branches.isNotEmpty()) { "This event type has no native display yet. Use /kinds to browse supported content." }
                 if (current != generation) return@launch
                 val history = (listOf(input) + state.value.history.filter { it != input }).take(20)
                 persist("history", history); mutable.update { it.copy(history = history) }
@@ -170,7 +171,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 if (targetIds.isNotEmpty()) {
                     mutable.update { it.copy(loadingReactionTargets = true) }
                     val filter = JSONObject().put("ids", JSONArray(targetIds)).put("limit", targetIds.size)
-                    relay.search(listOf(SearchBranch(filter)), (state.value.relays + generalRelays).distinct(), 7000).flowOn(Dispatchers.IO).collect { update ->
+                    relay.search(listOf(SearchBranch(filter, renderedOnly = true)), (state.value.relays + generalRelays).distinct(), 7000).flowOn(Dispatchers.IO).collect { update ->
                         if (current == generation && update is RelayUpdate.Event) mutable.update { it.copy(reactionTargets = it.reactionTargets + (update.event.id to update.event)) }
                     }
                     if (current != generation) return@launch
@@ -257,7 +258,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         parentJobs[id] = viewModelScope.launch {
             try {
                 val filter = JSONObject().put("ids", JSONArray().put(id)).put("limit", 1)
-                relay.search(listOf(SearchBranch(filter)), (state.value.relays + generalRelays).distinct(), 8000)
+                relay.search(listOf(SearchBranch(filter, renderedOnly = true)), (state.value.relays + generalRelays).distinct(), 8000)
                     .flowOn(Dispatchers.IO).collect { update ->
                         if (current == generation && update is RelayUpdate.Event) mutable.update {
                             it.copy(reactionTargets = it.reactionTargets + (id to update.event))

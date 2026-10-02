@@ -55,7 +55,7 @@ internal fun EventContent(event: Nip01Event, profile: Profile?, compact: Boolean
     val images = remember(galleryImages, compact) { galleryImages.take(if (compact) 4 else 20) }
     val videos = remember(event.id, compact) { eventVideos(event).take(if (compact) 4 else 20) }
     val openGallery = LocalOpenGallery.current
-    val content = if (event.kind == 0) profile?.about ?: event.content else event.content
+    val content = if (event.kind == 0) profile?.about?.takeIf { it.isNotBlank() } ?: "Nostr profile" else event.content
     val text = remember(content, galleryImages, videos) { withoutRenderedImages(content, galleryImages + videos.map { it.url }) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val currentNavigate by rememberUpdatedState(onNavigate)

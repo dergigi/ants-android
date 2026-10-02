@@ -64,8 +64,8 @@ internal fun LazyListScope.commandItems(state: SearchState, onSearch: (String) -
             item { CommandRow("/help", "All commands and search help", onSearch) }
         }
         "kinds" -> {
-            item { Text("Tap any shortcut to search that event kind. Raw JSON is available for kinds without a specialized renderer.", style = MaterialTheme.typography.bodySmall) }
-            items(kindAliases.entries.toList(), key = { it.key }) { alias -> CommandRow("is:${alias.key}", alias.value.joinToString(" OR ") { "kind:$it" }, onSearch) }
+            item { Text("Tap a shortcut to search content with a native display. Encrypted events and unsupported event types are excluded.", style = MaterialTheme.typography.bodySmall) }
+            items(kindAliases.entries.filter { entry -> entry.value.all { it in renderedKinds } }, key = { it.key }) { alias -> CommandRow("is:${alias.key}", alias.value.joinToString(" OR ") { "kind:$it" }, onSearch) }
         }
         "login" -> item { LoginContent(state, onConnect, onSearch) }
         "logout", "clear" -> {

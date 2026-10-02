@@ -10,8 +10,9 @@ import java.time.ZoneOffset
 
 val imagePattern = Regex("https://[^\\s<>\"]+\\.(?:png|jpe?g|gif|webp|avif)(?:\\?[^\\s<>\"]*)?", RegexOption.IGNORE_CASE)
 
-data class SearchBranch(val filter: JSONObject, val media: String? = null, val site: String? = null) {
+data class SearchBranch(val filter: JSONObject, val media: String? = null, val site: String? = null, val renderedOnly: Boolean = false) {
     fun accepts(event: Nip01Event): Boolean {
+        if (renderedOnly && !event.isRenderable()) return false
         fun values(key: String): List<String> = filter.optJSONArray(key)?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty()
         if (values("ids").isNotEmpty() && event.id !in values("ids")) return false
         if (values("authors").isNotEmpty() && event.pubkey !in values("authors")) return false

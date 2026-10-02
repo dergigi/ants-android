@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Limit search results and loaded thread parents to supported native content types. Exclude encrypted/protocol events, raw JSON payloads, and empty or unsupported media cards while preserving reactions and intentional code snippets.
+- Request supported kinds from relays so unsupported events do not consume result limits. Show only supported shortcuts and examples, and explain unsupported explicit kind searches.
+
+### Fixed
+
+- Never fall back to raw profile JSON when a profile has no bio.
+
 ## [0.6.0] - 2026-10-02
 
 ### Added
