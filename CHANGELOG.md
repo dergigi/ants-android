@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Native slash-command execution, cache clearing, tutorial-event lookup, signer account connection/logout, and @me author/mention searches. Commands are handled locally rather than sent as relay search terms.
+
 - Shared slash-command, example, and kind catalogs; all web kind shortcuts now execute natively, including multi-kind video and media searches.
 
 ## [0.3.0] - 2026-10-02

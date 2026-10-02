@@ -2,6 +2,8 @@ package org.dergigi.ants
 
 import android.app.Application
 import android.net.Uri
+import coil3.SingletonImageLoader
+import java.util.UUID
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
@@ -11,6 +13,8 @@ import org.json.JSONObject
 
 data class Profile(val name: String, val about: String, val picture: String?, val timestamp: Long)
 data class SearchState(
+    val command: String? = null, val commandMessage: String? = null, val commandBusy: Boolean = false,
+    val pubkey: String? = null, val signerRequest: String? = null,
     val query: String = "", val submitted: String = "", val searched: Boolean = false,
     val loading: Boolean = false, val error: String? = null,
     val reactionTargets: Map<String, Nip01Event> = emptyMap(), val loadingReactionTargets: Boolean = false,
@@ -26,10 +30,11 @@ data class SearchState(
 class SearchModel(app: Application) : AndroidViewModel(app) {
     private val preferences = app.getSharedPreferences("ants", 0)
     private val relay = RelaySearch()
-    private val mutable = MutableStateFlow(SearchState(history = load("history"), saved = load("saved"), relays = load("relays").ifEmpty { defaultSearchRelays }))
+    private val mutable = MutableStateFlow(SearchState(pubkey = preferences.getString("pubkey", null)?.let(Nip19::normalizePubkey), history = load("history"), saved = load("saved"), relays = load("relays").ifEmpty { defaultSearchRelays }))
     val state = mutable.asStateFlow()
     private var searchJob: Job? = null
     private var generation = 0
+    private var loginAttempt: String? = null
     private var nextPageId = 0L
     private val backStack = ArrayDeque<SearchState>()
 
@@ -56,14 +61,14 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         val current = state.value
         mutable.value = previous.copy(
             profiles = current.profiles, saved = current.saved, history = current.history,
-            relays = current.relays, backDepth = backStack.size,
+            relays = current.relays, pubkey = current.pubkey, signerRequest = null, commandBusy = false, backDepth = backStack.size,
         )
     }
     private fun rememberPage() {
         val page = state.value
         backStack.addLast(page.copy(
             query = if (page.searched) page.submitted else page.query,
-            followingNewest = false,
+            followingNewest = false, signerRequest = null,
             profiles = emptyMap(), saved = emptyList(), history = emptyList(), relays = emptyList(),
         ))
         // Bound retained results: history is a session convenience, not a disk cache.
@@ -89,21 +94,28 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         if (urls.any { url -> runCatching { val uri = Uri.parse(url); uri.scheme != "wss" || uri.host.isNullOrBlank() || uri.userInfo != null || uri.fragment != null }.getOrDefault(true) }) return "Use secure wss:// relay URLs, one per line."
         persist("relays", urls); mutable.update { it.copy(relays = urls) }; return null
     }
-    fun stop() { generation++; searchJob?.cancel(); mutable.update { it.copy(loading = false, loadingReactionTargets = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
+    fun stop() { generation++; searchJob?.cancel(); mutable.update { it.copy(loading = false, commandBusy = false, loadingReactionTargets = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
     fun home() {
         stop()
         backStack.clear()
-        mutable.update { it.copy(query = "", submitted = "", searched = false, error = null, events = emptyList(), reactionTargets = emptyMap(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", searched = false, error = null, events = emptyList(), reactionTargets = emptyMap(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
     }
     fun search(query: String = state.value.query) {
-        val input = query.trim(); if (input.isBlank()) return
+        val raw = query.trim(); if (raw.isBlank()) return
+        val input = if (raw.startsWith('/')) "/" + raw.drop(1).trim().lowercase() else raw
+        val command = if (input.startsWith('/')) input.drop(1) else null
         stop()
         if (input != state.value.submitted || state.value.detail != null) rememberPage()
         val current = ++generation
-        mutable.update { it.copy(query = input, submitted = input, searched = true, loading = true, error = null, events = emptyList(), reactionTargets = emptyMap(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, searched = true, loading = command == null || command == "tutorial", error = null, events = emptyList(), reactionTargets = emptyMap(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
         searchJob = viewModelScope.launch {
             try {
-                val branches = withContext(Dispatchers.IO) { SearchQuery(relay.http).parse(input) }
+                if (command != null && command != "tutorial") {
+                    runCommand(command, current)
+                    return@launch
+                }
+                val identity = state.value.pubkey
+                val branches = withContext(Dispatchers.IO) { SearchQuery(relay.http, identity).parse(if (command == "tutorial") tutorialPointer else input) }
                 if (current != generation) return@launch
                 val history = (listOf(input) + state.value.history.filter { it != input }).take(20)
                 persist("history", history); mutable.update { it.copy(history = history) }
@@ -146,6 +158,62 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             catch (e: Exception) { if (current == generation) mutable.update { it.copy(loading = false, loadingReactionTargets = false, error = e.message ?: "Search failed. Check your connection and try again.") } }
         }
     }
+    private suspend fun runCommand(command: String, current: Int) {
+        when (command) {
+            "help", "examples", "kinds" -> Unit
+            "login" -> requestLogin()
+            "logout" -> {
+                loginAttempt = null
+                preferences.edit().remove("pubkey").remove("signerPackage").apply()
+                mutable.update { it.copy(pubkey = null, signerRequest = null, commandMessage = "Logged out. Your saved searches and settings are unchanged.") }
+            }
+            "clear" -> {
+                backStack.clear()
+                mutable.update { it.copy(backDepth = 0, profiles = emptyMap(), commandBusy = true, commandMessage = "Clearing cached results, profiles, and images…") }
+                try {
+                    val app = getApplication<Application>()
+                    val loader = SingletonImageLoader.get(app)
+                    loader.memoryCache?.clear()
+                    withContext(Dispatchers.IO) {
+                        loader.diskCache?.clear()
+                        relay.http.cache?.evictAll()
+                        val shared = app.cacheDir.resolve("shared-images")
+                        check(!shared.exists() || shared.deleteRecursively()) { "Some temporary images could not be cleared." }
+                    }
+                    if (current == generation) mutable.update { it.copy(commandBusy = false, commandMessage = "Caches cleared. Your account, saved searches, history, settings, and downloaded pictures are unchanged.") }
+                } catch (e: CancellationException) { throw e }
+                catch (_: Exception) { if (current == generation) mutable.update { it.copy(commandBusy = false, commandMessage = "Some caches could not be cleared. Try /clear again.") } }
+            }
+            else -> mutable.update { it.copy(commandMessage = "Unknown command /$command. Choose a command below.") }
+        }
+    }
+
+    fun requestLogin() {
+        if (state.value.pubkey != null) {
+            mutable.update { it.copy(commandMessage = "Already connected. Use /logout to switch accounts.") }; return
+        }
+        if (loginAttempt != null) return
+        val request = UUID.randomUUID().toString()
+        loginAttempt = request
+        mutable.update { it.copy(signerRequest = request, commandBusy = true, commandMessage = "Approve the connection in your Android signer.") }
+    }
+    fun signerRequestLaunched(id: String) {
+        mutable.update { if (it.signerRequest == id) it.copy(signerRequest = null) else it }
+    }
+    fun finishLogin(value: String?, packageName: String?, responseId: String?, error: String? = null) {
+        val attempt = loginAttempt ?: return
+        if (responseId != null && responseId != attempt) return
+        loginAttempt = null
+        val key = value?.let(Nip19::normalizePubkey)
+        val validPackage = packageName?.takeIf { it.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+")) }
+        if (error != null || key == null || validPackage == null) {
+            mutable.update { it.copy(signerRequest = null, commandBusy = false, commandMessage = error ?: "The signer returned an invalid account. Please try again.") }
+            return
+        }
+        preferences.edit().putString("pubkey", key).putString("signerPackage", validPackage).apply()
+        mutable.update { it.copy(pubkey = key, signerRequest = null, commandBusy = false, commandMessage = "Connected. You can now search by:@me and mentions:@me.") }
+    }
+
     private fun updateProfile(event: Nip01Event) {
         runCatching {
             val json = JSONObject(event.content)
