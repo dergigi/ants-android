@@ -351,7 +351,7 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
                 Icon(Icons.Outlined.Dns, "Nostr event", Modifier.size(14.dp), tint = muted)
             }
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (event.kind != 9802) event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                if (event.kind !in listOf(9802, 30023)) event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
                 if (event.kind == 7) ReactionContent(event)
                 else if (event.kind == 9802) HighlightContent(event, profiles, compact = true, onNavigate = onNavigate)
                 else EventContent(event, profile, profiles, compact = true, onNavigate = onNavigate)
@@ -394,7 +394,7 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
             Column(Modifier.weight(1f).clickable(onClick = onAuthor)) { Text(profile?.name ?: Nip19.npubEncode(event.pubkey).take(24) + "…", fontWeight = FontWeight.Bold); Text("${kindLabel(event.kind)} · ${dateLabel(event.createdAt)}", color = muted, style = MaterialTheme.typography.bodySmall) }
         }
         if (!raw) ThreadContext(event, onNavigate)
-        event.tagValue("title")?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
+        if (raw || event.kind != 30023) event.tagValue("title")?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
         SelectionContainer {
             when {
                 raw -> Text(event.toJsonString(), fontFamily = FontFamily.Monospace)

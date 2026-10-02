@@ -61,6 +61,7 @@ private data class PreparedContent(
 
 @Composable
 internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
+    if (event.kind == 30023) { ArticleContent(event, compact, onNavigate); return }
     val ancestors = LocalQuoteAncestors.current + event.id
     val embedQuotes = ancestors.size <= 2
     val content = if (event.kind == 0) profile?.about?.takeIf { it.isNotBlank() } ?: "Nostr profile" else event.content
