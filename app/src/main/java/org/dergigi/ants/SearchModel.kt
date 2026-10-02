@@ -43,6 +43,10 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         persist("relays", urls); mutable.update { it.copy(relays = urls) }; return null
     }
     fun stop() { generation++; searchJob?.cancel(); mutable.update { it.copy(loading = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
+    fun home() {
+        stop()
+        mutable.update { it.copy(query = "", submitted = "", searched = false, error = null, events = emptyList(), statuses = emptyMap()) }
+    }
     fun search(query: String = state.value.query) {
         val input = query.trim(); if (input.isBlank()) return
         searchJob?.cancel(); val current = ++generation

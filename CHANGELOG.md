@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Return to the start screen by tapping the ant / ants wordmark or pressing Back from results; cancel the active search and reset scroll without losing saved searches or history.
+
 - Draw highlight underlines only on the lines they touch, keeping long passages responsive.
 
 - Stop publishing if certificate proof generation fails, preventing empty signer output from reaching the relay publisher.

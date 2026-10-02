@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -15,6 +16,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +38,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
@@ -47,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -80,10 +85,21 @@ fun AntsApp(model: SearchModel) {
     var selected by remember { mutableStateOf<Nip01Event?>(null) }
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val focus = LocalFocusManager.current
+    fun home() {
+        keyboard?.hide()
+        focus.clearFocus()
+        model.home()
+        scope.launch { listState.scrollToItem(0) }
+    }
+    BackHandler(enabled = state.searched && dialog == null && selected == null) { home() }
+    LaunchedEffect(state.searched, state.submitted) { listState.scrollToItem(0) }
     fun search(value: String = state.query) { keyboard?.hide(); model.search(value) }
     MaterialTheme(colorScheme = darkColorScheme(primary = blue, background = background, surface = background, surfaceVariant = card, onSurfaceVariant = muted)) {
         Scaffold(topBar = {
-            TopAppBar(title = { Row(verticalAlignment = Alignment.CenterVertically) {
+            TopAppBar(title = { Row(Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClickLabel = "Go to home", onClick = { home() }).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(R.drawable.ant), null, Modifier.size(36.dp))
                 Spacer(Modifier.width(9.dp)); Text("ants", fontWeight = FontWeight.Bold, fontSize = 23.sp, fontFamily = FontFamily.Monospace)
             } }, actions = {
@@ -112,7 +128,7 @@ fun AntsApp(model: SearchModel) {
                     }
                     if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
-                LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (!state.searched) {
                         item { Column(Modifier.padding(top = 24.dp, bottom = 18.dp)) {
                             Text("Follow your curiosity.", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
