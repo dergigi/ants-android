@@ -7,17 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- Hide URLs for rendered images in cards and details while preserving captions and ordinary links; show multiple attached images and an open-image fallback on loading failure.
-
-- Keep new searches at the newest result as relays stream in. Queue incoming results while reading so the visible list stays unchanged, with an icon to reveal them and jump to the newest result.
+## [0.2.0] - 2026-10-02
 
 ### Added
 
 - Follow hashtags, Nostr mentions, quoted-note references, web links, and highlight sources into native searches. Source authors also open inside ants.
-
 - In-session search navigation history: Back restores cached results, list position, and open event details without fetching again. The ants logo still returns directly home.
+
+### Fixed
+
+- Keep new searches at the newest result as relays stream in. Queue incoming results while reading so the visible list stays unchanged, with an icon to reveal them and jump to the newest result.
+- Hide URLs for rendered images in cards and details while preserving captions and ordinary links; show multiple attached images and an open-image fallback on loading failure.
+- Handle source URLs containing parentheses and Nostr addresses with empty identifiers.
 
 ## [0.1.1] - 2026-10-02
 
@@ -48,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/dergigi/ants-android/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/dergigi/ants-android/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/dergigi/ants-android/releases/tag/v0.1.0

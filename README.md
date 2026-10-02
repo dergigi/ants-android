@@ -9,14 +9,17 @@ Follow your curiosity. A native Android search and discovery app for Nostr, base
 - Text search across configurable NIP-50 relays, with deduplicated, signature-verified results.
 - Hashtags, author and mention filters, NIP-05 resolution, kinds, date ranges, simple OR queries, and image/video filters.
 - Direct lookup of `npub`, `nprofile`, `note`, `nevent`, `naddr`, and event hex IDs.
-- Profile names and avatars, inline images, full event text, raw JSON, copying and sharing.
+- Profile names and avatars, inline images without duplicate URLs, full event text, raw JSON, copying and sharing.
+- Tappable hashtags, Nostr mentions, quoted-note references, web links, and highlight sources that lead to native searches.
+- Back navigation restores results, scroll position, and event details within the current session; tap the ants logo to return home.
+- New searches stay at the top while results arrive. Scrolling pauses updates to the visible list; tap the new-results icon to reveal queued results.
 - Device-local saved searches and recent history.
 - Receive shared text, `nostr:` links, and `ants.sh` links.
 - Relay status, cancellation, retry, and editable search relays.
 
 Try `bitcoin`, `#asknostr`, `GM by:dergigi`, `p:fiatjaf`, `is:highlight`, `by:name@example.com`, `kind:30023 since:2026-01-01`, or `bitcoin OR lightning`.
 
-The initial release is read-only. It does not include login, posting, zaps, grouped boolean expressions, reverse image search, offline result caching, or pagination. Up to 100 candidates are requested per query per relay, and results are capped at 500. Media filters operate on returned candidates. Search semantics and coverage depend on the relay. Dates use UTC, with `until:` including the specified day. Profile metadata can arrive after results.
+The initial release is read-only. It does not include login, posting, zaps, grouped boolean expressions, reverse image search, persistent offline result caching, or pagination. Navigation history is held in memory (up to 20 prior screens, further bounded by retained content size) and does not survive process termination. Up to 100 candidates are requested per query per relay, and results are capped at 500. Media filters operate on returned candidates. Search semantics and coverage depend on the relay. Dates use UTC, with `until:` including the specified day. Profile metadata can arrive after results.
 
 ## Privacy
 

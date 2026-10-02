@@ -203,6 +203,7 @@ fun AntsApp(model: SearchModel) {
                     Text("Searches go directly to Nostr relays. Text matching depends on each relay's search index.")
                     Text("bitcoin lightning\n\"exact phrase\"\n#asknostr\nby:dergigi\nby:name@example.com\nby:npub1…\nmentions:npub1…\np:alice\nis:note / article / highlight / code\nkind:30023\nsince:2026-01-01\nuntil:2026-10-02\nhas:image / video\nsite:github.com\nbitcoin OR lightning", fontFamily = FontFamily.Monospace, color = blue, fontSize = 13.sp)
                     Text("Paste npub, nprofile, note, nevent, naddr, or an event's hex ID for direct lookup. Share text or ants.sh links to ants from other apps.")
+                    Text("Tap hashtags, mentions, quotes, or source links to keep exploring inside ants. Back restores the previous search and your place. The ants logo returns home. While reading, incoming results wait behind the jump-to-newest icon.")
                     Text("MVP: read-only; no login, posting, zaps, grouped boolean expressions, or reverse image search. Images and video are filtered from returned candidates. Results are capped at 500, with up to 100 requested per query per relay.", color = muted)
                     TextButton(onClick = { openUrl(context, "https://github.com/dergigi/ants-android") }) { Text("Source · v${BuildConfig.VERSION_NAME}") }
                 }
