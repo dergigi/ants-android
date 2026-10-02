@@ -1,19 +1,20 @@
 package org.dergigi.ants
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.*
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.UriHandler
 import com.mikepenz.markdown.annotator.annotatorSettings
 import com.mikepenz.markdown.annotator.buildMarkdownAnnotatedString
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -101,7 +102,16 @@ internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>,
     val style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp)
     val rendered by produceState<Triple<LinkedContent, AnnotatedString, AnnotatedString?>?>(null, event.id, compact, profiles, style) {
         value = withContext(Dispatchers.Default) {
-            fun markdown(text: String) = text.buildMarkdownAnnotatedString(style, settings)
+            fun markdown(text: String): AnnotatedString = try {
+                text.buildMarkdownAnnotatedString(style, settings).takeUnless { it.isEmpty() && text.isNotBlank() }
+                    ?: AnnotatedString(text)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                // A single publisher's Markdown must not cancel the composition's scope.
+                Log.w("HighlightContent", "Unable to format highlight ${event.id}", error)
+                AnnotatedString(text)
+            }
             val passage = passage(markdown(event.content.trim()), markdown(event.tagValue("context").orEmpty()), compact)
             val markdownLinks = passage.text.getLinkAnnotations(0, passage.text.length)
             val linked = linkedContent(passage.text.text, event, profiles, passage.ranges,
@@ -116,7 +126,7 @@ internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>,
                         is LinkAnnotation.Clickable -> addLink(link, range.first, range.last + 1)
                     }
                 } }
-                linked.ranges.forEach { addStyle(SpanStyle(background = highlightGold.copy(alpha = 0.30f), color = Color(0xFFF3F4F6)), it.first, it.last + 1) }
+                linked.ranges.forEach { addStyle(SpanStyle(background = highlightGold.copy(alpha = 0.30f), color = Color(0xFFF3F4F6), textDecoration = TextDecoration.Underline), it.first, it.last + 1) }
             }
             val comment = event.tagValue("comment")?.takeIf { it.isNotBlank() }?.let {
                 val parsed = markdown(it)
@@ -126,25 +136,14 @@ internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>,
         }
     }
     val (linked, styled, comment) = rendered ?: return
-    var layout by remember(styled) { mutableStateOf<TextLayoutResult?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         comment?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium)
             HorizontalDivider(color = Color(0xFF3D3D3D))
         }
         Text(styled, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp),
-            onTextLayout = { layout = it }, modifier = Modifier.fillMaxWidth().drawBehind {
-                layout?.let { result ->
-                    for (range in linked.ranges) for (line in result.getLineForOffset(range.first)..result.getLineForOffset(range.last)) {
-                        val start = maxOf(range.first, result.getLineStart(line))
-                        val end = minOf(range.last + 1, result.getLineEnd(line, visibleEnd = true))
-                        if (start < end) {
-                            val first = result.getBoundingBox(start); val last = result.getBoundingBox(end - 1)
-                            drawLine(highlightGold, Offset(minOf(first.left, last.left), first.bottom - 1.dp.toPx()), Offset(maxOf(first.right, last.right), first.bottom - 1.dp.toPx()), strokeWidth = 1.dp.toPx())
-                        }
-                    }
-                }
-            })
+            modifier = Modifier.fillMaxWidth())
+
         val source = remember(event.id) { highlightSource(event) }
         val author = highlightAuthor(event)
         if (source != null) {
