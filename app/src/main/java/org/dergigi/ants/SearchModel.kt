@@ -177,7 +177,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     if (current != generation) return@launch
                     mutable.update { it.copy(loadingReactionTargets = false) }
                 }
-                val authors = (state.value.events + state.value.pendingEvents + state.value.reactionTargets.values).flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) }.distinct().filter { it !in state.value.profiles }.take(200)
+                val authors = (state.value.events + state.value.pendingEvents + state.value.reactionTargets.values).flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) + linkedProfileKeys(it) }.distinct().filter { it !in state.value.profiles }.take(200)
                 if (authors.isNotEmpty()) {
                     val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
                     relay.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000).flowOn(Dispatchers.IO).collect {
@@ -265,8 +265,9 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                         }
                     }
                 val parent = state.value.reactionTargets[id]
-                if (current == generation && parent != null && parent.pubkey !in state.value.profiles) {
-                    val profileFilter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray().put(parent.pubkey)).put("limit", 1)
+                val authors = parent?.let { (listOfNotNull(it.pubkey, highlightAuthor(it)) + linkedProfileKeys(it)).distinct().filter { key -> key !in state.value.profiles } }.orEmpty()
+                if (current == generation && authors.isNotEmpty()) {
+                    val profileFilter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
                     relay.search(listOf(SearchBranch(profileFilter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000)
                         .flowOn(Dispatchers.IO).collect { if (current == generation && it is RelayUpdate.Event) updateProfile(it.event) }
                 }

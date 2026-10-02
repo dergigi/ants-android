@@ -82,7 +82,7 @@ internal fun ThreadContext(event: Nip01Event, onNavigate: (String) -> Unit) {
                     when (parent.kind) {
                         7 -> ReactionContent(parent)
                         9802 -> HighlightContent(parent, state.profiles, compact = true, onNavigate = onNavigate)
-                        else -> EventContent(parent, state.profiles[parent.pubkey], compact = true, onNavigate = onNavigate)
+                        else -> EventContent(parent, state.profiles[parent.pubkey], state.profiles, compact = true, onNavigate = onNavigate)
                     }
                 }
                 HorizontalDivider(color = Color(0xFF3D3D3D))

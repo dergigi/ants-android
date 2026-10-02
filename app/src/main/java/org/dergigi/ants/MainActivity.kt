@@ -341,7 +341,7 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
                 if (event.kind != 9802) event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
                 if (event.kind == 7) ReactionContent(event)
                 else if (event.kind == 9802) HighlightContent(event, profiles, compact = true, onNavigate = onNavigate)
-                else EventContent(event, profile, compact = true, onNavigate = onNavigate)
+                else EventContent(event, profile, profiles, compact = true, onNavigate = onNavigate)
             }
             HorizontalDivider(color = Color(0xFF3D3D3D))
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -387,7 +387,7 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
                 raw -> Text(event.toJsonString(), fontFamily = FontFamily.Monospace)
                 event.kind == 7 -> ReactionContent(event)
                 event.kind == 9802 -> HighlightContent(event, profiles, compact = false, onNavigate = onNavigate)
-                else -> EventContent(event, profile, compact = false, onNavigate = onNavigate)
+                else -> EventContent(event, profile, profiles, compact = false, onNavigate = onNavigate)
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {

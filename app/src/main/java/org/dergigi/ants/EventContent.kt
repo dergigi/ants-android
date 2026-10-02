@@ -50,7 +50,7 @@ internal fun withoutRenderedImages(content: String, images: List<String>): Strin
 }
 
 @Composable
-internal fun EventContent(event: Nip01Event, profile: Profile?, compact: Boolean, onNavigate: (String) -> Unit) {
+internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
     val galleryImages = remember(event.id) { eventImages(event, compact = false) }
     val images = remember(galleryImages, compact) { galleryImages.take(if (compact) 4 else 20) }
     val videos = remember(event.id, compact) { eventVideos(event).take(if (compact) 4 else 20) }
@@ -59,7 +59,7 @@ internal fun EventContent(event: Nip01Event, profile: Profile?, compact: Boolean
     val text = remember(content, galleryImages, videos) { withoutRenderedImages(content, galleryImages + videos.map { it.url }) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val currentNavigate by rememberUpdatedState(onNavigate)
-        val linked = remember(text, event.id) { linkedText(text, event) { currentNavigate(it) } }
+        val linked = remember(text, event.id, profiles) { linkedText(text, event, profiles) { currentNavigate(it) } }
         if (text.isNotBlank()) CustomEmojiText(linked, event, maxLines = if (compact) 9 else Int.MAX_VALUE, emojiSize = 20.sp,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp, fontFamily = if (event.kind == 1337) FontFamily.Monospace else FontFamily.Default))
         else if (images.isEmpty() && videos.isEmpty()) Text("Open event to inspect its tags.", color = MaterialTheme.colorScheme.onSurfaceVariant)

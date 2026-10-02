@@ -88,20 +88,21 @@ private fun highlightSource(event: Nip01Event): HighlightSource? {
 internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
     val passage = remember(event.id, compact) { passage(event, compact) }
     val currentNavigate by rememberUpdatedState(onNavigate)
-    val styled = remember(passage) { buildAnnotatedString {
-        append(linkedText(passage.text.ifBlank { "Empty highlight" }, event) { currentNavigate(it) })
-        passage.ranges.forEach { addStyle(SpanStyle(background = highlightGold.copy(alpha = 0.30f), color = Color(0xFFF3F4F6)), it.first, it.last + 1) }
+    val linked = remember(passage, profiles) { linkedContent(passage.text.ifBlank { "Empty highlight" }, event, profiles, passage.ranges) { currentNavigate(it) } }
+    val styled = remember(linked) { buildAnnotatedString {
+        append(linked.text)
+        linked.ranges.forEach { addStyle(SpanStyle(background = highlightGold.copy(alpha = 0.30f), color = Color(0xFFF3F4F6)), it.first, it.last + 1) }
     } }
     var layout by remember(styled) { mutableStateOf<TextLayoutResult?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         event.tagValue("comment")?.takeIf { it.isNotBlank() }?.let {
-            Text(linkedText(if (compact) it.take(600) else it, event, onNavigate), style = MaterialTheme.typography.bodyMedium)
+            Text(linkedText(if (compact) it.take(600) else it, event, profiles, onNavigate), style = MaterialTheme.typography.bodyMedium)
             HorizontalDivider(color = Color(0xFF3D3D3D))
         }
         Text(styled, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp),
             onTextLayout = { layout = it }, modifier = Modifier.fillMaxWidth().drawBehind {
                 layout?.let { result ->
-                    for (range in passage.ranges) for (line in result.getLineForOffset(range.first)..result.getLineForOffset(range.last)) {
+                    for (range in linked.ranges) for (line in result.getLineForOffset(range.first)..result.getLineForOffset(range.last)) {
                         val start = maxOf(range.first, result.getLineStart(line))
                         val end = minOf(range.last + 1, result.getLineEnd(line, visibleEnd = true))
                         if (start < end) {
