@@ -100,42 +100,53 @@ internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>,
     } }
     val settings = annotatorSettings(uriHandler = uriHandler)
     val style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp)
-    val rendered by produceState<Triple<LinkedContent, AnnotatedString, AnnotatedString?>?>(null, event.id, compact, profiles, style) {
+    val rendered by produceState<Pair<AnnotatedString, AnnotatedString?>?>(null, event.id, compact, profiles, style) {
         value = withContext(Dispatchers.Default) {
-            fun markdown(text: String): AnnotatedString = try {
-                text.buildMarkdownAnnotatedString(style, settings).takeUnless { it.isEmpty() && text.isNotBlank() }
-                    ?: AnnotatedString(text)
+            try {
+                fun markdown(text: String): AnnotatedString = try {
+                    text.buildMarkdownAnnotatedString(style, settings).takeUnless { it.isEmpty() && text.isNotBlank() }
+                        ?: AnnotatedString(text)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    // A single publisher's Markdown must not cancel the composition's scope.
+                    Log.w("HighlightContent", "Unable to format highlight ${event.id}", error)
+                    AnnotatedString(text)
+                }
+                val passage = passage(markdown(event.content.trim()), markdown(event.tagValue("context").orEmpty()), compact)
+                val markdownLinks = passage.text.getLinkAnnotations(0, passage.text.length)
+                val linked = linkedContent(passage.text.text, event, profiles, passage.ranges,
+                    protectedRanges = markdownLinks.map { it.start until it.end }) { currentNavigate(it) }
+                val styled = buildAnnotatedString {
+                    append(linked.text)
+                    passage.text.spanStyles.forEach { span -> linked.mapRange(span.start, span.end)?.let { addStyle(span.item, it.first, it.last + 1) } }
+                    passage.text.paragraphStyles.forEach { span -> linked.mapRange(span.start, span.end)?.let { addStyle(span.item, it.first, it.last + 1) } }
+                    markdownLinks.forEach { span -> linked.mapRange(span.start, span.end)?.let { range ->
+                        when (val link = span.item) {
+                            is LinkAnnotation.Url -> addLink(link, range.first, range.last + 1)
+                            is LinkAnnotation.Clickable -> addLink(link, range.first, range.last + 1)
+                        }
+                    } }
+                    linked.ranges.forEach { addStyle(SpanStyle(background = highlightGold.copy(alpha = 0.30f), color = Color(0xFFF3F4F6), textDecoration = TextDecoration.Underline), it.first, it.last + 1) }
+                }
+                val comment = event.tagValue("comment")?.takeIf { it.isNotBlank() }?.let {
+                    val parsed = markdown(it)
+                    if (compact && parsed.length > 600) parsed.subSequence(0, 600) + AnnotatedString("…") else parsed
+                }
+                styled to comment
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                // A single publisher's Markdown must not cancel the composition's scope.
-                Log.w("HighlightContent", "Unable to format highlight ${event.id}", error)
-                AnnotatedString(text)
+                // Formatting and remapping remote annotations are also fallible.
+                Log.w("HighlightContent", "Unable to render highlight ${event.id}", error)
+                val raw = event.content.trim().let { if (compact && it.length > 1400) it.take(1400) + "…" else it }
+                AnnotatedString(raw, SpanStyle(background = highlightGold.copy(alpha = 0.30f),
+                    color = Color(0xFFF3F4F6), textDecoration = TextDecoration.Underline)) to
+                    event.tagValue("comment")?.takeIf(String::isNotBlank)?.let { AnnotatedString(if (compact) it.take(600) else it) }
             }
-            val passage = passage(markdown(event.content.trim()), markdown(event.tagValue("context").orEmpty()), compact)
-            val markdownLinks = passage.text.getLinkAnnotations(0, passage.text.length)
-            val linked = linkedContent(passage.text.text, event, profiles, passage.ranges,
-                protectedRanges = markdownLinks.map { it.start until it.end }) { currentNavigate(it) }
-            val styled = buildAnnotatedString {
-                append(linked.text)
-                passage.text.spanStyles.forEach { span -> linked.mapRange(span.start, span.end)?.let { addStyle(span.item, it.first, it.last + 1) } }
-                passage.text.paragraphStyles.forEach { span -> linked.mapRange(span.start, span.end)?.let { addStyle(span.item, it.first, it.last + 1) } }
-                markdownLinks.forEach { span -> linked.mapRange(span.start, span.end)?.let { range ->
-                    when (val link = span.item) {
-                        is LinkAnnotation.Url -> addLink(link, range.first, range.last + 1)
-                        is LinkAnnotation.Clickable -> addLink(link, range.first, range.last + 1)
-                    }
-                } }
-                linked.ranges.forEach { addStyle(SpanStyle(background = highlightGold.copy(alpha = 0.30f), color = Color(0xFFF3F4F6), textDecoration = TextDecoration.Underline), it.first, it.last + 1) }
-            }
-            val comment = event.tagValue("comment")?.takeIf { it.isNotBlank() }?.let {
-                val parsed = markdown(it)
-                if (compact && parsed.length > 600) parsed.subSequence(0, 600) + AnnotatedString("…") else parsed
-            }
-            Triple(linked, styled, comment)
         }
     }
-    val (linked, styled, comment) = rendered ?: return
+    val (styled, comment) = rendered ?: return
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         comment?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium)

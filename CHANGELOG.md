@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Harden highlight rendering against Markdown and annotation failures with a readable fallback. Use native underline spans instead of manual text-layout offset drawing when search results appear or profile mentions update.
+
 ## [0.14.1] - 2026-10-02
 
 ### Fixed
