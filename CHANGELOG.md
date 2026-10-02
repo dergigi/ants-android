@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Replace the home-screen tagline with Search Nostr and remove promotional copy from the app and description.
+
 - Use a single magnifying-glass search button instead of a submit arrow and decorative search icon.
 
 ### Removed

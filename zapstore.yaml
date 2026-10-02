@@ -4,7 +4,7 @@ release_notes: ./CHANGELOG.md
 name: ants
 summary: Advanced Nostr text search, native on Android
 description: |
-  Advanced Nostr Text Search. ants is a minimal, curiosity-driven way to explore Nostr: search notes, people, and ideas, then follow the conversation wherever it leads. No clutter, no account required.
+  Advanced Nostr Text Search. A minimal way to search notes, people, and ideas on Nostr. No account required.
 tags:
   - nostr
   - search

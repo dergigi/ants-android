@@ -224,16 +224,14 @@ fun AntsApp(model: SearchModel) {
                     commandItems(state, onSearch = { search(it) }, onConnect = model::requestLogin)
                     if (!state.searched) {
                         item { Column(Modifier.padding(top = 24.dp, bottom = 18.dp)) {
-                            Text("Follow your curiosity.", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(12.dp))
-                            Text("Advanced Nostr text search.\nFind notes, people, and rabbit holes.", color = muted, style = MaterialTheme.typography.bodyLarge)
+                            Text("Search Nostr", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
                         } }
                         items(examples) { query -> CommandRow(query) { search(it) } }
                         if (state.history.isNotEmpty()) {
                             item { Row(verticalAlignment = Alignment.CenterVertically) { Text("RECENT SEARCHES", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelSmall); ActionIcon(Icons.Outlined.DeleteOutline, "Clear recent searches", model::clearHistory) } }
                             items(state.history) { q -> Text(q, Modifier.fillMaxWidth().clickable { search(q) }.padding(12.dp), color = blue) }
                         }
-                        item { Text("No account needed. Stay curious.\nv${BuildConfig.VERSION_NAME}", Modifier.fillMaxWidth().padding(vertical = 16.dp), color = muted, style = MaterialTheme.typography.bodySmall) }
+                        item { Text("v${BuildConfig.VERSION_NAME}", Modifier.fillMaxWidth().padding(vertical = 16.dp), color = muted, style = MaterialTheme.typography.bodySmall) }
                     }
                     state.error?.let { error -> item { MessageCard("Couldn't search", error) } }
                     if (state.searched && (state.command == null || state.command == "tutorial") && !state.loading && state.events.isEmpty() && state.error == null) {

@@ -1,6 +1,6 @@
 # ants for Android
 
-Follow your curiosity. A native Android search and discovery app for Nostr, based on [ants](https://github.com/dergigi/ants). Kotlin, Jetpack Compose, direct relay connections. No account required.
+A native Android search and discovery app for Nostr, based on [ants](https://github.com/dergigi/ants). Kotlin, Jetpack Compose, direct relay connections. No account required.
 
 [Get it on Zapstore](https://zapstore.dev/apps/org.dergigi.ants) · [Download APK](https://github.com/dergigi/ants-android/releases)
 
