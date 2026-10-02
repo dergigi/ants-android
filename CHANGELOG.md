@@ -15,4 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Native dark interface with result details, images, profile names, sharing, raw event inspection, saved searches, and local search history.
 - Editable search relays, connection status, search cancellation, and incoming shared text / Nostr links.
 
+### Fixed
+
+- Validate malformed Nostr identifiers and correctly verify events containing JSON control characters.
+- Require configured signing credentials when building release artifacts.
+
 [Unreleased]: https://github.com/dergigi/ants-android/commits/main

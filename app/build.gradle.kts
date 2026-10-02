@@ -51,6 +51,10 @@ android {
             !keyPassword.isNullOrBlank() &&
             file(storeFilePath).exists()
 
+    if (gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }) {
+        check(hasReleaseSigning) { "Release signing is required. Configure OEM signing properties in local.properties." }
+    }
+
     if (hasReleaseSigning) {
         signingConfigs {
             create("release") {

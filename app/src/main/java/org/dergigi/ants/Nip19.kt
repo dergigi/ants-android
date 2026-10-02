@@ -134,10 +134,11 @@ object Nip19 {
             val type = data[i].toInt() and 0xFF
             val len = data[i + 1].toInt() and 0xFF
             i += 2
-            if (i + len > data.size) break
+            require(i + len <= data.size) { "Truncated Nostr identifier" }
             out.getOrPut(type) { mutableListOf() }.add(data.copyOfRange(i, i + len))
             i += len
         }
+        require(i == data.size) { "Truncated Nostr identifier" }
         return out
     }
 
@@ -183,6 +184,7 @@ object Nip19 {
     }
 
     private fun bech32Decode(str: String): Pair<String, ByteArray> {
+        require(str == str.lowercase() || str == str.uppercase()) { "Mixed-case bech32 string" }
         val lower = str.lowercase()
         val pos = lower.lastIndexOf('1')
         require(pos >= 1) { "Invalid bech32 string" }
@@ -190,6 +192,7 @@ object Nip19 {
         val dataStr = lower.substring(pos + 1)
         require(dataStr.length >= 6) { "Bech32 data too short" }
         val values = IntArray(dataStr.length) { i ->
+            require(dataStr[i].code < charsetRev.size) { "Invalid bech32 character" }
             val v = charsetRev[dataStr[i].code]
             require(v != -1) { "Invalid bech32 character" }
             v
@@ -229,6 +232,7 @@ object Nip19 {
                 ret.add(((acc shr bits) and maxv).toByte())
             }
         }
+        if (!pad) require(bits < fromBits && ((acc shl (toBits - bits)) and maxv) == 0) { "Invalid bech32 padding" }
         if (pad && bits > 0) ret.add(((acc shl (toBits - bits)) and maxv).toByte())
         return ret.toByteArray()
     }

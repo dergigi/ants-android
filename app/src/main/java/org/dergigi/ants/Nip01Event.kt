@@ -224,7 +224,7 @@ data class Nip01Event(
                     '\n' -> append("\\n")
                     '\r' -> append("\\r")
                     '\t' -> append("\\t")
-                    else -> append(c)
+                    else -> if (c.code < 0x20) append("\\u%04x".format(c.code)) else append(c)
                 }
             }
         }
@@ -234,7 +234,7 @@ data class Nip01Event(
             for (c in value) {
                 count += when (c) {
                     '\\', '"', '\b', '\u000c', '\n', '\r', '\t' -> 2L
-                    else -> 1L
+                    else -> if (c.code < 0x20) 6L else 1L
                 }
             }
             return count
