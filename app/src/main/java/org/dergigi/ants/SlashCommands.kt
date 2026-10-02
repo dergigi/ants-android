@@ -62,6 +62,10 @@ internal val searchExamples = listOf(
     SearchExample("is:article bitcoin", "Long-form articles", "Kinds"),
     SearchExample("is:code", "Code snippets", "Kinds"),
     SearchExample("kind:0 OR kind:1", "Numeric kinds", "Kinds"),
+    SearchExample("ants since:2w", "Recent notes", "Dates"),
+    SearchExample("nostr until:3d", "Older notes", "Dates"),
+    SearchExample("GM by:dergigi since:12h", "Recent GM notes", "Dates"),
+    SearchExample("since:1m until:1w", "Relative date range", "Dates"),
     SearchExample("hello since:2021-01-01 until:2021-12-31", "A full date range (UTC)", "Dates"),
     SearchExample("GM by:dergigi since:2024-01-01 until:2024-03-31", "An author's events in a date range", "Dates"),
 )
