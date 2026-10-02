@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.*
 
-internal data class SearchLink(val start: Int, val end: Int, val query: String)
+internal data class SearchLink(val start: Int, val end: Int, val query: String, val url: String? = null)
 private val hexId = Regex("[0-9a-fA-F]{64}")
 private val pointer = Regex("(?i)(?<![a-z0-9])(?:nostr:|@)?(?:npub1|nprofile1|note1|nevent1|naddr1)[a-z0-9]+")
 private val hashtag = Regex("(?<![\\p{L}\\p{N}_/#])#[\\p{L}\\p{N}_]+")
@@ -51,7 +51,7 @@ internal fun contentLinks(content: String, event: Nip01Event): List<SearchLink> 
     val urls = webLinks(content)
     // URL fragments and path hashtags must not become separate hashtag searches.
     fun overlaps(start: Int, end: Int) = urls.any { start < it.end && end > it.start } || links.any { start < it.end && end > it.start }
-    urls.forEach { links.add(SearchLink(it.start, it.end, urlQuery(it.text))) }
+    urls.forEach { links.add(SearchLink(it.start, it.end, urlQuery(it.text), url = it.text)) }
     pointer.findAll(content).forEach { match ->
         if (!overlaps(match.range.first, match.range.last + 1)) pointerQuery(match.value)?.let { links.add(SearchLink(match.range.first, match.range.last + 1, it)) }
     }
@@ -96,7 +96,7 @@ internal fun linkedContent(text: String, event: Nip01Event, profiles: Map<String
                 "@" + (name?.takeIf(String::isNotBlank) ?: Nip19.npubEncode(it).let { npub -> npub.take(12) + "…" + npub.takeLast(6) })
             } ?: text.substring(link.start, link.end)
             val begin = length
-            withLink(LinkAnnotation.Clickable(link.query, style) { onNavigate(link.query) }) { append(label) }
+            withLink(LinkAnnotation.Clickable(link.url ?: link.query, style) { onNavigate(link.url ?: link.query) }) { append(label) }
             for (i in link.start until link.end) {
                 starts[i] = if (key == null) begin + i - link.start else begin
                 ends[i] = if (key == null) begin + i - link.start else if (i == link.start) begin else length

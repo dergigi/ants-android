@@ -119,7 +119,7 @@ internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>,
             Text(buildAnnotatedString {
                 append("Highlight from ")
                 if (source.label in listOf("blog post", "nostr post")) append("a ")
-                withLink(LinkAnnotation.Clickable(source.query, linkStyle) { onNavigate(urlQuery(source.query)) }) { append(source.label) }
+                withLink(LinkAnnotation.Clickable(source.query, linkStyle) { onNavigate(source.query) }) { append(source.label) }
                 if (author != null) {
                     append(" by ")
                     withLink(LinkAnnotation.Clickable(author, linkStyle) { onNavigate("by:${Nip19.npubEncode(author)}") }) { append(profiles[author]?.name ?: "${Nip19.npubEncode(author).take(12)}…") }
