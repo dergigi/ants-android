@@ -196,11 +196,11 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 loginAttempt = null
                 accountProfileJob?.cancel()
                 preferences.edit().remove("pubkey").remove("signerPackage").apply()
-                mutable.update { it.copy(pubkey = null, signerRequest = null, commandMessage = "Logged out. Your saved searches and settings are unchanged.") }
+                mutable.update { it.copy(pubkey = null, signerRequest = null, commandMessage = "Logged out.") }
             }
             "clear" -> {
                 backStack.clear()
-                mutable.update { it.copy(backDepth = 0, profiles = emptyMap(), commandBusy = true, commandMessage = "Clearing cached results, profiles, and images…") }
+                mutable.update { it.copy(backDepth = 0, profiles = emptyMap(), commandBusy = true, commandMessage = "Clearing cache…") }
                 try {
                     val app = getApplication<Application>()
                     val loader = SingletonImageLoader.get(app)
@@ -211,17 +211,17 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                         val shared = app.cacheDir.resolve("shared-images")
                         check(!shared.exists() || shared.deleteRecursively()) { "Some temporary images could not be cleared." }
                     }
-                    if (current == generation) mutable.update { it.copy(commandBusy = false, commandMessage = "Caches cleared. Your account, saved searches, history, settings, and downloaded pictures are unchanged.") }
+                    if (current == generation) mutable.update { it.copy(commandBusy = false, commandMessage = "Cache cleared.") }
                 } catch (e: CancellationException) { throw e }
                 catch (_: Exception) { if (current == generation) mutable.update { it.copy(commandBusy = false, commandMessage = "Some caches could not be cleared. Try /clear again.") } }
             }
-            else -> mutable.update { it.copy(commandMessage = "Unknown command /$command. Choose a command below.") }
+            else -> mutable.update { it.copy(commandMessage = "Unknown command /$command.") }
         }
     }
 
     fun requestLogin() {
         if (state.value.pubkey != null) {
-            mutable.update { it.copy(commandMessage = "Already connected. Use /logout to switch accounts.") }; return
+            mutable.update { it.copy(commandMessage = "Connected.") }; return
         }
         if (loginAttempt != null) return
         val request = UUID.randomUUID().toString()
@@ -242,7 +242,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             return
         }
         preferences.edit().putString("pubkey", key).putString("signerPackage", validPackage).apply()
-        mutable.update { it.copy(pubkey = key, signerRequest = null, commandBusy = false, commandMessage = "Connected. You can now search by:@me and mentions:@me.") }
+        mutable.update { it.copy(pubkey = key, signerRequest = null, commandBusy = false, commandMessage = "Connected.") }
         refreshAccountProfile()
     }
 
