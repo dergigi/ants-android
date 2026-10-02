@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-10-02
+
 ### Fixed
 
 - Fix the immediate crash when rendering highlights (including `is:highlight "proof of work"`). Standalone highlight cards now supply their Markdown styles explicitly instead of reading missing Markdown composition locals.
@@ -263,7 +265,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.15.1...HEAD
+[0.15.1]: https://github.com/dergigi/ants-android/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/dergigi/ants-android/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/dergigi/ants-android/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/dergigi/ants-android/compare/v0.13.1...v0.14.0
