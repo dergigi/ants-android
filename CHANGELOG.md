@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-02
+
+### Added
+
+- Render quoted note and article references as embedded cards, with deduplication, author metadata, retry, and full-note navigation. Fetch only displayed embeds, limit concurrent requests and nesting, and honor secure relay hints.
+- Render long-form articles with Markdown headings, lists, quotes, code, tables, links, cover images, and gallery-enabled inline images. Use compact feed previews and open the full article in details.
+- Link the footer version to its matching GitHub release.
+
+### Changed
+
+- Bring the search field, separate search button, and terminal-style help panel closer to the web app.
+- Make the toolbar help icon execute /help directly. Help shows commands and version information, without random example searches.
+
+### Fixed
+
+- Give footer action icons equal-width slots and consistent separation from the timestamp.
+
 ## [0.10.2] - 2026-10-02
 
 ### Added
@@ -178,7 +195,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.10.2...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/dergigi/ants-android/compare/v0.10.2...v0.11.0
 [0.10.2]: https://github.com/dergigi/ants-android/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/dergigi/ants-android/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/dergigi/ants-android/compare/v0.9.0...v0.10.0
