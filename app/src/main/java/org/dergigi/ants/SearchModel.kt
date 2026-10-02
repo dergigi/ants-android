@@ -81,7 +81,12 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         val a = JSONArray(preferences.getString(key, "[]")); (0 until a.length()).map { a.getString(it) }
     }.getOrDefault(emptyList())
     private fun persist(key: String, values: List<String>) { preferences.edit().putString(key, JSONArray(values).toString()).apply() }
-    fun edit(value: String) { mutable.update { it.copy(query = value) } }
+    private fun containsSecret(value: String) = Regex("(?i)\\b(?:nsec1|ncryptsec1)[a-z0-9]*").containsMatchIn(value)
+    private fun rejectSecret() { mutable.update { it.copy(query = "", error = "Private keys aren't accepted. Use /login with an external signer.") } }
+    fun edit(value: String) {
+        if (containsSecret(value)) { rejectSecret(); return }
+        mutable.update { it.copy(query = value, error = null) }
+    }
     fun clearHistory() { persist("history", emptyList()); mutable.update { it.copy(history = emptyList()) } }
     fun toggleSaved(query: String) {
         val value = query.trim(); if (value.isEmpty()) return
@@ -102,6 +107,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     }
     fun search(query: String = state.value.query) {
         val raw = query.trim(); if (raw.isBlank()) return
+        if (containsSecret(raw)) { rejectSecret(); return }
         val input = if (raw.startsWith('/')) "/" + raw.drop(1).trim().lowercase() else raw
         val command = if (input.startsWith('/')) input.drop(1) else null
         stop()

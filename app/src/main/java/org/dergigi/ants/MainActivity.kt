@@ -1,6 +1,9 @@
 package org.dergigi.ants
 
+import android.app.Activity
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
@@ -88,6 +91,29 @@ fun AntsApp(model: SearchModel) {
     val selected = state.detail
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
+    val signerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val data = result.data
+        val error = when {
+            result.resultCode != Activity.RESULT_OK -> "Connection cancelled or signer unavailable. You can try again."
+            data?.getBooleanExtra("rejected", false) == true -> "Connection declined in your signer."
+            else -> null
+        }
+        model.finishLogin(data?.getStringExtra("result") ?: data?.getStringExtra("signature"), data?.getStringExtra("package"), data?.getStringExtra("id"), error)
+    }
+    LaunchedEffect(state.signerRequest) {
+        state.signerRequest?.let { id ->
+            model.signerRequestLaunched(id)
+            try {
+                signerLauncher.launch(Intent(Intent.ACTION_VIEW, Uri.parse("nostrsigner:")).apply {
+                    putExtra("type", "get_public_key")
+                    putExtra("id", id)
+                    putExtra("permissions", "[]")
+                })
+            } catch (_: Exception) {
+                model.finishLogin(null, null, id, "No Android signer could be opened. Install Amber or another compatible signer, then try again.")
+            }
+        }
+    }
     val listState = remember(state.pageId) { LazyListState(state.scrollIndex, state.scrollOffset) }
     LaunchedEffect(listState) {
         val pageId = state.pageId
@@ -153,7 +179,7 @@ fun AntsApp(model: SearchModel) {
                     } },
                     singleLine = true, shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { search() }))
-                if (state.searched) {
+                if (state.searched && (state.command == null || state.command == "tutorial")) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(if (state.loading) "Searching… ${state.events.size} results" else "${state.events.size} results · newest first", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
                         if (state.pendingEvents.isNotEmpty()) {
@@ -166,9 +192,13 @@ fun AntsApp(model: SearchModel) {
                     if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
                 LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    commandItems(state, onSearch = { search(it) }, onConnect = model::requestLogin)
                     if (!state.searched) {
                         item { Column(Modifier.padding(top = 24.dp, bottom = 18.dp)) {
-                            Text("Follow your curiosity.", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Follow your curiosity.", Modifier.weight(1f), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                                ActionIcon(if (state.pubkey == null) Icons.Outlined.PersonOutline else Icons.Outlined.AccountCircle, if (state.pubkey == null) "Connect signer" else "Connected account", { search("/login") }, selected = state.pubkey != null)
+                            }
                             Spacer(Modifier.height(12.dp))
                             Text("Advanced Nostr text search.\nFind notes, people, and rabbit holes.", color = muted, style = MaterialTheme.typography.bodyLarge)
                         } }
@@ -180,6 +210,7 @@ fun AntsApp(model: SearchModel) {
                                 }
                             }
                         }
+                        item { CommandRow("/examples", "More searches to explore", onSearch = { search(it) }) }
                         if (state.history.isNotEmpty()) {
                             item { Row(verticalAlignment = Alignment.CenterVertically) { Text("RECENT SEARCHES", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelSmall); ActionIcon(Icons.Outlined.DeleteOutline, "Clear recent searches", model::clearHistory) } }
                             items(state.history) { q -> Text(q, Modifier.fillMaxWidth().clickable { search(q) }.padding(12.dp), color = blue) }
@@ -187,7 +218,7 @@ fun AntsApp(model: SearchModel) {
                         item { Text("No account needed. Stay curious.\nv${BuildConfig.VERSION_NAME}", Modifier.fillMaxWidth().padding(vertical = 16.dp), color = muted, style = MaterialTheme.typography.bodySmall) }
                     }
                     state.error?.let { error -> item { MessageCard("Couldn't search", error) } }
-                    if (state.searched && !state.loading && state.events.isEmpty() && state.error == null) {
+                    if (state.searched && (state.command == null || state.command == "tutorial") && !state.loading && state.events.isEmpty() && state.error == null) {
                         item { MessageCard("No results yet", "Try fewer filters, another keyword, or different search relays. Relay coverage varies.") }
                     }
                     items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], state.profiles, state.reactionTargets, state.loadingReactionTargets, onNavigate = { search(it) }, onOpen = { model.openDetail(event) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
@@ -201,12 +232,7 @@ fun AntsApp(model: SearchModel) {
         when (dialog) {
             "help" -> AlertDialog(onDismissRequest = { dialog = null }, title = { Text("Search help") }, text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Searches go directly to Nostr relays. Text matching depends on each relay's search index.")
-                    Text("bitcoin lightning\n\"exact phrase\"\n#asknostr\nby:dergigi\nby:name@example.com\nby:npub1…\nmentions:npub1…\np:alice\nis:note / article / highlight / code\nkind:30023\nsince:2026-01-01\nuntil:2026-10-02\nhas:image / video\nsite:github.com\nbitcoin OR lightning", fontFamily = FontFamily.Monospace, color = blue, fontSize = 13.sp)
-                    Text("Paste npub, nprofile, note, nevent, naddr, or an event's hex ID for direct lookup. Share text or ants.sh links to ants from other apps.")
-                    Text("Reactions stay in search results and show what was reacted to. Tap the referenced post to open it inside ants, or use is:reaction / kind:7 to search reactions specifically.")
-                    Text("Tap hashtags, mentions, quotes, or source links to keep exploring inside ants. Back restores the previous search and your place. The ants logo returns home. While reading, incoming results wait behind the jump-to-newest icon.")
-                    Text("MVP: read-only; no login, posting, zaps, grouped boolean expressions, or reverse image search. Images and video are filtered from returned candidates. Results are capped at 500, with up to 100 requested per query per relay.", color = muted)
+                    HelpContent(state) { query -> dialog = null; search(query) }
                     TextButton(onClick = { openUrl(context, "https://github.com/dergigi/ants-android") }) { Text("Source · v${BuildConfig.VERSION_NAME}") }
                 }
             }, confirmButton = { TextButton(onClick = { dialog = null }) { Text("Got it") } })
