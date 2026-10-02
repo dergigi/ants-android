@@ -8,6 +8,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -19,6 +21,7 @@ data class SearchState(
     val query: String = "", val submitted: String = "", val searched: Boolean = false,
     val loading: Boolean = false, val rankedProfiles: Boolean = false, val error: String? = null,
     val loadingParents: Set<String> = emptySet(), val failedParents: Set<String> = emptySet(),
+    val quotes: Map<String, Nip01Event> = emptyMap(), val loadingQuotes: Set<String> = emptySet(), val failedQuotes: Set<String> = emptySet(),
     val reactionTargets: Map<String, Nip01Event> = emptyMap(), val loadingReactionTargets: Boolean = false,
     val pageId: Long = 0, val backDepth: Int = 0,
     val scrollIndex: Int = 0, val scrollOffset: Int = 0,
@@ -36,6 +39,8 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     val state = mutable.asStateFlow()
     private var searchJob: Job? = null
     private val parentJobs = mutableMapOf<String, Job>()
+    private val quoteJobs = mutableMapOf<String, Job>()
+    private val quoteSlots = Semaphore(3)
     private var generation = 0
     private var loginAttempt: String? = null
     private var signingWaiter: CompletableDeferred<Nip01Event?>? = null
@@ -142,7 +147,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             profiles = current.profiles, history = current.history,
             relays = current.relays, pubkey = current.pubkey, signerRequest = null, eventSignRequest = null, commandBusy = false, backDepth = backStack.size,
             commandMessage = if (previous.command == "login") null else previous.commandMessage,
-            loadingParents = emptySet(),
+            loadingParents = emptySet(), loadingQuotes = emptySet(),
         )
     }
     private fun rememberPage() {
@@ -153,7 +158,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             profiles = emptyMap(), history = emptyList(), relays = emptyList(),
         ))
         // Bound retained results: history is a session convenience, not a disk cache.
-        fun retainedChars() = backStack.sumOf { page -> (page.events + page.pendingEvents + page.reactionTargets.values).sumOf { event ->
+        fun retainedChars() = backStack.sumOf { page -> (page.events + page.pendingEvents + page.reactionTargets.values + page.quotes.values).sumOf { event ->
             event.content.length.toLong() + event.tags.sumOf { row -> row.sumOf { it.length.toLong() } }
         } }
         while (backStack.size > 20 || (backStack.size > 1 && retainedChars() > 8_000_000)) backStack.removeFirst()
@@ -175,11 +180,11 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         if (urls.any { url -> runCatching { val uri = Uri.parse(url); uri.scheme != "wss" || uri.host.isNullOrBlank() || uri.userInfo != null || uri.fragment != null }.getOrDefault(true) }) return "Use secure wss:// relay URLs, one per line."
         persist("relays", urls); mutable.update { it.copy(relays = urls) }; return null
     }
-    fun stop() { generation++; signingWaiter?.cancel(); pendingSignature = null; signingWaiter = null; mutable.update { it.copy(eventSignRequest = null) }; searchJob?.cancel(); parentJobs.values.forEach { it.cancel() }; parentJobs.clear(); mutable.update { it.copy(loadingParents = emptySet()) }; mutable.update { it.copy(loading = false, commandBusy = false, loadingReactionTargets = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
+    fun stop() { generation++; signingWaiter?.cancel(); pendingSignature = null; signingWaiter = null; mutable.update { it.copy(eventSignRequest = null) }; searchJob?.cancel(); parentJobs.values.forEach { it.cancel() }; parentJobs.clear(); quoteJobs.values.forEach { it.cancel() }; quoteJobs.clear(); mutable.update { it.copy(loadingParents = emptySet(), loadingQuotes = emptySet()) }; mutable.update { it.copy(loading = false, commandBusy = false, loadingReactionTargets = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
     fun home() {
         stop()
         backStack.clear()
-        mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", searched = false, error = null, events = emptyList(), reactionTargets = emptyMap(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", searched = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
     }
     fun search(query: String = state.value.query) {
         val raw = query.trim(); if (raw.isBlank()) return
@@ -189,7 +194,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         stop()
         if (input != state.value.submitted || state.value.detail != null) rememberPage()
         val current = ++generation
-        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, events = emptyList(), reactionTargets = emptyMap(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
         searchJob = viewModelScope.launch {
             try {
                 if (command != null && command != "tutorial") {
@@ -318,6 +323,56 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         preferences.edit().putString("pubkey", key).putString("signerPackage", validPackage).apply()
         mutable.update { it.copy(pubkey = key, signerRequest = null, commandBusy = false, commandMessage = "Connected.") }
         refreshAccountProfile()
+    }
+
+    internal fun loadQuote(reference: QuoteReference) {
+        val key = reference.key
+        if (key in quoteJobs || key in state.value.quotes) return
+        val current = generation
+        if (state.value.quotes.size + quoteJobs.size >= 100) {
+            mutable.update { it.copy(failedQuotes = it.failedQuotes + key) }; return
+        }
+        mutable.update { it.copy(loadingQuotes = it.loadingQuotes + key, failedQuotes = it.failedQuotes - key) }
+        quoteJobs[key] = viewModelScope.launch {
+            try {
+                quoteSlots.withPermit {
+                    val cached = withContext(Dispatchers.Default) {
+                        val snapshot = state.value
+                        (snapshot.events + snapshot.pendingEvents + snapshot.reactionTargets.values + snapshot.quotes.values)
+                            .filter(reference::matches).maxByOrNull { it.createdAt }
+                    }
+                    var found = cached
+                    if (found == null) {
+                        val hints = reference.relays.filter { url -> runCatching {
+                            val uri = Uri.parse(url)
+                            uri.scheme == "wss" && !uri.host.isNullOrBlank() && uri.userInfo == null && uri.fragment == null
+                        }.getOrDefault(false) }.take(2)
+                        val branch = SearchBranch(reference.filter).forRenderedResults()
+                        if (branch != null) relay.search(listOf(branch), (hints + state.value.relays + generalRelays).distinct(), 7000)
+                            .flowOn(Dispatchers.IO).collect { update ->
+                                if (update is RelayUpdate.Event && (found == null || update.event.createdAt > found!!.createdAt)) found = update.event
+                            }
+                    }
+                    if (current != generation) return@withPermit
+                    val event = found ?: return@withPermit
+                    mutable.update { it.copy(quotes = it.quotes + (key to event)) }
+                    val authors = withContext(Dispatchers.Default) { (listOfNotNull(event.pubkey, highlightAuthor(event)) + linkedProfileKeys(event)).distinct().take(20) }
+                    val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
+                    relay.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 5000)
+                        .batched().flowOn(Dispatchers.IO).collect { updates ->
+                            if (current == generation) updateProfiles(updates.filterIsInstance<RelayUpdate.Event>().map { it.event })
+                        }
+                }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* Keep an explicit retry action for unavailable quotes. */ }
+            finally {
+                if (current == generation) {
+                    quoteJobs.remove(key)
+                    mutable.update { it.copy(loadingQuotes = it.loadingQuotes - key,
+                        failedQuotes = if (key in it.quotes) it.failedQuotes - key else it.failedQuotes + key) }
+                }
+            }
+        }
     }
 
     fun loadParent(id: String) {
