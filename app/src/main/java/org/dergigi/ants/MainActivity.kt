@@ -117,6 +117,7 @@ fun AntsApp(model: SearchModel) {
             }
         }
     }
+    val suggestionListState = remember(state.query) { LazyListState() }
     val listState = remember(state.pageId) { LazyListState(state.scrollIndex, state.scrollOffset) }
     LaunchedEffect(listState) {
         val pageId = state.pageId
@@ -197,7 +198,7 @@ fun AntsApp(model: SearchModel) {
                     }
                     if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
-                LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LazyColumn(Modifier.weight(1f), state = if (suggestingCommands) suggestionListState else listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (suggestingCommands) {
                         val matches = slashCommands.filter { it.name.startsWith(state.query.trim().lowercase()) }
                         items(matches, key = { "suggestion-${it.name}" }) { command ->
@@ -231,7 +232,7 @@ fun AntsApp(model: SearchModel) {
                     if (state.searched && (state.command == null || state.command == "tutorial") && !state.loading && state.events.isEmpty() && state.error == null) {
                         item { MessageCard("No results yet", "Try fewer filters, another keyword, or different search relays. Relay coverage varies.") }
                     }
-                    items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], state.profiles, state.reactionTargets, state.loadingReactionTargets, onNavigate = { search(it) }, onOpen = { model.openDetail(event) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
+                    items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], state.profiles, onNavigate = { search(it) }, onOpen = { model.openDetail(event) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
                     if (state.searched && state.statuses.isNotEmpty()) item {
                         TextButton(onClick = { dialog = "relays" }) { Text("${state.statuses.values.count { it == "Complete" }} / ${state.statuses.size} relays completed · relay details") }
                     }
@@ -260,7 +261,7 @@ fun AntsApp(model: SearchModel) {
         }
         selected?.let { event ->
             ModalBottomSheet(onDismissRequest = model::dismissDetail) {
-                EventDetails(event, state.profiles[event.pubkey], state.profiles, state.reactionTargets, state.loadingReactionTargets, onNavigate = { search(it) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }, raw = state.detailRaw, initialScroll = state.detailScroll, onScroll = { model.rememberDetailScroll(state.pageId, event.id, it) }, onToggleRaw = model::toggleDetailRaw)
+                EventDetails(event, state.profiles[event.pubkey], state.profiles, onNavigate = { search(it) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }, raw = state.detailRaw, initialScroll = state.detailScroll, onScroll = { model.rememberDetailScroll(state.pageId, event.id, it) }, onToggleRaw = model::toggleDetailRaw)
             }
         }
         }
@@ -313,13 +314,13 @@ internal fun ActionIcon(icon: ImageVector, label: String, onClick: () -> Unit, s
 }
 
 @Composable
-private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, reactionTargets: Map<String, Nip01Event>, loadingTargets: Boolean, onNavigate: (String) -> Unit, onOpen: () -> Unit, onAuthor: () -> Unit) {
+private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onNavigate: (String) -> Unit, onOpen: () -> Unit, onAuthor: () -> Unit) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     Surface(onClick = onOpen, shape = RoundedCornerShape(8.dp), color = card, border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
         Column(Modifier.fillMaxWidth()) {
             ThreadContext(event, onNavigate)
-            Row(Modifier.fillMaxWidth().background(Color(0xFF353535)).padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (parentEventId(event) == null) Row(Modifier.fillMaxWidth().background(Color(0xFF353535)).padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(kindIcon(event.kind), kindLabel(event.kind), Modifier.size(16.dp), tint = muted)
                 Spacer(Modifier.weight(1f))
                 Icon(Icons.Outlined.Dns, "Nostr event", Modifier.size(14.dp), tint = muted)
@@ -355,7 +356,7 @@ private fun Avatar(profile: Profile?, pubkey: String, onClick: () -> Unit, size:
 }
 
 @Composable
-private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, reactionTargets: Map<String, Nip01Event>, loadingTargets: Boolean, onNavigate: (String) -> Unit, onAuthor: () -> Unit, raw: Boolean, initialScroll: Int, onScroll: (Int) -> Unit, onToggleRaw: () -> Unit) {
+private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onNavigate: (String) -> Unit, onAuthor: () -> Unit, raw: Boolean, initialScroll: Int, onScroll: (Int) -> Unit, onToggleRaw: () -> Unit) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val scrollState = remember(event.id) { ScrollState(initialScroll) }
