@@ -258,7 +258,7 @@ fun AntsApp(model: SearchModel) {
                             item { Row(verticalAlignment = Alignment.CenterVertically) { Text("RECENT SEARCHES", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelSmall); ActionIcon(Icons.Outlined.DeleteOutline, "Clear recent searches", model::clearHistory) } }
                             items(state.history) { q -> Text(q, Modifier.fillMaxWidth().clickable { search(q) }.padding(12.dp), color = blue) }
                         }
-                        item { Text("v${BuildConfig.VERSION_NAME}", Modifier.fillMaxWidth().padding(vertical = 16.dp), color = muted, style = MaterialTheme.typography.bodySmall) }
+                        item { Text("v${BuildConfig.VERSION_NAME}", Modifier.fillMaxWidth().clickable(onClickLabel = "Open GitHub release") { openUrl(context, "https://github.com/dergigi/ants-android/releases/tag/v${BuildConfig.VERSION_NAME}") }.padding(vertical = 16.dp), color = muted, style = MaterialTheme.typography.bodySmall) }
                     }
                     state.error?.let { error -> item { MessageCard("Couldn't search", error) } }
                     if (state.searched && (state.command == null || state.command == "tutorial") && !state.loading && state.events.isEmpty() && state.error == null) {
