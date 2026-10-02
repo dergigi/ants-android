@@ -16,7 +16,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,7 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -82,24 +84,33 @@ private val examples = listOf("bitcoin" to "Search the nostrverse", "#asknostr" 
 fun AntsApp(model: SearchModel) {
     val state by model.state.collectAsStateWithLifecycle()
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
-    var selected by remember { mutableStateOf<Nip01Event?>(null) }
+    val selected = state.detail
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
-    val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
+    val listState = remember(state.pageId) { LazyListState(state.scrollIndex, state.scrollOffset) }
+    LaunchedEffect(listState) {
+        val pageId = state.pageId
+        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .collectLatest { (index, offset) -> model.rememberScroll(pageId, index, offset) }
+    }
     val focus = LocalFocusManager.current
     fun home() {
         keyboard?.hide()
         focus.clearFocus()
         model.home()
-        scope.launch { listState.scrollToItem(0) }
     }
-    BackHandler(enabled = state.searched && dialog == null && selected == null) { home() }
-    LaunchedEffect(state.searched, state.submitted) { listState.scrollToItem(0) }
-    fun search(value: String = state.query) { keyboard?.hide(); model.search(value) }
+    fun back() { keyboard?.hide(); focus.clearFocus(); model.back() }
+    BackHandler(enabled = (state.searched || state.backDepth > 0) && dialog == null && selected == null) { back() }
+    fun search(value: String = state.query) {
+        keyboard?.hide(); focus.clearFocus()
+        model.rememberScroll(state.pageId, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset)
+        model.search(value)
+    }
     MaterialTheme(colorScheme = darkColorScheme(primary = blue, background = background, surface = background, surfaceVariant = card, onSurfaceVariant = muted)) {
         Scaffold(topBar = {
-            TopAppBar(title = { Row(Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClickLabel = "Go to home", onClick = { home() }).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            TopAppBar(navigationIcon = {
+                if (state.backDepth > 0) IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Previous search") }
+            }, title = { Row(Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClickLabel = "Go to home", onClick = { home() }).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(R.drawable.ant), null, Modifier.size(36.dp))
                 Spacer(Modifier.width(9.dp)); Text("ants", fontWeight = FontWeight.Bold, fontSize = 23.sp, fontFamily = FontFamily.Monospace)
             } }, actions = {
@@ -153,7 +164,7 @@ fun AntsApp(model: SearchModel) {
                     if (state.searched && !state.loading && state.events.isEmpty() && state.error == null) {
                         item { MessageCard("No results yet", "Try fewer filters, another keyword, or different search relays. Relay coverage varies.") }
                     }
-                    items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], state.profiles, onOpen = { selected = event }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
+                    items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], state.profiles, onOpen = { model.openDetail(event) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
                     if (state.searched && state.statuses.isNotEmpty()) item {
                         TextButton(onClick = { dialog = "relays" }) { Text("${state.statuses.values.count { it == "Complete" }} / ${state.statuses.size} relays completed · relay details") }
                     }
@@ -183,8 +194,8 @@ fun AntsApp(model: SearchModel) {
             "relays" -> RelayDialog(state, model, onDismiss = { dialog = null })
         }
         selected?.let { event ->
-            ModalBottomSheet(onDismissRequest = { selected = null }) {
-                EventDetails(event, state.profiles[event.pubkey], state.profiles, onAuthor = { selected = null; search("by:${Nip19.npubEncode(event.pubkey)}") })
+            ModalBottomSheet(onDismissRequest = model::dismissDetail) {
+                EventDetails(event, state.profiles[event.pubkey], state.profiles, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }, raw = state.detailRaw, initialScroll = state.detailScroll, onScroll = { model.rememberDetailScroll(state.pageId, event.id, it) }, onToggleRaw = model::toggleDetailRaw)
             }
         }
     }
@@ -277,11 +288,13 @@ private fun Avatar(profile: Profile?, pubkey: String, onClick: () -> Unit, size:
 }
 
 @Composable
-private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onAuthor: () -> Unit) {
+private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onAuthor: () -> Unit, raw: Boolean, initialScroll: Int, onScroll: (Int) -> Unit, onToggleRaw: () -> Unit) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
-    var raw by remember(event.id) { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    val scrollState = remember(event.id) { ScrollState(initialScroll) }
+    val saveScroll by rememberUpdatedState(onScroll)
+    LaunchedEffect(scrollState) { snapshotFlow { scrollState.value }.collectLatest { saveScroll(it) } }
+    Column(Modifier.fillMaxWidth().verticalScroll(scrollState).padding(horizontal = 20.dp).padding(bottom = 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Avatar(profile, event.pubkey, onAuthor); Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f).clickable(onClick = onAuthor)) { Text(profile?.name ?: Nip19.npubEncode(event.pubkey).take(24) + "…", fontWeight = FontWeight.Bold); Text("${kindLabel(event.kind)} · ${dateLabel(event.createdAt)}", color = muted, style = MaterialTheme.typography.bodySmall) }
@@ -296,7 +309,7 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
             ActionIcon(Icons.AutoMirrored.Outlined.OpenInNew, "Open in browser", { openUrl(context, "https://njump.me/${Nip19.noteEncode(event.id)}") })
             ActionIcon(Icons.Outlined.Share, "Share event", { context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, eventUrl(event)) }, "Share event")) })
             ActionIcon(Icons.Outlined.ContentCopy, if (raw) "Copy event JSON" else "Copy event ID", { clipboard.setText(AnnotatedString(if (raw) event.toJsonString() else "nostr:${Nip19.noteEncode(event.id)}")) })
-            ActionIcon(Icons.Outlined.DataObject, if (raw) "Show rendered event" else "Show raw event JSON", { raw = !raw }, selected = raw)
+            ActionIcon(Icons.Outlined.DataObject, if (raw) "Show rendered event" else "Show raw event JSON", onToggleRaw, selected = raw)
         }
     }
 }
