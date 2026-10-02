@@ -15,7 +15,7 @@ data class SearchState(
     val loading: Boolean = false, val error: String? = null,
     val pageId: Long = 0, val backDepth: Int = 0,
     val scrollIndex: Int = 0, val scrollOffset: Int = 0,
-    val followingNewest: Boolean = true, val seenNewestId: String? = null,
+    val followingNewest: Boolean = true, val pendingEvents: List<Nip01Event> = emptyList(),
     val detail: Nip01Event? = null, val detailScroll: Int = 0, val detailRaw: Boolean = false,
     val events: List<Nip01Event> = emptyList(), val profiles: Map<String, Profile> = emptyMap(),
     val statuses: Map<String, String> = emptyMap(), val history: List<String> = emptyList(),
@@ -36,9 +36,11 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         mutable.update { if (it.pageId == pageId) it.copy(scrollIndex = index, scrollOffset = offset) else it }
     }
     fun pauseFollowing(pageId: Long) {
-        mutable.update { if (it.pageId == pageId && it.followingNewest) it.copy(followingNewest = false, seenNewestId = it.events.firstOrNull()?.id) else it }
+        mutable.update { if (it.pageId == pageId && it.followingNewest) it.copy(followingNewest = false) else it }
     }
-    fun followNewest() { mutable.update { it.copy(followingNewest = true, seenNewestId = it.events.firstOrNull()?.id, scrollIndex = 0, scrollOffset = 0) } }
+    fun followNewest() { mutable.update {
+        it.copy(followingNewest = true, events = (it.events + it.pendingEvents).distinctBy { e -> e.id }.sortedByDescending { e -> e.createdAt }.take(500), pendingEvents = emptyList(), scrollIndex = 0, scrollOffset = 0)
+    } }
     fun openDetail(event: Nip01Event) { mutable.update { it.copy(detail = event, detailScroll = 0, detailRaw = false) } }
     fun dismissDetail() { mutable.update { it.copy(detail = null, detailScroll = 0, detailRaw = false) } }
     fun rememberDetailScroll(pageId: Long, eventId: String, scroll: Int) {
@@ -60,11 +62,11 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         val page = state.value
         backStack.addLast(page.copy(
             query = if (page.searched) page.submitted else page.query,
-            followingNewest = false, seenNewestId = page.events.firstOrNull()?.id,
+            followingNewest = false,
             profiles = emptyMap(), saved = emptyList(), history = emptyList(), relays = emptyList(),
         ))
         // Bound retained results: history is a session convenience, not a disk cache.
-        fun retainedChars() = backStack.sumOf { page -> page.events.sumOf { event ->
+        fun retainedChars() = backStack.sumOf { page -> (page.events + page.pendingEvents).sumOf { event ->
             event.content.length.toLong() + event.tags.sumOf { row -> row.sumOf { it.length.toLong() } }
         } }
         while (backStack.size > 20 || (backStack.size > 1 && retainedChars() > 8_000_000)) backStack.removeFirst()
@@ -90,14 +92,14 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     fun home() {
         stop()
         backStack.clear()
-        mutable.update { it.copy(query = "", submitted = "", searched = false, error = null, events = emptyList(), statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, seenNewestId = null, backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(query = "", submitted = "", searched = false, error = null, events = emptyList(), statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
     }
     fun search(query: String = state.value.query) {
         val input = query.trim(); if (input.isBlank()) return
         stop()
         if (input != state.value.submitted || state.value.detail != null) rememberPage()
         val current = ++generation
-        mutable.update { it.copy(query = input, submitted = input, searched = true, loading = true, error = null, events = emptyList(), statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, seenNewestId = null, backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(query = input, submitted = input, searched = true, loading = true, error = null, events = emptyList(), statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
         searchJob = viewModelScope.launch {
             try {
                 val branches = withContext(Dispatchers.IO) { SearchQuery(relay.http).parse(input) }
@@ -112,13 +114,17 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                         is RelayUpdate.Event -> {
                             val event = update.event
                             if (event.kind == 0) updateProfile(event)
-                            mutable.update { it.copy(events = (it.events + event).distinctBy { e -> e.id }.sortedByDescending { e -> e.createdAt }.take(500)) }
+                            mutable.update {
+                                if (it.followingNewest) it.copy(events = (it.events + event).distinctBy { e -> e.id }.sortedByDescending { e -> e.createdAt }.take(500))
+                                else if (it.events.any { e -> e.id == event.id }) it
+                                else it.copy(pendingEvents = (it.pendingEvents + event).distinctBy { e -> e.id }.take(500))
+                            }
                         }
                     }
                 }
                 if (current != generation) return@launch
                 mutable.update { it.copy(loading = false) }
-                val authors = state.value.events.flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) }.distinct().filter { it !in state.value.profiles }.take(200)
+                val authors = (state.value.events + state.value.pendingEvents).flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) }.distinct().filter { it !in state.value.profiles }.take(200)
                 if (authors.isNotEmpty()) {
                     val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
                     relay.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000).flowOn(Dispatchers.IO).collect {

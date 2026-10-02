@@ -107,8 +107,13 @@ fun AntsApp(model: SearchModel) {
     }
     // requestScrollToItem overrides LazyColumn's key anchoring before the next
     // measure, so arriving results cannot silently push the top out of view.
+    var pinnedHead by remember(state.pageId) { mutableStateOf<String?>(null) }
     SideEffect {
-        if (state.searched && state.followingNewest && !listState.isScrollInProgress) listState.requestScrollToItem(0)
+        val head = state.events.firstOrNull()?.id
+        if (state.searched && state.followingNewest && head != pinnedHead && !listState.isScrollInProgress) {
+            listState.requestScrollToItem(0)
+            pinnedHead = head
+        }
     }
     val focus = LocalFocusManager.current
     fun home() {
@@ -150,8 +155,8 @@ fun AntsApp(model: SearchModel) {
                 if (state.searched) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(if (state.loading) "Searching… ${state.events.size} results" else "${state.events.size} results · newest first", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
-                        if (!state.followingNewest && state.events.firstOrNull()?.id != state.seenNewestId) {
-                            ActionIcon(Icons.Outlined.VerticalAlignTop, "New results · jump to newest", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
+                        if (state.pendingEvents.isNotEmpty()) {
+                            ActionIcon(Icons.Outlined.VerticalAlignTop, "${state.pendingEvents.size} new results · jump to newest", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
                         }
                         IconButton(onClick = { model.toggleSaved(state.submitted) }) { Icon(if (state.submitted in state.saved) Icons.Outlined.BookmarkAdded else Icons.Outlined.BookmarkAdd, "Save search", tint = blue) }
                         if (state.loading) ActionIcon(Icons.Outlined.Stop, "Stop search", model::stop)
