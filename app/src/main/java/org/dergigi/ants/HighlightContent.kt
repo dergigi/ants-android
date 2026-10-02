@@ -98,7 +98,7 @@ internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>,
     } }
     val settings = annotatorSettings(uriHandler = uriHandler)
     val style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp)
-    val rendered by produceState<Pair<LinkedContent, AnnotatedString>?>(null, event.id, compact, profiles, style) {
+    val rendered by produceState<Triple<LinkedContent, AnnotatedString, AnnotatedString?>?>(null, event.id, compact, profiles, style) {
         value = withContext(Dispatchers.Default) {
             fun markdown(text: String) = text.buildMarkdownAnnotatedString(style, settings)
             val passage = passage(markdown(event.content.trim()), markdown(event.tagValue("context").orEmpty()), compact)
@@ -117,14 +117,18 @@ internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>,
                 } }
                 linked.ranges.forEach { addStyle(SpanStyle(background = highlightGold.copy(alpha = 0.30f), color = Color(0xFFF3F4F6)), it.first, it.last + 1) }
             }
-            linked to styled
+            val comment = event.tagValue("comment")?.takeIf { it.isNotBlank() }?.let {
+                val parsed = markdown(it)
+                if (compact && parsed.length > 600) parsed.subSequence(0, 600) + AnnotatedString("…") else parsed
+            }
+            Triple(linked, styled, comment)
         }
     }
-    val (linked, styled) = rendered ?: return
+    val (linked, styled, comment) = rendered ?: return
     var layout by remember(styled) { mutableStateOf<TextLayoutResult?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        event.tagValue("comment")?.takeIf { it.isNotBlank() }?.let {
-            Text(linkedText(if (compact) it.take(600) else it, event, profiles, onNavigate), style = MaterialTheme.typography.bodyMedium)
+        comment?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium)
             HorizontalDivider(color = Color(0xFF3D3D3D))
         }
         Text(styled, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp),
