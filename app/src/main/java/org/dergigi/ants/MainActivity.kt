@@ -185,10 +185,9 @@ fun AntsApp(model: SearchModel) {
                 OutlinedTextField(value = state.query, onValueChange = model::edit,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).onFocusChanged { searchFocused = it.isFocused },
                     placeholder = { Text("Search anything on Nostr", fontSize = 15.sp) },
-                    leadingIcon = { Icon(Icons.Outlined.Search, null) },
                     trailingIcon = { Row {
                         if (state.query.isNotEmpty()) IconButton(onClick = { model.edit("") }) { Icon(Icons.Outlined.Close, "Clear query") }
-                        IconButton(onClick = { search() }, enabled = state.query.isNotBlank()) { Icon(Icons.Outlined.ArrowForward, "Search", tint = blue) }
+                        IconButton(onClick = { search() }, enabled = state.query.isNotBlank()) { Icon(Icons.Outlined.Search, "Search", tint = blue) }
                     } },
                     singleLine = true, shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { search() }))

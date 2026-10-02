@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Resolve linked npub/nprofile mentions and profile URLs into compact, tappable @names across notes, highlights, details, and loaded thread parents, with shortened-key fallbacks.
 
+### Changed
+
+- Use a single magnifying-glass search button instead of a submit arrow and decorative search icon.
+
 ### Removed
 
 - Duplicate slash-command headings beneath the search box.
