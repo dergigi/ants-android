@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Bring the search field, separate search button, and terminal-style help panel closer to the web app.
+- Bring the terminal-style help panel closer to the web app while retaining the Android search field and its inline search button.
 - Make the toolbar help icon execute /help directly. Help shows commands and version information, without random example searches.
 
 ### Fixed

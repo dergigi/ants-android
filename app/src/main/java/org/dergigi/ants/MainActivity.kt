@@ -212,20 +212,15 @@ fun AntsApp(model: SearchModel) {
             })
         }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(value = state.query, onValueChange = model::edit,
-                        modifier = Modifier.weight(1f).onFocusChanged { searchFocused = it.isFocused },
-                        placeholder = { Text("Search anything on Nostr", fontSize = 15.sp) },
-                        trailingIcon = { if (state.query.isNotEmpty()) IconButton(onClick = { model.edit("") }) { Icon(Icons.Outlined.Close, "Clear query", Modifier.size(18.dp)) } },
-                        singleLine = true, shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = card, unfocusedContainerColor = card,
-                            unfocusedBorderColor = Color(0xFF3D3D3D), focusedBorderColor = blue),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { search() }))
-                    FilledTonalIconButton(onClick = { search() }, enabled = state.query.isNotBlank(), modifier = Modifier.size(56.dp),
-                        shape = RoundedCornerShape(8.dp), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = Color(0xFF3B3B3B), contentColor = blue)) {
-                        Icon(Icons.Outlined.Search, "Search", Modifier.size(24.dp))
-                    }
-                }
+                OutlinedTextField(value = state.query, onValueChange = model::edit,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).onFocusChanged { searchFocused = it.isFocused },
+                    placeholder = { Text("Search anything on Nostr", fontSize = 15.sp) },
+                    trailingIcon = { Row {
+                        if (state.query.isNotEmpty()) IconButton(onClick = { model.edit("") }) { Icon(Icons.Outlined.Close, "Clear query") }
+                        IconButton(onClick = { search() }, enabled = state.query.isNotBlank()) { Icon(Icons.Outlined.Search, "Search", tint = blue) }
+                    } },
+                    singleLine = true, shape = RoundedCornerShape(8.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { search() }))
                 if (!suggestingCommands && state.searched && (state.command == null || state.command == "tutorial")) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(if (state.loading) "Searching… ${state.events.size} results" else "${state.events.size} results · ${if (state.rankedProfiles) "best matches" else "newest first"}", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
