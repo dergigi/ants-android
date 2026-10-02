@@ -19,8 +19,12 @@ internal fun Nip01Event.isRenderable(): Boolean {
     // A JSON code snippet is intentional code; JSON payloads in other kinds
     // are not a readable note and should never become a fallback event card.
     if (kind != 1337 && (text.startsWith('{') || text.startsWith('['))) {
-        val value = runCatching { JSONTokener(text).nextValue() }.getOrNull()
-        if (value is JSONObject || value is JSONArray) return false
+        val payloadOnly = runCatching {
+            val tokener = JSONTokener(text)
+            val value = tokener.nextValue()
+            (value is JSONObject || value is JSONArray) && tokener.nextClean().code == 0
+        }.getOrDefault(false)
+        if (payloadOnly) return false
     }
     return when (kind) {
         7 -> reactionTargetId(this) != null
