@@ -1,6 +1,10 @@
 package org.dergigi.ants
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
@@ -25,12 +29,24 @@ internal fun CommandRow(query: String, onSearch: (String) -> Unit) {
 
 @Composable
 internal fun HelpContent(state: SearchState, onSearch: (String) -> Unit) {
-    Column {
-        slashCommands.forEach { CommandRow(it.name, onSearch) }
-        listOf("bitcoin OR lightning", "#asknostr", "GM by:dergigi", "is:highlight", "Bitcoin has:image", "is:reaction by:dergigi").forEach { query ->
-            CommandRow(query, onSearch)
+    val context = LocalContext.current
+    val terminalText = Color(0xFFBDCEDB)
+    Surface(color = Color(0xFF2C2C2C), shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
+        Surface(Modifier.fillMaxWidth().padding(14.dp), color = Color(0xFF001827), shape = RoundedCornerShape(6.dp), border = BorderStroke(1.dp, Color(0xFF34424B))) {
+            Column(Modifier.padding(12.dp)) {
+                slashCommands.forEach { command ->
+                    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button) { onSearch(command.name) }.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(command.name, Modifier.width(88.dp), color = MaterialTheme.colorScheme.primary, fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+                        Text(command.description, Modifier.weight(1f), color = terminalText, fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+                    }
+                }
+                Text("v${BuildConfig.VERSION_NAME} ${BuildConfig.GIT_COMMIT.take(7)}",
+                    Modifier.fillMaxWidth().clickable(role = Role.Button, onClickLabel = "Open GitHub release") {
+                        openUrl(context, "https://github.com/dergigi/ants-android/releases/tag/v${BuildConfig.VERSION_NAME}")
+                    }.padding(top = 20.dp, bottom = 8.dp), color = terminalText, fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+            }
         }
-        if (state.pubkey != null) CommandRow("mentions:@me", onSearch)
     }
 }
 

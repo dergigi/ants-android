@@ -2,13 +2,13 @@ package org.dergigi.ants
 
 internal data class CommandDefinition(val name: String, val description: String)
 internal val slashCommands = listOf(
-    CommandDefinition("/help", "Commands and search help"),
-    CommandDefinition("/examples", "Search examples you can tap"),
-    CommandDefinition("/kinds", "Event kind shortcuts"),
-    CommandDefinition("/login", "Connect an Android signer"),
-    CommandDefinition("/logout", "Disconnect your account"),
-    CommandDefinition("/clear", "Clear cached results, profiles, and images"),
-    CommandDefinition("/tutorial", "Load the web ants tutorial"),
+    CommandDefinition("/help", "Search help"),
+    CommandDefinition("/examples", "Example queries"),
+    CommandDefinition("/kinds", "Kind mappings"),
+    CommandDefinition("/login", "Connect signer"),
+    CommandDefinition("/logout", "Disconnect"),
+    CommandDefinition("/clear", "Clear cache"),
+    CommandDefinition("/tutorial", "Tutorial"),
 )
 
 internal const val tutorialPointer = "nevent1qqsqnndhkz4u26m4v4gut2xjsun8hzfxn75spzcr8337a06g66zwzespzamhxue69uhksctkv4hzuer9wfnkjemf9e3k7mgehz685"
