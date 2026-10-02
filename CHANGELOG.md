@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add 78 supported search examples from the web app, expanding /examples from 41 to 119 tappable queries. Adapt grouped OR queries and site aliases to Android syntax while preserving login-only filtering and the minimal list layout.
+
 ## [0.10.1] - 2026-10-02
 
 ### Fixed
