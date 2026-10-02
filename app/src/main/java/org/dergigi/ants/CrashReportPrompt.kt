@@ -75,7 +75,7 @@ internal fun CrashReportPrompt(recipient: String, model: CrashReportModel = view
     AlertDialog(onDismissRequest = model::dismiss,
         title = { Text("ants crashed last time") },
         text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Send this report to ants as an encrypted Nostr DM? It uses a one-time key, not your account. Nothing is sent until you tap Send.")
+            Text("Send this report to @ants.sh as an encrypted Nostr DM? It uses a one-time key, not your account. Nothing is sent until you tap Send.")
             SelectionContainer {
                 Text(report, Modifier.fillMaxWidth().heightIn(max = 240.dp).verticalScroll(rememberScrollState()),
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace))

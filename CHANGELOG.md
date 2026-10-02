@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Offer crash reports on the next launch, with review, copy, dismiss, and explicit Send actions. Reports go to @ants.sh as encrypted NIP-17 messages from a one-time key, using the recipient’s inbox relays. No login is required and nothing is sent automatically.
+
 ### Fixed
 
 - Harden highlight rendering against Markdown and annotation failures with a readable fallback. Use native underline spans instead of manual text-layout offset drawing when search results appear or profile mentions update.

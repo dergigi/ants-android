@@ -19,6 +19,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 /** Local capture only. A report leaves the device only after the user taps Send. */
 internal object CrashReporter {
+    // Public identity published by https://ants.sh/.well-known/nostr.json?name=_
+    const val RECIPIENT_HEX = "e530f930efb36ec1da0f5f249ad3db8edf19b667570acab817c82185d562e889"
     private lateinit var reportFile: AtomicFile
     @Volatile private var screen = "Starting"
     @Volatile private var lastHighlight: String? = null

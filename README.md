@@ -71,3 +71,7 @@ Publishing follows [boris-android](https://github.com/dergigi/boris-android): `z
 ## License
 
 [MIT](LICENSE). Branding and the original search concept come from [ants](https://github.com/dergigi/ants); Nostr event and identifier helpers are adapted from [Boris](https://github.com/dergigi/boris-android).
+
+## Crash reports
+
+After a crash, ants offers a local report containing the app version, Android/device information, stack trace, screen type, and last rendered highlight ID when available. You can review, copy, dismiss, or explicitly send it to `@ants.sh` as an encrypted NIP-17 DM from a one-time key. Reports do not include your account key, query, or search history. Nothing is sent automatically. Reports are excluded from backups and deleted after successful sending or dismissal.
