@@ -156,6 +156,7 @@ fun AntsApp(model: SearchModel) {
     }
     MaterialTheme(colorScheme = darkColorScheme(primary = blue, background = background, surface = background, surfaceVariant = card, onSurfaceVariant = muted)) {
         GalleryHost {
+        CompositionLocalProvider(LocalThreadState provides ThreadState(state, model::loadParent)) {
         Scaffold(topBar = {
             TopAppBar(navigationIcon = {
                 if (state.backDepth > 0) IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Previous search") }
@@ -251,6 +252,7 @@ fun AntsApp(model: SearchModel) {
             }
         }
         }
+        }
     }
 }
 
@@ -304,6 +306,7 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
     val clipboard = LocalClipboardManager.current
     Surface(onClick = onOpen, shape = RoundedCornerShape(8.dp), color = card, border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
         Column(Modifier.fillMaxWidth()) {
+            ThreadContext(event, onNavigate)
             Row(Modifier.fillMaxWidth().background(Color(0xFF353535)).padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(kindIcon(event.kind), kindLabel(event.kind), Modifier.size(16.dp), tint = muted)
                 Spacer(Modifier.weight(1f))
@@ -311,7 +314,7 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
             }
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (event.kind != 9802) event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
-                if (event.kind == 7) ReactionContent(event, reactionTargets, loadingTargets, profiles, onNavigate)
+                if (event.kind == 7) ReactionContent(event)
                 else if (event.kind == 9802) HighlightContent(event, profiles, compact = true, onNavigate = onNavigate)
                 else EventContent(event, profile, compact = true, onNavigate = onNavigate)
             }
@@ -351,11 +354,12 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
             Avatar(profile, event.pubkey, onAuthor); Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f).clickable(onClick = onAuthor)) { Text(profile?.name ?: Nip19.npubEncode(event.pubkey).take(24) + "…", fontWeight = FontWeight.Bold); Text("${kindLabel(event.kind)} · ${dateLabel(event.createdAt)}", color = muted, style = MaterialTheme.typography.bodySmall) }
         }
+        if (!raw) ThreadContext(event, onNavigate)
         event.tagValue("title")?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
         SelectionContainer {
             when {
                 raw -> Text(event.toJsonString(), fontFamily = FontFamily.Monospace)
-                event.kind == 7 -> ReactionContent(event, reactionTargets, loadingTargets, profiles, onNavigate)
+                event.kind == 7 -> ReactionContent(event)
                 event.kind == 9802 -> HighlightContent(event, profiles, compact = false, onNavigate = onNavigate)
                 else -> EventContent(event, profile, compact = false, onNavigate = onNavigate)
             }
