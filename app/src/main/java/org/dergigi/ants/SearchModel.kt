@@ -141,7 +141,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
 
 fun incomingQuery(value: String): String {
     val uri = Uri.parse(value)
-    if (uri.host?.lowercase() in listOf("ants.sh", "www.ants.sh")) {
+    if (uri.host?.lowercase() in listOf("ants.sh", "www.ants.sh", "search.dergigi.com")) {
         uri.getQueryParameter("q")?.let { return it }
         val parts = uri.pathSegments
         if (parts.size >= 2) return when (parts[0]) { "p" -> "by:${parts[1]}"; "e" -> parts[1]; "t" -> parts[1].split(',', '+', ' ').filter { it.isNotBlank() }.joinToString(" OR ") { "#$it" }; else -> value }

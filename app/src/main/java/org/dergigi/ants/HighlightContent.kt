@@ -66,35 +66,36 @@ internal fun highlightAuthor(event: Nip01Event): String? {
     return author?.let(Nip19::normalizePubkey)
 }
 
-private data class HighlightSource(val label: String, val url: String)
+private data class HighlightSource(val label: String, val query: String)
 private fun highlightSource(event: Nip01Event): HighlightSource? {
     event.tagValue("r")?.let { raw ->
         val uri = Uri.parse(raw)
         if (uri.scheme in listOf("http", "https") && !uri.host.isNullOrBlank()) return HighlightSource(uri.host!!.removePrefix("www."), raw)
     }
     event.tagValue("e")?.let { id ->
-        if (id.matches(Regex("[0-9a-fA-F]{64}"))) return HighlightSource("nostr post", "https://njump.me/${Nip19.noteEncode(id)}")
+        if (id.matches(Regex("[0-9a-fA-F]{64}"))) return HighlightSource("nostr post", Nip19.noteEncode(id))
     }
     return runCatching {
         val parts = event.tagValue("a")?.split(':', limit = 3) ?: return null
         val kind = parts[0].toInt()
         val author = Nip19.normalizePubkey(parts[1]) ?: return null
         val pointer = Nip19.naddrEncode(NaddrPointer(parts[2], author, kind))
-        HighlightSource(if (kind == 30023) "blog post" else "nostr post", "https://njump.me/$pointer")
+        HighlightSource(if (kind == 30023) "blog post" else "nostr post", pointer)
     }.getOrNull()
 }
 
 @Composable
-internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>, compact: Boolean) {
+internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
     val passage = remember(event.id, compact) { passage(event, compact) }
+    val currentNavigate by rememberUpdatedState(onNavigate)
     val styled = remember(passage) { buildAnnotatedString {
-        append(passage.text.ifBlank { "Empty highlight" })
+        append(linkedText(passage.text.ifBlank { "Empty highlight" }, event) { currentNavigate(it) })
         passage.ranges.forEach { addStyle(SpanStyle(background = highlightGold.copy(alpha = 0.30f), color = Color(0xFFF3F4F6)), it.first, it.last + 1) }
     } }
     var layout by remember(styled) { mutableStateOf<TextLayoutResult?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         event.tagValue("comment")?.takeIf { it.isNotBlank() }?.let {
-            Text(if (compact) it.take(600) else it, style = MaterialTheme.typography.bodyMedium)
+            Text(linkedText(if (compact) it.take(600) else it, event, onNavigate), style = MaterialTheme.typography.bodyMedium)
             HorizontalDivider(color = Color(0xFF3D3D3D))
         }
         Text(styled, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp),
@@ -117,10 +118,10 @@ internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>,
             Text(buildAnnotatedString {
                 append("Highlight from ")
                 if (source.label in listOf("blog post", "nostr post")) append("a ")
-                withLink(LinkAnnotation.Url(source.url, linkStyle)) { append(source.label) }
+                withLink(LinkAnnotation.Clickable(source.query, linkStyle) { onNavigate(urlQuery(source.query)) }) { append(source.label) }
                 if (author != null) {
                     append(" by ")
-                    withLink(LinkAnnotation.Url("https://njump.me/${Nip19.npubEncode(author)}", linkStyle)) { append(profiles[author]?.name ?: "${Nip19.npubEncode(author).take(12)}…") }
+                    withLink(LinkAnnotation.Clickable(author, linkStyle) { onNavigate("by:${Nip19.npubEncode(author)}") }) { append(profiles[author]?.name ?: "${Nip19.npubEncode(author).take(12)}…") }
                 }
             }, color = Color(0xFF9CA3AF), style = MaterialTheme.typography.bodySmall)
         }

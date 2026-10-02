@@ -108,7 +108,7 @@ object Nip19 {
         require(hrp == "naddr") { "Expected naddr, got $hrp" }
         val fields = parseTlv(data)
         val identifier = fields[0]?.firstOrNull()?.toString(Charsets.UTF_8)
-        require(!identifier.isNullOrEmpty()) { "naddr missing identifier" }
+        require(identifier != null) { "naddr missing identifier" }
         val pubkey = fields[2]?.firstOrNull()?.toHex()
         require(pubkey != null && pubkey.length == 64) { "naddr missing author" }
         val kindBytes = fields[3]?.firstOrNull()

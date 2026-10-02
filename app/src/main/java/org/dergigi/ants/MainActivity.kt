@@ -184,7 +184,7 @@ fun AntsApp(model: SearchModel) {
                     if (state.searched && !state.loading && state.events.isEmpty() && state.error == null) {
                         item { MessageCard("No results yet", "Try fewer filters, another keyword, or different search relays. Relay coverage varies.") }
                     }
-                    items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], state.profiles, onOpen = { model.openDetail(event) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
+                    items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], state.profiles, onNavigate = { search(it) }, onOpen = { model.openDetail(event) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
                     if (state.searched && state.statuses.isNotEmpty()) item {
                         TextButton(onClick = { dialog = "relays" }) { Text("${state.statuses.values.count { it == "Complete" }} / ${state.statuses.size} relays completed · relay details") }
                     }
@@ -215,7 +215,7 @@ fun AntsApp(model: SearchModel) {
         }
         selected?.let { event ->
             ModalBottomSheet(onDismissRequest = model::dismissDetail) {
-                EventDetails(event, state.profiles[event.pubkey], state.profiles, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }, raw = state.detailRaw, initialScroll = state.detailScroll, onScroll = { model.rememberDetailScroll(state.pageId, event.id, it) }, onToggleRaw = model::toggleDetailRaw)
+                EventDetails(event, state.profiles[event.pubkey], state.profiles, onNavigate = { search(it) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }, raw = state.detailRaw, initialScroll = state.detailScroll, onScroll = { model.rememberDetailScroll(state.pageId, event.id, it) }, onToggleRaw = model::toggleDetailRaw)
             }
         }
     }
@@ -266,7 +266,7 @@ private fun ActionIcon(icon: ImageVector, label: String, onClick: () -> Unit, se
 }
 
 @Composable
-private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onOpen: () -> Unit, onAuthor: () -> Unit) {
+private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onNavigate: (String) -> Unit, onOpen: () -> Unit, onAuthor: () -> Unit) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     Surface(onClick = onOpen, shape = RoundedCornerShape(8.dp), color = card, border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
@@ -278,8 +278,8 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
             }
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (event.kind != 9802) event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
-                if (event.kind == 9802) HighlightContent(event, profiles, compact = true)
-                else EventContent(event, profile, compact = true)
+                if (event.kind == 9802) HighlightContent(event, profiles, compact = true, onNavigate = onNavigate)
+                else EventContent(event, profile, compact = true, onNavigate = onNavigate)
             }
             HorizontalDivider(color = Color(0xFF3D3D3D))
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -306,7 +306,7 @@ private fun Avatar(profile: Profile?, pubkey: String, onClick: () -> Unit, size:
 }
 
 @Composable
-private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onAuthor: () -> Unit, raw: Boolean, initialScroll: Int, onScroll: (Int) -> Unit, onToggleRaw: () -> Unit) {
+private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onNavigate: (String) -> Unit, onAuthor: () -> Unit, raw: Boolean, initialScroll: Int, onScroll: (Int) -> Unit, onToggleRaw: () -> Unit) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val scrollState = remember(event.id) { ScrollState(initialScroll) }
@@ -321,8 +321,8 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
         SelectionContainer {
             when {
                 raw -> Text(event.toJsonString(), fontFamily = FontFamily.Monospace)
-                event.kind == 9802 -> HighlightContent(event, profiles, compact = false)
-                else -> EventContent(event, profile, compact = false)
+                event.kind == 9802 -> HighlightContent(event, profiles, compact = false, onNavigate = onNavigate)
+                else -> EventContent(event, profile, compact = false, onNavigate = onNavigate)
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {

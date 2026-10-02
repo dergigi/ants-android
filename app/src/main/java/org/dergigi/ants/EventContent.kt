@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.BrokenImage
+import androidx.compose.material.icons.outlined.FormatQuote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -47,15 +48,21 @@ internal fun withoutRenderedImages(content: String, images: List<String>): Strin
 }
 
 @Composable
-internal fun EventContent(event: Nip01Event, profile: Profile?, compact: Boolean) {
+internal fun EventContent(event: Nip01Event, profile: Profile?, compact: Boolean, onNavigate: (String) -> Unit) {
     val images = remember(event.id, compact) { eventImages(event, compact) }
     val content = if (event.kind == 0) profile?.about ?: event.content else event.content
     val text = remember(content, images) { withoutRenderedImages(content, images) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (text.isNotBlank()) Text(text, maxLines = if (compact) 9 else Int.MAX_VALUE, overflow = TextOverflow.Ellipsis,
+        val currentNavigate by rememberUpdatedState(onNavigate)
+        val linked = remember(text, event.id) { linkedText(text, event) { currentNavigate(it) } }
+        if (text.isNotBlank()) Text(linked, maxLines = if (compact) 9 else Int.MAX_VALUE, overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp), fontFamily = if (event.kind == 1337) FontFamily.Monospace else FontFamily.Default)
         else if (images.isEmpty()) Text("Open event to inspect its tags.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         images.forEach { image -> EventImage(image, compact) }
+        val inlineQueries = remember(text, event.id) { contentLinks(text, event).map { it.query }.toSet() }
+        quotedQueries(event).filter { it !in inlineQueries }.forEach { query ->
+            AssistChip(onClick = { onNavigate(query) }, label = { Text("Quoted note", maxLines = 1) }, leadingIcon = { Icon(Icons.Outlined.FormatQuote, null, Modifier.size(16.dp)) })
+        }
     }
 }
 

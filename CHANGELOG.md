@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Follow hashtags, Nostr mentions, quoted-note references, web links, and highlight sources into native searches. Source authors also open inside ants.
+
 - In-session search navigation history: Back restores cached results, list position, and open event details without fetching again. The ants logo still returns directly home.
 
 ## [0.1.1] - 2026-10-02

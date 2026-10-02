@@ -33,6 +33,9 @@ class SearchQuery(private val http: OkHttpClient) {
         val query = input.trim().removePrefix("nostr:")
         require(query.isNotBlank()) { "Enter a search first." }
         require(query.length <= 2000) { "Please keep searches under 2,000 characters." }
+        if ((query.startsWith("https://") || query.startsWith("http://")) && query.none { it.isWhitespace() }) {
+            return listOf(SearchBranch(JSONObject().put("limit", 100).put("search", query)))
+        }
         require(!query.contains('(') && !query.contains(')')) { "Grouped searches aren't supported yet. Use separate searches joined with OR." }
         val parts = splitOr(query)
         require(parts.size <= 8) { "Use at most eight OR branches." }
