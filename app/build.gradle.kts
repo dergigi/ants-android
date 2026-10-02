@@ -131,6 +131,7 @@ dependencies {
     implementation(libs.markdown.renderer.m3)
     implementation(libs.markdown.renderer.coil3)
     implementation(libs.okhttp)
+    implementation(libs.bouncycastle.bcprov)
     implementation(libs.secp256k1.kmp)
     implementation(libs.secp256k1.jni.android)
     implementation(libs.coil.gif)

@@ -102,6 +102,7 @@ fun AntsApp(model: SearchModel) {
     var pullRefreshPage by remember { mutableStateOf<Long?>(null) }
     val canRefresh = state.searched && !suggestingCommands && (state.command == null || state.command == "tutorial")
     val refreshingFromPull = state.loading && pullRefreshPage == state.pageId
+    SideEffect { CrashReporter.onScreen(if (state.detail != null) "Event details" else if (state.command != null) "Command" else if (state.searched) "Search results" else "Home") }
     val selected = state.detail
     val placeholder = rememberSearchPlaceholder(active = state.query.isEmpty() && !state.loading && selected == null && dialog == null, loggedIn = state.pubkey != null)
     val keyboard = LocalSoftwareKeyboardController.current

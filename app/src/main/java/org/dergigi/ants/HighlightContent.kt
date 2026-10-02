@@ -90,6 +90,7 @@ private fun highlightSource(event: Nip01Event): HighlightSource? {
 
 @Composable
 internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
+    SideEffect { CrashReporter.onHighlight(event.id) }
     ResolveMentionProfiles(event)
     val currentNavigate by rememberUpdatedState(onNavigate)
     val uriHandler = remember { object : UriHandler {
