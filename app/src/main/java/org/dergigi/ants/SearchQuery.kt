@@ -8,7 +8,6 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-private val kinds = mapOf("note" to 1, "notes" to 1, "profile" to 0, "article" to 30023, "highlight" to 9802, "code" to 1337, "reaction" to 7, "repost" to 6, "zap" to 9735, "picture" to 20, "video" to 21)
 val imagePattern = Regex("https://[^\\s<>\"]+\\.(?:png|jpe?g|gif|webp|avif)(?:\\?[^\\s<>\"]*)?", RegexOption.IGNORE_CASE)
 private val videoPattern = Regex("https?://[^\\s]+\\.(?:mp4|webm|mov)", RegexOption.IGNORE_CASE)
 
@@ -28,7 +27,7 @@ data class SearchBranch(val filter: JSONObject, val media: String? = null, val s
     }
 }
 
-class SearchQuery(private val http: OkHttpClient) {
+class SearchQuery(private val http: OkHttpClient, private val currentPubkey: String? = null) {
     fun parse(input: String): List<SearchBranch> {
         val query = input.trim().removePrefix("nostr:")
         require(query.isNotBlank()) { "Enter a search first." }
@@ -87,7 +86,7 @@ class SearchQuery(private val http: OkHttpClient) {
                     require(kind != null && kind in 0..65535) { "kind: needs a number from 0 to 65535." }
                     add("kinds", kind)
                 }
-                prefix == "is" -> add("kinds", kinds[value.lowercase()] ?: error("Unknown kind '$value'. Try is:note, is:article, is:highlight, or kind:123."))
+                prefix == "is" -> (kindAliases[value.lowercase()] ?: error("Unknown kind '$value'. Use /kinds to see available shortcuts.")).forEach { add("kinds", it) }
                 prefix == "since" || prefix == "until" -> {
                     val date = runCatching { LocalDate.parse(value) }.getOrElse { error("Use $prefix:YYYY-MM-DD.") }
                     f.put(prefix, date.atStartOfDay().toEpochSecond(ZoneOffset.UTC) + if (prefix == "until") 86399 else 0)
@@ -111,6 +110,7 @@ class SearchQuery(private val http: OkHttpClient) {
     }
 
     private fun resolve(raw: String): String {
+        if (raw.equals("@me", ignoreCase = true)) return currentPubkey ?: error("Use /login before searching with @me.")
         val value = raw.removePrefix("nostr:").removePrefix("@")
         Nip19.normalizePubkey(value)?.let { return it }
         val identifier = when (value.lowercase()) { "dergigi" -> "_@dergigi.com"; "fiatjaf" -> "_@fiatjaf.com"; else -> value }

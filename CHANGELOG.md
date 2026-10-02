@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Shared slash-command, example, and kind catalogs; all web kind shortcuts now execute natively, including multi-kind video and media searches.
+
 ## [0.3.0] - 2026-10-02
 
 ### Added
