@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-02
+
 ### Added
 
 - Resolve linked npub/nprofile mentions and profile URLs into compact, tappable @names across notes, highlights, details, and loaded thread parents, with shortened-key fallbacks.
@@ -14,13 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Replace the home-screen tagline with Search Nostr and remove promotional copy from the app and description.
-
 - Use a single magnifying-glass search button instead of a submit arrow and decorative search icon.
 
 ### Removed
 
 - Duplicate slash-command headings beneath the search box.
-
 - Device-only saved searches, including bookmark controls, the saved-search dialog, and previously stored saved-search data.
 
 ## [0.8.1] - 2026-10-02
@@ -148,7 +148,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/dergigi/ants-android/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/dergigi/ants-android/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/dergigi/ants-android/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/dergigi/ants-android/compare/v0.6.0...v0.7.0
