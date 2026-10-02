@@ -1,8 +1,6 @@
 package org.dergigi.ants
 
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
@@ -26,8 +24,8 @@ data class SearchBranch(val filter: JSONObject, val media: String? = null, val s
     }
 }
 
-class SearchQuery(private val http: OkHttpClient, private val currentPubkey: String? = null) {
-    fun parse(input: String): List<SearchBranch> {
+class SearchQuery(private val http: OkHttpClient, private val currentPubkey: String? = null, private val resolveProfile: suspend (String) -> String) {
+    suspend fun parse(input: String): List<SearchBranch> {
         val query = input.trim().removePrefix("nostr:")
         require(query.isNotBlank()) { "Enter a search first." }
         require(query.length <= 2000) { "Please keep searches under 2,000 characters." }
@@ -57,7 +55,7 @@ class SearchQuery(private val http: OkHttpClient, private val currentPubkey: Str
         return out
     }
 
-    private fun branch(query: String, now: Instant): SearchBranch {
+    private suspend fun branch(query: String, now: Instant): SearchBranch {
         val f = JSONObject().put("limit", 100)
         val direct = query.removePrefix("nostr:")
         when {
@@ -108,23 +106,8 @@ class SearchQuery(private val http: OkHttpClient, private val currentPubkey: Str
         return SearchBranch(f, media, site)
     }
 
-    private fun resolve(raw: String): String {
+    private suspend fun resolve(raw: String): String {
         if (raw.equals("@me", ignoreCase = true)) return currentPubkey ?: error("Use /login before searching with @me.")
-        val value = raw.removePrefix("nostr:").removePrefix("@")
-        Nip19.normalizePubkey(value)?.let { return it }
-        val identifier = when (value.lowercase()) { "dergigi" -> "_@dergigi.com"; "fiatjaf" -> "_@fiatjaf.com"; else -> value }
-        val name = if ('@' in identifier) identifier.substringBefore('@') else "_"
-        val domain = identifier.substringAfter('@', identifier)
-        require(domain.contains('.') && !domain.contains('/') && name.isNotBlank()) { "Use an npub, hex key, or NIP-05 address with by: / mentions:." }
-        val url = "https://$domain/.well-known/nostr.json".toHttpUrl().newBuilder().addQueryParameter("name", name).build()
-        return http.newCall(Request.Builder().url(url).build()).execute().use { response ->
-            require(response.isSuccessful) { "Couldn't resolve $identifier (HTTP ${response.code})." }
-            val body = response.body ?: error("Empty NIP-05 response.")
-            require(body.contentLength() <= 1_000_000) { "NIP-05 response too large." }
-            val content = body.source().readUtf8( minOf(1_000_001L, body.source().apply { request(1_000_001) }.buffer.size))
-            require(content.length <= 1_000_000) { "NIP-05 response too large." }
-            val key = JSONObject(content).getJSONObject("names").optString(name)
-            Nip19.normalizePubkey(key) ?: error("No NIP-05 key found for $identifier.")
-        }
+        return resolveProfile(raw)
     }
 }

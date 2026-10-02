@@ -17,7 +17,7 @@ data class SearchState(
     val pubkey: String? = null, val signerRequest: String? = null,
     val eventSignRequest: EventSignRequest? = null,
     val query: String = "", val submitted: String = "", val searched: Boolean = false,
-    val loading: Boolean = false, val error: String? = null,
+    val loading: Boolean = false, val rankedProfiles: Boolean = false, val error: String? = null,
     val loadingParents: Set<String> = emptySet(), val failedParents: Set<String> = emptySet(),
     val reactionTargets: Map<String, Nip01Event> = emptyMap(), val loadingReactionTargets: Boolean = false,
     val pageId: Long = 0, val backDepth: Int = 0,
@@ -85,6 +85,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         val result = if (rejected || state.value.pubkey != request.event.pubkey) null else validatedSignedEvent(request.event, eventJson, signature)
         signingWaiter?.complete(result)
     }
+    private val profileResolver = ProfileResolver(relay, ::signProfileRequest)
     private var nextPageId = 0L
     private val backStack = ArrayDeque<SearchState>()
 
@@ -169,7 +170,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         if (urls.any { url -> runCatching { val uri = Uri.parse(url); uri.scheme != "wss" || uri.host.isNullOrBlank() || uri.userInfo != null || uri.fragment != null }.getOrDefault(true) }) return "Use secure wss:// relay URLs, one per line."
         persist("relays", urls); mutable.update { it.copy(relays = urls) }; return null
     }
-    fun stop() { generation++; searchJob?.cancel(); parentJobs.values.forEach { it.cancel() }; parentJobs.clear(); mutable.update { it.copy(loadingParents = emptySet()) }; mutable.update { it.copy(loading = false, commandBusy = false, loadingReactionTargets = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
+    fun stop() { generation++; signingWaiter?.cancel(); pendingSignature = null; signingWaiter = null; mutable.update { it.copy(eventSignRequest = null) }; searchJob?.cancel(); parentJobs.values.forEach { it.cancel() }; parentJobs.clear(); mutable.update { it.copy(loadingParents = emptySet()) }; mutable.update { it.copy(loading = false, commandBusy = false, loadingReactionTargets = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
     fun home() {
         stop()
         backStack.clear()
@@ -183,7 +184,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         stop()
         if (input != state.value.submitted || state.value.detail != null) rememberPage()
         val current = ++generation
-        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, searched = true, loading = command == null || command == "tutorial", error = null, events = emptyList(), reactionTargets = emptyMap(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, events = emptyList(), reactionTargets = emptyMap(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
         searchJob = viewModelScope.launch {
             try {
                 if (command != null && command != "tutorial") {
@@ -191,13 +192,21 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     return@launch
                 }
                 val identity = state.value.pubkey
-                val branches = withContext(Dispatchers.IO) { SearchQuery(relay.http, identity).parse(if (command == "tutorial") tutorialPointer else input).mapNotNull { it.forRenderedResults() } }
+                val branches = withContext(Dispatchers.IO) { SearchQuery(relay.http, identity) { profileResolver.resolve(it, identity, state.value.relays) }.parse(if (command == "tutorial") tutorialPointer else input).mapNotNull { it.forRenderedResults() } }
                 require(branches.isNotEmpty()) { "This event type has no native display yet. Use /kinds to browse supported content." }
                 if (current != generation) return@launch
                 val history = (listOf(input) + state.value.history.filter { it != input }).take(20)
                 persist("history", history); mutable.update { it.copy(history = history) }
                 val urls = if (branches.any { it.filter.has("search") }) state.value.relays else (state.value.relays + generalRelays).distinct()
-                relay.search(branches, urls).flowOn(Dispatchers.IO).collect { update ->
+                val profileBranches = branches.filter { it.filter.has("search") && it.filter.optJSONArray("kinds")?.let { kinds -> kinds.length() == 1 && kinds.optInt(0) == 0 } == true }
+                val ordinaryBranches = branches - profileBranches.toSet()
+                for (branch in profileBranches) {
+                    val profiles = withContext(Dispatchers.IO) { profileResolver.search(branch.filter.getString("search"), identity, urls).filter(branch::accepts) }
+                    if (current != generation) return@launch
+                    profiles.forEach(::updateProfile)
+                    mutable.update { it.copy(events = (it.events + profiles).distinctBy { e -> e.pubkey }, rankedProfiles = ordinaryBranches.isEmpty()) }
+                }
+                if (ordinaryBranches.isNotEmpty()) relay.search(ordinaryBranches, urls).flowOn(Dispatchers.IO).collect { update ->
                     if (current != generation) return@collect
                     when (update) {
                         is RelayUpdate.Status -> mutable.update { it.copy(statuses = it.statuses + (update.relay to update.text)) }
@@ -240,12 +249,14 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             "help", "examples", "kinds" -> Unit
             "login" -> requestLogin()
             "logout" -> {
+                profileResolver.clear()
                 loginAttempt = null
                 accountProfileJob?.cancel()
                 preferences.edit().remove("pubkey").remove("signerPackage").apply()
                 mutable.update { it.copy(pubkey = null, signerRequest = null, commandMessage = "Logged out.") }
             }
             "clear" -> {
+                profileResolver.clear()
                 backStack.clear()
                 mutable.update { it.copy(backDepth = 0, profiles = emptyMap(), commandBusy = true, commandMessage = "Clearing cache…") }
                 try {
@@ -288,6 +299,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             mutable.update { it.copy(signerRequest = null, commandBusy = false, commandMessage = error ?: "The signer returned an invalid account. Please try again.") }
             return
         }
+        profileResolver.clear()
         preferences.edit().putString("pubkey", key).putString("signerPackage", validPackage).apply()
         mutable.update { it.copy(pubkey = key, signerRequest = null, commandBusy = false, commandMessage = "Connected.") }
         refreshAccountProfile()
