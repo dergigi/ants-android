@@ -227,9 +227,6 @@ fun AntsApp(model: SearchModel) {
                     } else {
                     commandItems(state, onSearch = { search(it) }, onConnect = model::requestLogin)
                     if (!state.searched) {
-                        item { Column(Modifier.padding(top = 24.dp, bottom = 18.dp)) {
-                            Text("Search Nostr", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                        } }
                         items(examples) { query -> CommandRow(query) { search(it) } }
                         if (state.history.isNotEmpty()) {
                             item { Row(verticalAlignment = Alignment.CenterVertically) { Text("RECENT SEARCHES", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelSmall); ActionIcon(Icons.Outlined.DeleteOutline, "Clear recent searches", model::clearHistory) } }

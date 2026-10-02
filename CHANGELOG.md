@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Home-screen Search Nostr heading and its extra spacing.
+
 ### Changed
 
 - Open web links and highlight source URLs directly instead of searching for them. Nostr mentions and hashtags continue to navigate within ants.
