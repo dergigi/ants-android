@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Pull down at the top of search results to rerun the current search, including empty results and tutorial searches.
+
 - Open notes, profiles, and loaded thread parents in installed Nostr apps through Android’s app chooser, excluding ants itself.
 
 ## [0.7.0] - 2026-10-02

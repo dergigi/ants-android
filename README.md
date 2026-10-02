@@ -23,7 +23,8 @@ Follow your curiosity. A native Android search and discovery app for Nostr, base
 - Optional external Android signer connection (such as Amber) for `by:@me` and `mentions:@me`. No secret-key entry or import.
 - Device-local saved searches and recent history.
 - Receive shared text, `nostr:` links, and `ants.sh` links.
-- Relay status, cancellation, retry, and editable search relays.
+- Relay status, cancellation, retry, pull-to-refresh, and editable search relays.
+- Open events in installed Nostr apps using the phone icon; Android offers compatible handlers and excludes ants from the chooser.
 
 Try `ants`, `#asknostr`, `GM by:dergigi`, `p:fiatjaf`, `is:highlight`, `by:name@example.com`, `kind:30023 since:2026-01-01`, or `bitcoin OR lightning`.
 

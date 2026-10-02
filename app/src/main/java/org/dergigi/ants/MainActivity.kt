@@ -33,6 +33,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -91,6 +94,10 @@ fun AntsApp(model: SearchModel) {
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
     var searchFocused by remember { mutableStateOf(false) }
     val suggestingCommands = searchFocused && state.query.trimStart().startsWith("/")
+    val pullState = rememberPullToRefreshState()
+    var pullRefreshPage by remember { mutableStateOf<Long?>(null) }
+    val canRefresh = state.searched && !suggestingCommands && (state.command == null || state.command == "tutorial")
+    val refreshingFromPull = state.loading && pullRefreshPage == state.pageId
     val selected = state.detail
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
@@ -198,7 +205,18 @@ fun AntsApp(model: SearchModel) {
                     }
                     if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
-                LazyColumn(Modifier.weight(1f), state = if (suggestingCommands) suggestionListState else listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.weight(1f).pullToRefresh(
+                    state = pullState,
+                    isRefreshing = refreshingFromPull,
+                    enabled = canRefresh && !state.loading,
+                    onRefresh = {
+                        if (canRefresh && !state.loading) {
+                            search(state.submitted)
+                            pullRefreshPage = model.state.value.pageId
+                        }
+                    },
+                )) {
+                LazyColumn(Modifier.fillMaxSize(), state = if (suggestingCommands) suggestionListState else listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (suggestingCommands) {
                         val matches = slashCommands.filter { it.name.startsWith(state.query.trim().lowercase()) }
                         items(matches, key = { "suggestion-${it.name}" }) { command ->
@@ -238,6 +256,8 @@ fun AntsApp(model: SearchModel) {
                     }
                     if (state.events.size >= 500) item { Text("Showing the first 500 matches. Narrow your search with since: / until:.", color = muted) }
                     }
+                }
+                if (canRefresh) PullToRefreshDefaults.Indicator(state = pullState, isRefreshing = refreshingFromPull, modifier = Modifier.align(Alignment.TopCenter))
                 }
             }
         }
@@ -341,7 +361,7 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
                 Text(relativeTime(event.createdAt), color = muted, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
                 ActionIcon(Icons.Outlined.ContentCopy, "Copy event ID", { clipboard.setText(AnnotatedString("nostr:${Nip19.noteEncode(event.id)}")) })
                 ActionIcon(Icons.Outlined.OpenInMobile, "Open in app", { openInNostrApp(context, event) })
-            ActionIcon(Icons.AutoMirrored.Outlined.OpenInNew, "Open in browser", { openUrl(context, "https://njump.to/${Nip19.noteEncode(event.id)}") })
+                ActionIcon(Icons.AutoMirrored.Outlined.OpenInNew, "Open in browser", { openUrl(context, "https://njump.to/${Nip19.noteEncode(event.id)}") })
                 ActionIcon(Icons.Outlined.MoreHoriz, "Event details and actions", onOpen)
             }
         }
