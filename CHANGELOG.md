@@ -7,14 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-02
+
 ### Added
 
-- Tappable command pages, grouped examples, complete kind shortcuts, and clickable help examples. A minimal account icon and /login connect only to external signers such as Amber.
-- Reject pasted nsec/ncryptsec values before storing searches or sending queries to relays.
+- All seven web slash commands: /help, /examples, /kinds, /login, /logout, /clear, and /tutorial, handled natively without sending commands as relay search terms.
+- Tappable help examples, grouped executable searches, and complete web kind shortcuts, including multi-kind video and media searches.
+- Minimal account icon and external Android signer connection, including Amber, for by:@me and mentions:@me searches. Only the public key and signer package are stored; logout removes them.
+- Cache clearing that preserves the account, saved searches, history, settings, and downloaded pictures, plus native tutorial-event lookup.
+- Reject pasted nsec/ncryptsec values before storing searches or sending queries to relays. No secret-key entry or import.
 
-- Native slash-command execution, cache clearing, tutorial-event lookup, signer account connection/logout, and @me author/mention searches. Commands are handled locally rather than sent as relay search terms.
+### Fixed
 
-- Shared slash-command, example, and kind catalogs; all web kind shortcuts now execute natively, including multi-kind video and media searches.
+- Clear stale connection messages when navigating back to the account page.
 
 ## [0.3.0] - 2026-10-02
 
@@ -70,7 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/dergigi/ants-android/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/dergigi/ants-android/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dergigi/ants-android/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/dergigi/ants-android/compare/v0.1.0...v0.1.1

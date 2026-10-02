@@ -8,7 +8,9 @@ description: |
 
   Search with hashtags, authors, kinds, dates, and OR queries. Open Nostr identifiers directly, save searches, inspect raw events, and share what you find. Connect to your preferred search relays. No account required.
 
-  Initial read-only MVP. Relay coverage varies. Login, posting, zaps, grouped boolean expressions, and reverse image search are not included yet.
+  Explore clickable slash commands and examples, reaction previews, and a fullscreen image gallery. Optionally connect an external Android signer such as Amber for searches using @me. No secret-key entry or import.
+
+  Read-only. Relay coverage varies. Posting, zaps, grouped boolean expressions, and reverse image search are not included yet.
 tags:
   - nostr
   - search

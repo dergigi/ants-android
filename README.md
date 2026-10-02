@@ -15,17 +15,19 @@ Follow your curiosity. A native Android search and discovery app for Nostr, base
 - Tappable hashtags, Nostr mentions, quoted-note references, web links, and highlight sources that lead to native searches.
 - Back navigation restores results, scroll position, and event details within the current session; tap the ants logo to return home.
 - New searches stay at the top while results arrive. Scrolling pauses updates to the visible list; tap the new-results icon to reveal queued results.
+- All web slash commands: `/help`, `/examples`, `/kinds`, `/login`, `/logout`, `/clear`, and `/tutorial`, with tappable help examples and kind shortcuts.
+- Optional external Android signer connection (such as Amber) for `by:@me` and `mentions:@me`. No secret-key entry or import.
 - Device-local saved searches and recent history.
 - Receive shared text, `nostr:` links, and `ants.sh` links.
 - Relay status, cancellation, retry, and editable search relays.
 
 Try `bitcoin`, `#asknostr`, `GM by:dergigi`, `p:fiatjaf`, `is:highlight`, `by:name@example.com`, `kind:30023 since:2026-01-01`, or `bitcoin OR lightning`.
 
-The initial release is read-only. It does not include login, posting, zaps, grouped boolean expressions, reverse image search, persistent offline result caching, or pagination. Navigation history is held in memory (up to 20 prior screens, further bounded by retained content size) and does not survive process termination. Up to 100 candidates are requested per query per relay, and results are capped at 500. Media filters operate on returned candidates. Search semantics and coverage depend on the relay. Dates use UTC, with `until:` including the specified day. Profile metadata and reaction previews can arrive after results. Up to 100 distinct reaction targets are fetched per search; any target can also be tapped for a direct lookup. Galleries include up to 100 images per event.
+The app remains read-only. Signer connection enables account-relative searches; it does not request event signing or authenticate to relays. It does not include posting, zaps, grouped boolean expressions, reverse image search, persistent offline result caching, or pagination. Navigation history is held in memory (up to 20 prior screens, further bounded by retained content size) and does not survive process termination. Up to 100 candidates are requested per query per relay, and results are capped at 500. Media filters operate on returned candidates. Search semantics and coverage depend on the relay. Dates use UTC, with `until:` including the specified day. Profile metadata and reaction previews can arrive after results. Up to 100 distinct reaction targets are fetched per search; any target can also be tapped for a direct lookup. Galleries include up to 100 images per event.
 
 ## Privacy
 
-Search queries go directly to configured relays. Author aliases / NIP-05 addresses are resolved over HTTPS. Direct lookups also use Damus, nos.lol, and Primal; profile metadata is fetched from purplepag.es and Damus. Images load from their hosts. Saved searches, history, and settings remain on the device; no analytics or account keys are collected. Clear recent searches from the home screen. Saved images go to Pictures/ants on Android 10+ (Pictures on older versions, which request storage permission). Image sharing downloads a temporary file into app cache and grants the receiving app access to that file. Android backups are disabled.
+Search queries go directly to configured relays. Author aliases / NIP-05 addresses are resolved over HTTPS. Direct lookups also use Damus, nos.lol, and Primal; profile metadata is fetched from purplepag.es and Damus. Images load from their hosts. Saved searches, history, and settings remain on the device; no analytics or private keys are collected. Optional signer connection stores only the public key and signer package locally; `/logout` removes both. `/clear` clears cached results, profiles, and images while preserving the account, saved searches, history, settings, and downloaded pictures. Clear recent searches from the home screen. Saved images go to Pictures/ants on Android 10+ (Pictures on older versions, which request storage permission). Image sharing downloads a temporary file into app cache and grants the receiving app access to that file. Android backups are disabled.
 
 ## Build
 
