@@ -38,6 +38,25 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     private var nextPageId = 0L
     private val backStack = ArrayDeque<SearchState>()
 
+    private var accountProfileJob: Job? = null
+
+    init { refreshAccountProfile() }
+
+    private fun refreshAccountProfile() {
+        accountProfileJob?.cancel()
+        val key = state.value.pubkey ?: return
+        accountProfileJob = viewModelScope.launch {
+            try {
+                val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray().put(key)).put("limit", 1)
+                relay.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000)
+                    .flowOn(Dispatchers.IO).collect { update ->
+                        if (state.value.pubkey == key && update is RelayUpdate.Event) updateProfile(update.event)
+                    }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* The account stays usable with an avatar fallback when offline. */ }
+        }
+    }
+
     fun rememberScroll(pageId: Long, index: Int, offset: Int) {
         mutable.update { if (it.pageId == pageId) it.copy(scrollIndex = index, scrollOffset = offset) else it }
     }
@@ -171,6 +190,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             "login" -> requestLogin()
             "logout" -> {
                 loginAttempt = null
+                accountProfileJob?.cancel()
                 preferences.edit().remove("pubkey").remove("signerPackage").apply()
                 mutable.update { it.copy(pubkey = null, signerRequest = null, commandMessage = "Logged out. Your saved searches and settings are unchanged.") }
             }
@@ -219,6 +239,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         }
         preferences.edit().putString("pubkey", key).putString("signerPackage", validPackage).apply()
         mutable.update { it.copy(pubkey = key, signerRequest = null, commandBusy = false, commandMessage = "Connected. You can now search by:@me and mentions:@me.") }
+        refreshAccountProfile()
     }
 
     private fun updateProfile(event: Nip01Event) {
