@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-02
+
 ### Added
 
 - Offer crash reports on the next launch, with review, copy, dismiss, and explicit Send actions. Reports go to @ants.sh as encrypted NIP-17 messages from a one-time key, using the recipient’s inbox relays. No login is required and nothing is sent automatically.
@@ -257,7 +259,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.14.1...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/dergigi/ants-android/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/dergigi/ants-android/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/dergigi/ants-android/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/dergigi/ants-android/compare/v0.13.0...v0.13.1
