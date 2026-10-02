@@ -11,7 +11,7 @@ Follow your curiosity. A native Android search and discovery app for Nostr, base
 - Direct lookup of `npub`, `nprofile`, `note`, `nevent`, `naddr`, and event hex IDs.
 - Profile names and avatars, inline images without duplicate URLs, full event text, raw JSON, copying and sharing.
 - Tap images for a Boris-style gallery: swipe, pinch/double-tap zoom, previous/next, background switching, save one/all, share the image file, or copy/open its URL.
-- Replies and reactions show a compact parent bar above their content. Tap to expand verified ancestors inline, continue up the thread, collapse, retry, or open a parent directly. Supports text-note reply markers, legacy replies, and event-ID parents in comments. Inline depth is capped at 16; deeper parents can be opened as a new search.
+- Replies and reactions show a compact parent bar above their content. Tap to prepend the verified parent note, replacing its bar. Keep tapping the new top bar to load earlier notes toward the root; unavailable notes can be retried. Supports text-note reply markers, legacy replies, and event-ID parents in comments. Loaded ancestors form a flat timeline above the original result, without nested expand/collapse controls.
 - Tappable hashtags, Nostr mentions, quoted-note references, web links, and highlight sources that lead to native searches.
 - Back navigation restores results, scroll position, and event details within the current session; tap the ants logo to return home.
 - New searches stay at the top while results arrive. Scrolling pauses updates to the visible list; tap the new-results icon to reveal queued results.

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Load thread ancestors progressively above the search result: each tapped bar is replaced by its parent note, with the next load bar above the oldest visible note. Remove expand/collapse controls and nested depth limits.
+
 ## [0.5.0] - 2026-10-02
 
 ### Added
