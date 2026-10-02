@@ -184,7 +184,17 @@ private fun ZoomableGalleryImage(url: String, isCurrent: Boolean, onZoomed: (Boo
                             }
                         } while (event.changes.any { it.pressed })
                         if (!pinching && !dragged && endedAt - start < 300) {
-                            if (lastTap > 0 && start - lastTap < 300) { applyScale(if (scale > 1f) 1f else 2.5f); lastTap = 0L }
+                            if (lastTap > 0 && start - lastTap < 300) {
+                                if (scale > 1f) applyScale(1f)
+                                else {
+                                    val next = 2.5f
+                                    val center = Offset(size.width / 2f, size.height / 2f)
+                                    // Counter the center-based layer transform so the tapped
+                                    // image point stays beneath the finger as it magnifies.
+                                    applyScale(next, (down.position - center) * (1f - next))
+                                }
+                                lastTap = 0L
+                            }
                             else lastTap = start
                         }
                     }

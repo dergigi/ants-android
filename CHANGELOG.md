@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Focus gallery double-tap zoom on the tapped image area, retaining double-tap zoom-out and recentering.
+
 ## [0.11.0] - 2026-10-02
 
 ### Added
