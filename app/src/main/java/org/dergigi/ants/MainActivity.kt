@@ -101,6 +101,7 @@ fun AntsApp(model: SearchModel) {
     val canRefresh = state.searched && !suggestingCommands && (state.command == null || state.command == "tutorial")
     val refreshingFromPull = state.loading && pullRefreshPage == state.pageId
     val selected = state.detail
+    val placeholder = rememberSearchPlaceholder(active = state.query.isEmpty() && !state.loading && selected == null && dialog == null, loggedIn = state.pubkey != null)
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
     var signingActivityId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -192,7 +193,7 @@ fun AntsApp(model: SearchModel) {
     fun search(value: String = state.query) {
         keyboard?.hide(); focus.clearFocus()
         model.rememberScroll(state.pageId, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset)
-        model.search(value)
+        model.search(value.ifEmpty { placeholder.query })
     }
     fun navigateContent(value: String) {
         if (Uri.parse(value).scheme?.lowercase() in listOf("http", "https")) openUrl(context, value)
@@ -231,10 +232,11 @@ fun AntsApp(model: SearchModel) {
             Column(Modifier.fillMaxSize(), verticalArrangement = if (centeredHome) Arrangement.Center else Arrangement.Top) {
                 OutlinedTextField(value = state.query, onValueChange = model::edit,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).onFocusChanged { searchFocused = it.isFocused },
-                    placeholder = { Text("Search anything on Nostr", fontSize = 15.sp) },
+                    placeholder = { Text(placeholder.query, fontSize = 15.sp, fontFamily = FontFamily.Monospace, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     trailingIcon = { Row {
                         if (state.query.isNotEmpty()) IconButton(onClick = { model.edit("") }) { Icon(Icons.Outlined.Close, "Clear query") }
-                        IconButton(onClick = { search() }, enabled = state.query.isNotBlank()) { Icon(Icons.Outlined.Search, "Search", tint = blue) }
+                        else if (!state.loading) NextSearchExample(placeholder)
+                        IconButton(onClick = { search() }, enabled = state.query.isEmpty() || state.query.isNotBlank()) { Icon(Icons.Outlined.Search, if (state.query.isEmpty()) "Search ${placeholder.query}" else "Search", tint = blue) }
                     } },
                     singleLine = true, shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { search() }))

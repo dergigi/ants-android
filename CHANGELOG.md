@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Rotate search placeholders through supported commands and examples every seven seconds, starting with /examples. Show the web-style countdown ring, tap it for the next example, and submit the displayed placeholder with the search button or keyboard when the field is empty. Pause rotation during input, loading, and background activity; hide login-only examples when signed out.
+
 ### Changed
 
 - Add a logo-only home control at the top left of the start screen and history, help, and login/account controls at the top right, keeping the search field centered.
