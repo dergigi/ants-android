@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix the immediate crash when rendering highlights (including `is:highlight "proof of work"`). Standalone highlight cards now supply their Markdown styles explicitly instead of reading missing Markdown composition locals.
+
 ## [0.15.0] - 2026-10-02
 
 ### Added

@@ -9,10 +9,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.UriHandler
-import com.mikepenz.markdown.annotator.annotatorSettings
 import com.mikepenz.markdown.annotator.buildMarkdownAnnotatedString
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -99,13 +99,19 @@ internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>,
             else pointerQuery(uri)?.let(currentNavigate)
         }
     } }
-    val settings = annotatorSettings(uriHandler = uriHandler)
+    // Standalone cards have no Markdown composable providing the library's
+    // typography/annotator locals. Use the non-composable API with explicit styles.
+    val linkStyle = SpanStyle(color = Color(0xFF60A5FA))
+    val codeStyle = SpanStyle(fontFamily = FontFamily.Monospace, background = MaterialTheme.colorScheme.surfaceContainerHighest)
+    val linkListener = remember(uriHandler) { LinkInteractionListener { link ->
+        if (link is LinkAnnotation.Url) uriHandler.openUri(link.url)
+    } }
     val style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp)
-    val rendered by produceState<Pair<AnnotatedString, AnnotatedString?>?>(null, event.id, compact, profiles, style) {
+    val rendered by produceState<Pair<AnnotatedString, AnnotatedString?>?>(null, event.id, compact, profiles, style, codeStyle) {
         value = withContext(Dispatchers.Default) {
             try {
                 fun markdown(text: String): AnnotatedString = try {
-                    text.buildMarkdownAnnotatedString(style, settings).takeUnless { it.isEmpty() && text.isNotBlank() }
+                    text.buildMarkdownAnnotatedString(style = style, linkTextSpanStyle = linkStyle, codeSpanStyle = codeStyle, linkInteractionListener = linkListener).takeUnless { it.isEmpty() && text.isNotBlank() }
                         ?: AnnotatedString(text)
                 } catch (cancelled: CancellationException) {
                     throw cancelled
