@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Follow hashtags, Nostr mentions, quoted-note references, web links, and highlight sources into native searches. Source authors also open inside ants.
 - In-session search navigation history: Back restores cached results, list position, and open event details without fetching again. The ants logo still returns directly home.
 
+### Changed
+
+- Use njump.to for outbound Nostr links while continuing to recognize links from both njump domains.
+
 ### Fixed
 
 - Keep new searches at the newest result as relays stream in. Queue incoming results while reading so the visible list stays unchanged, with an icon to reveal them and jump to the newest result.
