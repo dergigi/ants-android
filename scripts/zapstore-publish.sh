@@ -82,12 +82,29 @@ fi
 
 if [[ -n "$CERT" && -f "$CERT" && "${SKIP_CERT_LINK:-}" != "1" ]]; then
   echo "Linking APK signing certificate to Nostr identity (NIP-C1)…"
-  if zsp identity --link-key "$CERT" --key-alias upload --offline 2>/dev/null | nak event \
-      wss://relay.zapstore.dev wss://relay.damus.io wss://relay.primal.net; then
-    echo "Identity proof published."
+  # Never pipe a failed/empty signer output to nak: nak would generate its own
+  # default note when stdin is empty. Validate the signed proof before sending.
+  PROOF="$(mktemp -t ants-identity.XXXXXX)"
+  if zsp identity --link-key "$CERT" --key-alias upload --offline > "$PROOF"; then
+    if python3 - "$PROOF" <<'PYPROOF'
+import json, sys
+with open(sys.argv[1]) as f:
+    event = json.load(f)
+assert event.get("kind") == 30509 and event.get("sig"), "Invalid certificate identity proof"
+PYPROOF
+    then
+      nak event wss://relay.zapstore.dev wss://relay.damus.io wss://relay.primal.net < "$PROOF"
+      echo "Identity proof published."
+    else
+      rm -f "$PROOF"
+      exit 1
+    fi
   else
-    echo "Certificate linking skipped or already done." >&2
+    rm -f "$PROOF"
+    echo "Certificate linking failed. Check keystore format (.p12 for PKCS12)." >&2
+    exit 1
   fi
+  rm -f "$PROOF"
 fi
 
 # Keep committed zapstore.yaml metadata (including release_notes) while

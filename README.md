@@ -54,7 +54,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) after
 3. Tag `vX.Y.Z`, push the source and tag, and create a GitHub release with the APK and that version's changelog notes.
 4. Run `./scripts/zapstore-publish.sh` with `SIGN_WITH` configured in the environment or gitignored `.env`.
 
-Publishing follows [boris-android](https://github.com/dergigi/boris-android): `zsp`, the same publisher npub, APK signing certificate identity linking, and repository metadata in `zapstore.yaml`. The script publishes the local APK using the YAML config, preserving changelog release notes. Requires `zsp`, `nak`, and `gh` on PATH (or `zsp` in `~/bin`). Credentials and keystores are never committed.
+Publishing follows [boris-android](https://github.com/dergigi/boris-android): `zsp`, the same publisher npub, APK signing certificate identity linking, and repository metadata in `zapstore.yaml`. The script publishes the local APK using the YAML config, preserving changelog release notes. Requires `zsp`, `nak`, and `gh` on PATH (or `zsp` in `~/bin`). Credentials and keystores are never committed. For a PKCS#12 keystore, use a `.p12` extension (or place a local copy at `keystore/upload.p12`); `zsp` selects its keystore parser by extension.
 
 ## License
 
