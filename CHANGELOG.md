@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Duplicate slash-command headings beneath the search box.
+
 - Device-only saved searches, including bookmark controls, the saved-search dialog, and previously stored saved-search data.
 
 ## [0.8.1] - 2026-10-02

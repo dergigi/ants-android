@@ -36,13 +36,6 @@ internal fun HelpContent(state: SearchState, onSearch: (String) -> Unit) {
 
 internal fun LazyListScope.commandItems(state: SearchState, onSearch: (String) -> Unit, onConnect: () -> Unit) {
     val command = state.command ?: return
-    item(key = "command-heading") {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Terminal, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(8.dp)); Text("/$command", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.titleMedium)
-            if (state.commandBusy) { Spacer(Modifier.width(12.dp)); CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) }
-        }
-    }
     when (command) {
         "help" -> item { HelpContent(state, onSearch) }
         "examples" -> {
