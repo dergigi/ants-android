@@ -82,8 +82,13 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         if (id == activeSigningId) activeSigningId = null
         val request = pendingSignature ?: return
         if (request.id != id) return
-        val result = if (rejected || state.value.pubkey != request.event.pubkey) null else validatedSignedEvent(request.event, eventJson, signature)
-        signingWaiter?.complete(result)
+        val waiter = signingWaiter ?: return
+        viewModelScope.launch {
+            val result = if (rejected) null else withContext(Dispatchers.Default) {
+                validatedSignedEvent(request.event, eventJson, signature)
+            }
+            if (pendingSignature?.id == request.id && state.value.pubkey == request.event.pubkey) waiter.complete(result)
+        }
     }
     private val profileResolver = ProfileResolver(relay, ::signProfileRequest)
     private var nextPageId = 0L
@@ -203,20 +208,24 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 for (branch in profileBranches) {
                     val profiles = withContext(Dispatchers.IO) { profileResolver.search(branch.filter.getString("search"), identity, urls).filter(branch::accepts) }
                     if (current != generation) return@launch
-                    profiles.forEach(::updateProfile)
+                    updateProfiles(profiles)
                     mutable.update { it.copy(events = (it.events + profiles).distinctBy { e -> e.pubkey }, rankedProfiles = ordinaryBranches.isEmpty()) }
                 }
-                if (ordinaryBranches.isNotEmpty()) relay.search(ordinaryBranches, urls).flowOn(Dispatchers.IO).collect { update ->
+                if (ordinaryBranches.isNotEmpty()) relay.search(ordinaryBranches, urls).batched().flowOn(Dispatchers.IO).collect { updates ->
                     if (current != generation) return@collect
-                    when (update) {
-                        is RelayUpdate.Status -> mutable.update { it.copy(statuses = it.statuses + (update.relay to update.text)) }
-                        is RelayUpdate.Event -> {
-                            val event = update.event
-                            if (event.kind == 0) updateProfile(event)
-                            mutable.update {
-                                if (it.followingNewest) it.copy(events = (it.events + event).distinctBy { e -> e.id }.sortedByDescending { e -> e.createdAt }.take(500))
-                                else if (it.events.any { e -> e.id == event.id }) it
-                                else it.copy(pendingEvents = (it.pendingEvents + event).distinctBy { e -> e.id }.take(500))
+                    val pageId = state.value.pageId
+                    val events = updates.filterIsInstance<RelayUpdate.Event>().map { it.event }
+                    val statuses = updates.filterIsInstance<RelayUpdate.Status>().associate { it.relay to it.text }
+                    updateProfiles(events.filter { it.kind == 0 })
+                    withContext(Dispatchers.Default) {
+                        mutable.update {
+                            if (it.pageId != pageId) it
+                            else if (it.followingNewest) it.copy(
+                                events = (it.events + events).distinctBy { e -> e.id }.sortedByDescending { e -> e.createdAt }.take(500),
+                                statuses = it.statuses + statuses,
+                            ) else {
+                                val shown = it.events.map { e -> e.id }.toHashSet()
+                                it.copy(pendingEvents = (it.pendingEvents + events.filter { e -> e.id !in shown }).distinctBy { e -> e.id }.take(500), statuses = it.statuses + statuses)
                             }
                         }
                     }
@@ -233,11 +242,17 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     if (current != generation) return@launch
                     mutable.update { it.copy(loadingReactionTargets = false) }
                 }
-                val authors = (state.value.events + state.value.pendingEvents + state.value.reactionTargets.values).flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) + linkedProfileKeys(it) }.distinct().filter { it !in state.value.profiles }.take(200)
+                val snapshot = state.value
+                val authors = withContext(Dispatchers.Default) {
+                    (snapshot.events + snapshot.pendingEvents + snapshot.reactionTargets.values).asSequence()
+                        .flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) + linkedProfileKeys(it) }
+                        .distinct().filter { it !in snapshot.profiles }.take(200).toList()
+                }
+                if (current != generation) return@launch
                 if (authors.isNotEmpty()) {
                     val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
-                    relay.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000).flowOn(Dispatchers.IO).collect {
-                        if (current == generation && it is RelayUpdate.Event) updateProfile(it.event)
+                    relay.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000).batched().flowOn(Dispatchers.IO).collect { updates ->
+                        if (current == generation) updateProfiles(updates.filterIsInstance<RelayUpdate.Event>().map { it.event })
                     }
                 }
             } catch (e: CancellationException) { throw e }
@@ -324,7 +339,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                         }
                     }
                 val parent = state.value.reactionTargets[id]
-                val authors = parent?.let { (listOfNotNull(it.pubkey, highlightAuthor(it)) + linkedProfileKeys(it)).distinct().filter { key -> key !in state.value.profiles } }.orEmpty()
+                val authors = withContext(Dispatchers.Default) { parent?.let { (listOfNotNull(it.pubkey, highlightAuthor(it)) + linkedProfileKeys(it)).distinct().filter { key -> key !in state.value.profiles } }.orEmpty() }
                 if (current == generation && authors.isNotEmpty()) {
                     val profileFilter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
                     relay.search(listOf(SearchBranch(profileFilter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000)
@@ -342,11 +357,22 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private fun updateProfile(event: Nip01Event) {
-        runCatching {
-            val json = JSONObject(event.content)
-            val profile = Profile(json.optString("display_name").ifBlank { json.optString("name") }.ifBlank { event.pubkey.take(12) }, json.optString("about"), json.optString("picture").takeIf { it.startsWith("https://") }, event.createdAt)
-            mutable.update { state -> if ((state.profiles[event.pubkey]?.timestamp ?: -1) > event.createdAt) state else state.copy(profiles = (state.profiles + (event.pubkey to profile)).entries.toList().takeLast(1000).associate { it.toPair() }) }
+    private suspend fun updateProfile(event: Nip01Event) = updateProfiles(listOf(event))
+    private suspend fun updateProfiles(events: List<Nip01Event>) {
+        if (events.isEmpty()) return
+        val pageId = state.value.pageId
+        withContext(Dispatchers.Default) {
+            val profiles = events.mapNotNull { event -> runCatching {
+                val json = JSONObject(event.content)
+                event.pubkey to Profile(json.optString("display_name").ifBlank { json.optString("name") }.ifBlank { event.pubkey.take(12) }, json.optString("about"), json.optString("picture").takeIf { it.startsWith("https://") }, event.createdAt)
+            }.getOrNull() }
+            mutable.update { state ->
+                if (state.pageId != pageId) state else {
+                    val merged = state.profiles.toMutableMap()
+                    for ((key, profile) in profiles) if ((merged[key]?.timestamp ?: -1) <= profile.timestamp) merged[key] = profile
+                    state.copy(profiles = merged.entries.toList().takeLast(1000).associate { it.toPair() })
+                }
+            }
         }
     }
     override fun onCleared() { relay.http.dispatcher.cancelAll(); relay.http.connectionPool.evictAll() }
