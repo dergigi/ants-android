@@ -23,6 +23,7 @@ import com.mikepenz.markdown.m3.markdownTypography
 import com.mikepenz.markdown.model.ImageData
 import com.mikepenz.markdown.model.ImageTransformer
 import com.mikepenz.markdown.model.rememberMarkdownState
+import com.mikepenz.markdown.model.ReferenceLinkHandlerImpl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
@@ -80,7 +81,11 @@ internal fun ArticleContent(event: Nip01Event, compact: Boolean, onNavigate: (St
         if (rendered.body.isNotBlank()) {
             val flavour = remember { GFMFlavourDescriptor() }
             val parser = remember(flavour) { MarkdownParser(flavour) }
-            val markdown = rememberMarkdownState(content = rendered.body, flavour = flavour, parser = parser)
+            // The library includes this resolver in its parsing-state key. Its
+            // default creates a new instance on every recomposition, which can
+            // clear the article and collapse the scroll range while scrolling.
+            val referenceLinks = remember(event.id, rendered.body) { ReferenceLinkHandlerImpl() }
+            val markdown = rememberMarkdownState(content = rendered.body, flavour = flavour, parser = parser, referenceLinkHandler = referenceLinks)
             val bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 25.sp)
             CompositionLocalProvider(LocalUriHandler provides uriHandler) {
                 Markdown(markdownState = markdown, modifier = Modifier.fillMaxWidth(), imageTransformer = imageTransformer,
