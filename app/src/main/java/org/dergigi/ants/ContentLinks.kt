@@ -74,9 +74,15 @@ internal fun linkedProfileKeys(event: Nip01Event): List<String> =
 private fun profileKey(query: String): String? =
     if (query.startsWith("by:")) Nip19.normalizePubkey(query.removePrefix("by:")) else null
 
-internal data class LinkedContent(val text: AnnotatedString, val ranges: List<IntRange>)
+internal data class LinkedContent(val text: AnnotatedString, val ranges: List<IntRange>, private val starts: IntArray, private val ends: IntArray) {
+    fun mapRange(start: Int, end: Int): IntRange? {
+        val a = starts[start.coerceIn(starts.indices)]
+        val b = ends[end.coerceIn(ends.indices)]
+        return if (a < b) a until b else null
+    }
+}
 
-internal fun linkedContent(text: String, event: Nip01Event, profiles: Map<String, Profile>, ranges: List<IntRange> = emptyList(), onNavigate: (String) -> Unit): LinkedContent {
+internal fun linkedContent(text: String, event: Nip01Event, profiles: Map<String, Profile>, ranges: List<IntRange> = emptyList(), protectedRanges: List<IntRange> = emptyList(), onNavigate: (String) -> Unit): LinkedContent {
     // Track both edges of replaced mentions so highlight spans still align
     // when a long identifier becomes a short display name.
     val starts = IntArray(text.length + 1)
@@ -88,7 +94,7 @@ internal fun linkedContent(text: String, event: Nip01Event, profiles: Map<String
             for (i in cursor until end) { starts[i] = length; ends[i] = length; append(text[i]) }
             cursor = end
         }
-        contentLinks(text, event).forEach { link ->
+        contentLinks(text, event).filter { link -> protectedRanges.none { link.start <= it.last && link.end > it.first } }.forEach { link ->
             appendPlain(link.start)
             val key = profileKey(link.query)
             val label = key?.let {
@@ -111,7 +117,7 @@ internal fun linkedContent(text: String, event: Nip01Event, profiles: Map<String
         val start = starts[range.first.coerceIn(0, text.length)]
         val end = ends[(range.last + 1).coerceIn(0, text.length)]
         if (start < end) start until end else null
-    })
+    }, starts, ends)
 }
 
 internal fun linkedText(text: String, event: Nip01Event, profiles: Map<String, Profile> = emptyMap(), onNavigate: (String) -> Unit): AnnotatedString =

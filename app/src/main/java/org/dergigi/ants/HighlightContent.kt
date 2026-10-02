@@ -11,9 +11,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.UriHandler
+import com.mikepenz.markdown.annotator.annotatorSettings
+import com.mikepenz.markdown.annotator.buildMarkdownAnnotatedString
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val highlightGold = Color(0xFFF6DE74)
-private data class HighlightPassage(val text: String, val ranges: List<IntRange>)
+private data class HighlightPassage(val text: AnnotatedString, val ranges: List<IntRange>)
 
 // Retain original offsets while treating runs of whitespace like the web renderer.
 private fun normalized(text: String): Pair<String, List<Int>> {
@@ -27,11 +32,9 @@ private fun normalized(text: String): Pair<String, List<Int>> {
     return out.toString() to offsets
 }
 
-private fun passage(event: Nip01Event, compact: Boolean): HighlightPassage {
-    val content = event.content.trim()
-    val context = event.tagValue("context").orEmpty()
-    val (haystack, offsets) = normalized(context)
-    val needle = normalized(content).first.trim()
+private fun passage(content: AnnotatedString, context: AnnotatedString, compact: Boolean): HighlightPassage {
+    val (haystack, offsets) = normalized(context.text)
+    val needle = normalized(content.text).first.trim()
     val ranges = mutableListOf<IntRange>()
     if (needle.isNotEmpty()) {
         var cursor = 0
@@ -45,14 +48,14 @@ private fun passage(event: Nip01Event, compact: Boolean): HighlightPassage {
     }
     // Never lose the actual highlight when a publisher supplied unrelated context.
     if (ranges.isEmpty()) {
-        val text = if (compact && content.length > 1400) content.take(1400) + "…" else content
+        val text = if (compact && content.length > 1400) content.subSequence(0, 1400) + AnnotatedString("…") else content
         return HighlightPassage(text, if (text.isEmpty()) emptyList() else listOf(0 until text.length))
     }
     if (!compact || context.length <= 1600) return HighlightPassage(context, ranges)
     val start = (ranges.first().first - 180).coerceAtLeast(0)
     val end = (start + 1600).coerceAtMost(context.length)
     val prefix = if (start > 0) "…" else ""
-    val text = prefix + context.substring(start, end) + if (end < context.length) "…" else ""
+    val text = AnnotatedString(prefix) + context.subSequence(start, end) + AnnotatedString(if (end < context.length) "…" else "")
     return HighlightPassage(text, ranges.mapNotNull {
         val a = maxOf(it.first, start); val b = minOf(it.last + 1, end)
         if (a < b) (a - start + prefix.length) until (b - start + prefix.length) else null
@@ -86,13 +89,38 @@ private fun highlightSource(event: Nip01Event): HighlightSource? {
 
 @Composable
 internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
-    val passage = remember(event.id, compact) { passage(event, compact) }
     val currentNavigate by rememberUpdatedState(onNavigate)
-    val linked = remember(passage, profiles) { linkedContent(passage.text.ifBlank { "Empty highlight" }, event, profiles, passage.ranges) { currentNavigate(it) } }
-    val styled = remember(linked) { buildAnnotatedString {
-        append(linked.text)
-        linked.ranges.forEach { addStyle(SpanStyle(background = highlightGold.copy(alpha = 0.30f), color = Color(0xFFF3F4F6)), it.first, it.last + 1) }
+    val uriHandler = remember { object : UriHandler {
+        override fun openUri(uri: String) {
+            if (Uri.parse(uri).scheme?.lowercase() in listOf("http", "https")) currentNavigate(uri)
+            else pointerQuery(uri)?.let(currentNavigate)
+        }
     } }
+    val settings = annotatorSettings(uriHandler = uriHandler)
+    val style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp)
+    val rendered by produceState<Pair<LinkedContent, AnnotatedString>?>(null, event.id, compact, profiles, style) {
+        value = withContext(Dispatchers.Default) {
+            fun markdown(text: String) = text.buildMarkdownAnnotatedString(style, settings)
+            val passage = passage(markdown(event.content.trim()), markdown(event.tagValue("context").orEmpty()), compact)
+            val markdownLinks = passage.text.getLinkAnnotations(0, passage.text.length)
+            val linked = linkedContent(passage.text.text, event, profiles, passage.ranges,
+                protectedRanges = markdownLinks.map { it.start until it.end }) { currentNavigate(it) }
+            val styled = buildAnnotatedString {
+                append(linked.text)
+                passage.text.spanStyles.forEach { span -> linked.mapRange(span.start, span.end)?.let { addStyle(span.item, it.first, it.last + 1) } }
+                passage.text.paragraphStyles.forEach { span -> linked.mapRange(span.start, span.end)?.let { addStyle(span.item, it.first, it.last + 1) } }
+                markdownLinks.forEach { span -> linked.mapRange(span.start, span.end)?.let { range ->
+                    when (val link = span.item) {
+                        is LinkAnnotation.Url -> addLink(link, range.first, range.last + 1)
+                        is LinkAnnotation.Clickable -> addLink(link, range.first, range.last + 1)
+                    }
+                } }
+                linked.ranges.forEach { addStyle(SpanStyle(background = highlightGold.copy(alpha = 0.30f), color = Color(0xFFF3F4F6)), it.first, it.last + 1) }
+            }
+            linked to styled
+        }
+    }
+    val (linked, styled) = rendered ?: return
     var layout by remember(styled) { mutableStateOf<TextLayoutResult?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         event.tagValue("comment")?.takeIf { it.isNotBlank() }?.let {
