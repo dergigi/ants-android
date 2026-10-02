@@ -28,7 +28,7 @@ internal fun CommandRow(query: String, onSearch: (String) -> Unit) {
 }
 
 @Composable
-internal fun HelpContent(state: SearchState, onSearch: (String) -> Unit) {
+internal fun HelpContent(onSearch: (String) -> Unit) {
     val context = LocalContext.current
     val terminalText = Color(0xFFBDCEDB)
     Surface(color = Color(0xFF2C2C2C), shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
@@ -53,7 +53,7 @@ internal fun HelpContent(state: SearchState, onSearch: (String) -> Unit) {
 internal fun LazyListScope.commandItems(state: SearchState, onSearch: (String) -> Unit, onConnect: () -> Unit) {
     val command = state.command ?: return
     when (command) {
-        "help" -> item { HelpContent(state, onSearch) }
+        "help" -> item { HelpContent(onSearch) }
         "examples" -> {
             items(searchExamples.filter { !it.needsLogin || state.pubkey != null }, key = { it.query }) {
                 CommandRow(it.query, onSearch)

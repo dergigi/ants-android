@@ -206,7 +206,7 @@ fun AntsApp(model: SearchModel) {
                 Image(painterResource(R.drawable.ant), null, Modifier.size(36.dp))
                 Spacer(Modifier.width(9.dp)); Text("ants", fontWeight = FontWeight.Bold, fontSize = 23.sp, fontFamily = FontFamily.Monospace)
             } }, actions = {
-                IconButton(onClick = { dialog = "help" }) { Icon(Icons.Outlined.HelpOutline, "Search help") }
+                IconButton(onClick = { search("/help") }) { Icon(Icons.Outlined.HelpOutline, "Search help") }
                 IconButton(onClick = { dialog = "relays" }) { Icon(Icons.Outlined.Settings, "Relay settings") }
                 AccountMenu(state.pubkey, state.profiles[state.pubkey], onSearch = { search(it) })
             })
@@ -281,12 +281,6 @@ fun AntsApp(model: SearchModel) {
             }
         }
         when (dialog) {
-            "help" -> AlertDialog(onDismissRequest = { dialog = null }, title = { Text("Search help") }, text = {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    HelpContent(state) { query -> dialog = null; search(query) }
-                    TextButton(onClick = { openUrl(context, "https://github.com/dergigi/ants-android") }) { Text("Source · v${BuildConfig.VERSION_NAME}") }
-                }
-            }, confirmButton = { TextButton(onClick = { dialog = null }) { Text("Got it") } })
             "relays" -> RelayDialog(state, model, onDismiss = { dialog = null })
         }
         selected?.let { event ->
