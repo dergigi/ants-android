@@ -1,0 +1,21 @@
+repository: https://github.com/dergigi/ants-android
+pubkey: npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc
+release_notes: ./CHANGELOG.md
+name: ants
+summary: Advanced Nostr text search, native on Android
+description: |
+  Follow your curiosity. Search notes, people, articles, highlights, and other Nostr events from a native Android app.
+
+  Search with hashtags, authors, kinds, dates, and OR queries. Open Nostr identifiers directly, save searches, inspect raw events, and share what you find. Connect to your preferred search relays. No account required.
+
+  Initial read-only MVP. Relay coverage varies. Login, posting, zaps, grouped boolean expressions, and reverse image search are not included yet.
+tags:
+  - nostr
+  - search
+  - discovery
+  - android
+license: MIT
+website: https://ants.sh
+icon: ./zapstore-icon.png
+metadata_sources:
+  - github
