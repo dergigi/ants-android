@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Use a simple ants text search as the first home-screen example.
+
 - Limit search results and loaded thread parents to supported native content types. Exclude encrypted/protocol events, raw JSON payloads, and empty or unsupported media cards while preserving reactions and intentional code snippets.
 - Request supported kinds from relays so unsupported events do not consume result limits. Show only supported shortcuts and examples, and explain unsupported explicit kind searches.
 

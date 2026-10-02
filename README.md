@@ -6,7 +6,7 @@ Follow your curiosity. A native Android search and discovery app for Nostr, base
 
 ## MVP
 
-- Text search across configurable NIP-50 relays, with deduplicated, signature-verified results.
+- Text search across configurable NIP-50 relays, with deduplicated, signature-verified results. Only supported native content types are shown; encrypted/protocol events, raw JSON payloads (except intentional code snippets), and empty media cards are excluded.
 - Hashtags, author and mention filters, NIP-05 resolution, kinds, date ranges, simple OR queries, and image/video filters.
 - Direct lookup of `npub`, `nprofile`, `note`, `nevent`, `naddr`, and event hex IDs.
 - Profile names and avatars, inline images without duplicate URLs, full event text, raw JSON, copying and sharing.
@@ -24,7 +24,7 @@ Follow your curiosity. A native Android search and discovery app for Nostr, base
 - Receive shared text, `nostr:` links, and `ants.sh` links.
 - Relay status, cancellation, retry, and editable search relays.
 
-Try `bitcoin`, `#asknostr`, `GM by:dergigi`, `p:fiatjaf`, `is:highlight`, `by:name@example.com`, `kind:30023 since:2026-01-01`, or `bitcoin OR lightning`.
+Try `ants`, `#asknostr`, `GM by:dergigi`, `p:fiatjaf`, `is:highlight`, `by:name@example.com`, `kind:30023 since:2026-01-01`, or `bitcoin OR lightning`.
 
 The app remains read-only. Signer connection enables account-relative searches; it does not request event signing or authenticate to relays. It does not include posting, zaps, grouped boolean expressions, reverse image search, persistent offline result caching, or pagination. Navigation history is held in memory (up to 20 prior screens, further bounded by retained content size) and does not survive process termination. Up to 100 candidates are requested per query per relay, and results are capped at 500. Media filters operate on returned candidates. Search semantics and coverage depend on the relay. Dates use UTC, with `until:` including the specified day. Profile metadata and reaction previews can arrive after results. Up to 100 distinct reaction targets are fetched per search; any target can also be tapped for a direct lookup. Galleries include up to 100 images per event.
 

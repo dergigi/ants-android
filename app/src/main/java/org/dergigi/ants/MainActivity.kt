@@ -82,7 +82,7 @@ private val blue = Color(0xFF60A5FA)
 private val background = Color(0xFF1A1A1A)
 private val card = Color(0xFF2D2D2D)
 private val muted = Color(0xFF9CA3AF)
-private val examples = listOf("bitcoin" to "Search the nostrverse", "#asknostr" to "Follow a hashtag", "is:highlight" to "Find passages worth keeping", "GM by:dergigi" to "Search someone's notes", "p:fiatjaf" to "Discover people", "nostr has:image" to "Find images")
+private val examples = listOf("ants" to "Search the nostrverse", "#asknostr" to "Follow a hashtag", "is:highlight" to "Find passages worth keeping", "GM by:dergigi" to "Search someone's notes", "p:fiatjaf" to "Discover people", "nostr has:image" to "Find images")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
