@@ -11,11 +11,13 @@ Follow your curiosity. A native Android search and discovery app for Nostr, base
 - Direct lookup of `npub`, `nprofile`, `note`, `nevent`, `naddr`, and event hex IDs.
 - Profile names and avatars, inline images without duplicate URLs, full event text, raw JSON, copying and sharing.
 - Tap images for a Boris-style gallery: swipe, pinch/double-tap zoom, previous/next, background switching, save one/all, share the image file, or copy/open its URL.
-- Reactions stay in ordinary results, with previews of the reacted-to posts and native navigation to their targets.
+- Replies and reactions show a compact parent bar above their content. Tap to expand verified ancestors inline, continue up the thread, collapse, retry, or open a parent directly. Supports text-note reply markers, legacy replies, and event-ID parents in comments. Inline depth is capped at 16; deeper parents can be opened as a new search.
 - Tappable hashtags, Nostr mentions, quoted-note references, web links, and highlight sources that lead to native searches.
 - Back navigation restores results, scroll position, and event details within the current session; tap the ants logo to return home.
 - New searches stay at the top while results arrive. Scrolling pauses updates to the visible list; tap the new-results icon to reveal queued results.
+- Type `/` in the search box to browse all commands, narrow by prefix, and tap to execute.
 - All web slash commands: `/help`, `/examples`, `/kinds`, `/login`, `/logout`, `/clear`, and `/tutorial`, with tappable help examples and kind shortcuts.
+- Top-right account avatar on every screen, with a native profile panel, own posts, mentions, public-key copying, and logout. Account profile metadata loads on startup and login.
 - Optional external Android signer connection (such as Amber) for `by:@me` and `mentions:@me`. No secret-key entry or import.
 - Device-local saved searches and recent history.
 - Receive shared text, `nostr:` links, and `ants.sh` links.

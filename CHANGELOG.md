@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-02
+
+### Added
+
+- Persistent top-right account avatar with profile, own posts, mentions, and logout actions; signed-out users can connect their external signer from the same control.
+- Native account profile panel with name, bio, public key copying, and icon actions. Fetch verified account metadata on startup and login, with an offline avatar fallback.
+- Expandable parent bars above replies and reactions. Follow nested ancestors inline, collapse them, retry unavailable notes, or open a parent as its own search.
+- Recognize marked and legacy text-note replies and event-ID parents in NIP-22 comments, without treating explicit mentions as replies.
+- Slash-command suggestions while typing: enter / to browse all seven commands, narrow by prefix, and tap to execute.
+
+### Changed
+
+- Replace the separate reaction-target card below reactions with a compact context bar above the content.
+
 ## [0.4.0] - 2026-10-02
 
 ### Added
@@ -75,7 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/dergigi/ants-android/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/dergigi/ants-android/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/dergigi/ants-android/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dergigi/ants-android/compare/v0.1.1...v0.2.0
