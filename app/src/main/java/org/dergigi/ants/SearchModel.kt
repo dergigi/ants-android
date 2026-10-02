@@ -15,6 +15,7 @@ data class SearchState(
     val loading: Boolean = false, val error: String? = null,
     val pageId: Long = 0, val backDepth: Int = 0,
     val scrollIndex: Int = 0, val scrollOffset: Int = 0,
+    val followingNewest: Boolean = true, val seenNewestId: String? = null,
     val detail: Nip01Event? = null, val detailScroll: Int = 0, val detailRaw: Boolean = false,
     val events: List<Nip01Event> = emptyList(), val profiles: Map<String, Profile> = emptyMap(),
     val statuses: Map<String, String> = emptyMap(), val history: List<String> = emptyList(),
@@ -34,6 +35,10 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     fun rememberScroll(pageId: Long, index: Int, offset: Int) {
         mutable.update { if (it.pageId == pageId) it.copy(scrollIndex = index, scrollOffset = offset) else it }
     }
+    fun pauseFollowing(pageId: Long) {
+        mutable.update { if (it.pageId == pageId && it.followingNewest) it.copy(followingNewest = false, seenNewestId = it.events.firstOrNull()?.id) else it }
+    }
+    fun followNewest() { mutable.update { it.copy(followingNewest = true, seenNewestId = it.events.firstOrNull()?.id, scrollIndex = 0, scrollOffset = 0) } }
     fun openDetail(event: Nip01Event) { mutable.update { it.copy(detail = event, detailScroll = 0, detailRaw = false) } }
     fun dismissDetail() { mutable.update { it.copy(detail = null, detailScroll = 0, detailRaw = false) } }
     fun rememberDetailScroll(pageId: Long, eventId: String, scroll: Int) {
@@ -55,6 +60,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         val page = state.value
         backStack.addLast(page.copy(
             query = if (page.searched) page.submitted else page.query,
+            followingNewest = false, seenNewestId = page.events.firstOrNull()?.id,
             profiles = emptyMap(), saved = emptyList(), history = emptyList(), relays = emptyList(),
         ))
         // Bound retained results: history is a session convenience, not a disk cache.
@@ -84,14 +90,14 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     fun home() {
         stop()
         backStack.clear()
-        mutable.update { it.copy(query = "", submitted = "", searched = false, error = null, events = emptyList(), statuses = emptyMap(), pageId = ++nextPageId, backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(query = "", submitted = "", searched = false, error = null, events = emptyList(), statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, seenNewestId = null, backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
     }
     fun search(query: String = state.value.query) {
         val input = query.trim(); if (input.isBlank()) return
         stop()
         if (input != state.value.submitted || state.value.detail != null) rememberPage()
         val current = ++generation
-        mutable.update { it.copy(query = input, submitted = input, searched = true, loading = true, error = null, events = emptyList(), statuses = emptyMap(), pageId = ++nextPageId, backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(query = input, submitted = input, searched = true, loading = true, error = null, events = emptyList(), statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, seenNewestId = null, backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
         searchJob = viewModelScope.launch {
             try {
                 val branches = withContext(Dispatchers.IO) { SearchQuery(relay.http).parse(input) }

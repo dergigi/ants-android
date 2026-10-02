@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep new searches at the newest result as relays stream in. Preserve the reading position after scrolling and offer an icon to jump to newer results.
+
 ### Added
 
 - In-session search navigation history: Back restores cached results, list position, and open event details without fetching again. The ants logo still returns directly home.

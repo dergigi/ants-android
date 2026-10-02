@@ -9,6 +9,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -93,6 +94,22 @@ fun AntsApp(model: SearchModel) {
         snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
             .collectLatest { (index, offset) -> model.rememberScroll(pageId, index, offset) }
     }
+    LaunchedEffect(listState) {
+        val pageId = state.pageId
+        listState.interactionSource.interactions.collect { interaction ->
+            if (interaction is DragInteraction.Start) model.pauseFollowing(pageId)
+        }
+    }
+    LaunchedEffect(listState) {
+        val pageId = state.pageId
+        snapshotFlow { listState.isScrollInProgress && (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0) }
+            .collectLatest { scrollingAway -> if (scrollingAway) model.pauseFollowing(pageId) }
+    }
+    // requestScrollToItem overrides LazyColumn's key anchoring before the next
+    // measure, so arriving results cannot silently push the top out of view.
+    SideEffect {
+        if (state.searched && state.followingNewest && !listState.isScrollInProgress) listState.requestScrollToItem(0)
+    }
     val focus = LocalFocusManager.current
     fun home() {
         keyboard?.hide()
@@ -133,6 +150,9 @@ fun AntsApp(model: SearchModel) {
                 if (state.searched) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(if (state.loading) "Searching… ${state.events.size} results" else "${state.events.size} results · newest first", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
+                        if (!state.followingNewest && state.events.firstOrNull()?.id != state.seenNewestId) {
+                            ActionIcon(Icons.Outlined.VerticalAlignTop, "New results · jump to newest", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
+                        }
                         IconButton(onClick = { model.toggleSaved(state.submitted) }) { Icon(if (state.submitted in state.saved) Icons.Outlined.BookmarkAdded else Icons.Outlined.BookmarkAdd, "Save search", tint = blue) }
                         if (state.loading) ActionIcon(Icons.Outlined.Stop, "Stop search", model::stop)
                         else IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
