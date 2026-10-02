@@ -9,7 +9,6 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 
 val imagePattern = Regex("https://[^\\s<>\"]+\\.(?:png|jpe?g|gif|webp|avif)(?:\\?[^\\s<>\"]*)?", RegexOption.IGNORE_CASE)
-private val videoPattern = Regex("https?://[^\\s]+\\.(?:mp4|webm|mov)", RegexOption.IGNORE_CASE)
 
 data class SearchBranch(val filter: JSONObject, val media: String? = null, val site: String? = null) {
     fun accepts(event: Nip01Event): Boolean {
@@ -21,7 +20,7 @@ data class SearchBranch(val filter: JSONObject, val media: String? = null, val s
         if (filter.has("until") && event.createdAt > filter.getLong("until")) return false
         for (key in filter.keys()) if (key.startsWith("#") && event.tags.none { it.size > 1 && it[0] == key.drop(1) && it[1] in values(key) }) return false
         if (media == "image" && !imagePattern.containsMatchIn(event.content) && event.tagValue("image") == null) return false
-        if (media == "video" && !videoPattern.containsMatchIn(event.content)) return false
+        if (media == "video" && eventVideos(event).isEmpty()) return false
         if (site != null && !event.content.contains(site, ignoreCase = true)) return false
         return true
     }

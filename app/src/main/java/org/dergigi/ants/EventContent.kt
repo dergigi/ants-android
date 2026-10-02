@@ -53,21 +53,23 @@ internal fun withoutRenderedImages(content: String, images: List<String>): Strin
 internal fun EventContent(event: Nip01Event, profile: Profile?, compact: Boolean, onNavigate: (String) -> Unit) {
     val galleryImages = remember(event.id) { eventImages(event, compact = false) }
     val images = remember(galleryImages, compact) { galleryImages.take(if (compact) 4 else 20) }
+    val videos = remember(event.id, compact) { eventVideos(event).take(if (compact) 4 else 20) }
     val openGallery = LocalOpenGallery.current
     val content = if (event.kind == 0) profile?.about ?: event.content else event.content
-    val text = remember(content, galleryImages) { withoutRenderedImages(content, galleryImages) }
+    val text = remember(content, galleryImages, videos) { withoutRenderedImages(content, galleryImages + videos.map { it.url }) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val currentNavigate by rememberUpdatedState(onNavigate)
         val linked = remember(text, event.id) { linkedText(text, event) { currentNavigate(it) } }
         if (text.isNotBlank()) Text(linked, maxLines = if (compact) 9 else Int.MAX_VALUE, overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp), fontFamily = if (event.kind == 1337) FontFamily.Monospace else FontFamily.Default)
-        else if (images.isEmpty()) Text("Open event to inspect its tags.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        else if (images.isEmpty() && videos.isEmpty()) Text("Open event to inspect its tags.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         images.forEachIndexed { index, image -> EventImage(image, compact) { openGallery(galleryImages, index) } }
         if (galleryImages.size > images.size) {
             IconButton(onClick = { openGallery(galleryImages, images.size) }) {
                 BadgedBox(badge = { Badge { Text("+${galleryImages.size - images.size}") } }) { Icon(Icons.Outlined.PhotoLibrary, "View all ${galleryImages.size} images") }
             }
         }
+        videos.forEach { video -> key(video.url) { EventVideo(video) } }
         val inlineQueries = remember(text, event.id) { contentLinks(text, event).map { it.query }.toSet() }
         quotedQueries(event).filter { it !in inlineQueries }.forEach { query ->
             AssistChip(onClick = { onNavigate(query) }, label = { Text("Quoted note", maxLines = 1) }, leadingIcon = { Icon(Icons.Outlined.FormatQuote, null, Modifier.size(16.dp)) })
