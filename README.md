@@ -14,14 +14,14 @@ Follow your curiosity. A native Android search and discovery app for Nostr, base
 - Linked videos play inline with native play/pause and seeking controls. MP4, WebM, MOV/M4V, Matroska, and other supported file formats are detected, including video media tags. Playback starts on tap, pauses offscreen or in the background, and offers retry/browser fallback; codec support depends on your phone. Rendered video URLs are hidden, with up to four players per result and twenty in details.
 - Tap images for a Boris-style gallery: swipe, pinch/double-tap zoom, previous/next, background switching, save one/all, share the image file, or copy/open its URL.
 - Replies and reactions show a compact parent bar above their content. Tap to prepend the verified parent note, replacing its bar. Keep tapping the new top bar to load earlier notes toward the root; unavailable notes can be retried. Supports text-note reply markers, legacy replies, and event-ID parents in comments. Loaded ancestors form a flat timeline above the original result, without nested expand/collapse controls.
-- Tappable hashtags, Nostr mentions, quoted-note references, web links, and highlight sources that lead to native searches.
+- Tappable hashtags, Nostr mentions, quoted-note references, web links, and highlight sources that lead to native searches. Linked profiles resolve to compact @names, with shortened public keys when metadata is unavailable.
 - Back navigation restores results, scroll position, and event details within the current session; tap the ants logo to return home.
 - New searches stay at the top while results arrive. Scrolling pauses updates to the visible list; tap the new-results icon to reveal queued results.
 - Type `/` in the search box to browse all commands, narrow by prefix, and tap to execute.
 - All web slash commands: `/help`, `/examples`, `/kinds`, `/login`, `/logout`, `/clear`, and `/tutorial`, with tappable help examples and kind shortcuts.
 - Top-right account avatar on every screen, with a native profile panel, own posts, mentions, public-key copying, and logout. Account profile metadata loads on startup and login.
 - Optional external Android signer connection (such as Amber) for `by:@me` and `mentions:@me`. No secret-key entry or import.
-- Device-local saved searches and recent history.
+- Recent search history.
 - Receive shared text, `nostr:` links, and `ants.sh` links.
 - Relay status, cancellation, retry, pull-to-refresh, and editable search relays.
 - Open events in installed Nostr apps using the phone icon; Android offers compatible handlers and excludes ants from the chooser.
@@ -32,7 +32,7 @@ The app remains read-only. Signer connection enables account-relative searches; 
 
 ## Privacy
 
-Search queries go directly to configured relays. Author aliases / NIP-05 addresses are resolved over HTTPS. Direct lookups also use Damus, nos.lol, and Primal; profile metadata is fetched from purplepag.es and Damus. Images load from their hosts; videos stream from their hosts when you tap play. Saved searches, history, and settings remain on the device; no analytics or private keys are collected. Optional signer connection stores only the public key and signer package locally; `/logout` removes both. `/clear` clears cached results, profiles, and images while preserving the account, saved searches, history, settings, and downloaded pictures. Clear recent searches from the home screen. Saved images go to Pictures/ants on Android 10+ (Pictures on older versions, which request storage permission). Image sharing downloads a temporary file into app cache and grants the receiving app access to that file. Android backups are disabled.
+Search queries go directly to configured relays. Author aliases / NIP-05 addresses are resolved over HTTPS. Direct lookups also use Damus, nos.lol, and Primal; profile metadata is fetched from purplepag.es and Damus. Images load from their hosts; videos stream from their hosts when you tap play. History and settings remain on the device; no analytics or private keys are collected. Optional signer connection stores only the public key and signer package locally; `/logout` removes both. `/clear` clears cached results, profiles, and images while preserving the account, history, settings, and downloaded pictures. Clear recent searches from the home screen. Saved images go to Pictures/ants on Android 10+ (Pictures on older versions, which request storage permission). Image sharing downloads a temporary file into app cache and grants the receiving app access to that file. Android backups are disabled.
 
 ## Build
 

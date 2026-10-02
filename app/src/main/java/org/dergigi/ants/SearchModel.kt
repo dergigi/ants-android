@@ -25,13 +25,13 @@ data class SearchState(
     val detail: Nip01Event? = null, val detailScroll: Int = 0, val detailRaw: Boolean = false,
     val events: List<Nip01Event> = emptyList(), val profiles: Map<String, Profile> = emptyMap(),
     val statuses: Map<String, String> = emptyMap(), val history: List<String> = emptyList(),
-    val saved: List<String> = emptyList(), val relays: List<String> = defaultSearchRelays,
+    val relays: List<String> = defaultSearchRelays,
 )
 
 class SearchModel(app: Application) : AndroidViewModel(app) {
     private val preferences = app.getSharedPreferences("ants", 0)
     private val relay = RelaySearch()
-    private val mutable = MutableStateFlow(SearchState(pubkey = preferences.getString("pubkey", null)?.let(Nip19::normalizePubkey), history = load("history"), saved = load("saved"), relays = load("relays").ifEmpty { defaultSearchRelays }))
+    private val mutable = MutableStateFlow(SearchState(pubkey = preferences.getString("pubkey", null)?.let(Nip19::normalizePubkey), history = load("history"), relays = load("relays").ifEmpty { defaultSearchRelays }))
     val state = mutable.asStateFlow()
     private var searchJob: Job? = null
     private val parentJobs = mutableMapOf<String, Job>()
@@ -42,7 +42,11 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
 
     private var accountProfileJob: Job? = null
 
-    init { refreshAccountProfile() }
+    init {
+        // Retire device-only saved searches, including data from older versions.
+        if (preferences.contains("saved")) preferences.edit().remove("saved").apply()
+        refreshAccountProfile()
+    }
 
     private fun refreshAccountProfile() {
         accountProfileJob?.cancel()
@@ -81,7 +85,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         if (previous == null) { home(); return }
         val current = state.value
         mutable.value = previous.copy(
-            profiles = current.profiles, saved = current.saved, history = current.history,
+            profiles = current.profiles, history = current.history,
             relays = current.relays, pubkey = current.pubkey, signerRequest = null, commandBusy = false, backDepth = backStack.size,
             commandMessage = if (previous.command == "login") null else previous.commandMessage,
             loadingParents = emptySet(),
@@ -92,7 +96,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         backStack.addLast(page.copy(
             query = if (page.searched) page.submitted else page.query,
             followingNewest = false, signerRequest = null,
-            profiles = emptyMap(), saved = emptyList(), history = emptyList(), relays = emptyList(),
+            profiles = emptyMap(), history = emptyList(), relays = emptyList(),
         ))
         // Bound retained results: history is a session convenience, not a disk cache.
         fun retainedChars() = backStack.sumOf { page -> (page.events + page.pendingEvents + page.reactionTargets.values).sumOf { event ->
@@ -111,11 +115,6 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         mutable.update { it.copy(query = value, error = null) }
     }
     fun clearHistory() { persist("history", emptyList()); mutable.update { it.copy(history = emptyList()) } }
-    fun toggleSaved(query: String) {
-        val value = query.trim(); if (value.isEmpty()) return
-        val saved = state.value.saved.let { if (value in it) it - value else (listOf(value) + it).take(100) }
-        persist("saved", saved); mutable.update { it.copy(saved = saved) }
-    }
     fun setRelays(text: String): String? {
         val urls = text.lines().map { it.trim().trimEnd('/') }.filter { it.isNotBlank() }.distinct()
         if (urls.isEmpty() || urls.size > 12) return "Add between 1 and 12 relay URLs."

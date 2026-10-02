@@ -176,7 +176,6 @@ fun AntsApp(model: SearchModel) {
                 Image(painterResource(R.drawable.ant), null, Modifier.size(36.dp))
                 Spacer(Modifier.width(9.dp)); Text("ants", fontWeight = FontWeight.Bold, fontSize = 23.sp, fontFamily = FontFamily.Monospace)
             } }, actions = {
-                IconButton(onClick = { dialog = "saved" }) { Icon(Icons.Outlined.Bookmarks, "Saved searches") }
                 IconButton(onClick = { dialog = "help" }) { Icon(Icons.Outlined.HelpOutline, "Search help") }
                 IconButton(onClick = { dialog = "relays" }) { Icon(Icons.Outlined.Settings, "Relay settings") }
                 AccountMenu(state.pubkey, state.profiles[state.pubkey], onSearch = { search(it) })
@@ -199,7 +198,6 @@ fun AntsApp(model: SearchModel) {
                         if (state.pendingEvents.isNotEmpty()) {
                             ActionIcon(Icons.Outlined.VerticalAlignTop, "${state.pendingEvents.size} new results · jump to newest", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
                         }
-                        IconButton(onClick = { model.toggleSaved(state.submitted) }) { Icon(if (state.submitted in state.saved) Icons.Outlined.BookmarkAdded else Icons.Outlined.BookmarkAdd, "Save search", tint = blue) }
                         if (state.loading) ActionIcon(Icons.Outlined.Stop, "Stop search", model::stop)
                         else IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
                     }
@@ -260,15 +258,6 @@ fun AntsApp(model: SearchModel) {
                     TextButton(onClick = { openUrl(context, "https://github.com/dergigi/ants-android") }) { Text("Source · v${BuildConfig.VERSION_NAME}") }
                 }
             }, confirmButton = { TextButton(onClick = { dialog = null }) { Text("Got it") } })
-            "saved" -> AlertDialog(onDismissRequest = { dialog = null }, title = { Text("Saved searches") }, text = {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    if (state.saved.isEmpty()) Text("Tap the bookmark beside your results to save a search on this device.")
-                    state.saved.forEach { q -> Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(q, Modifier.weight(1f).clickable { dialog = null; search(q) }.padding(vertical = 14.dp), color = blue)
-                        IconButton(onClick = { model.toggleSaved(q) }) { Icon(Icons.Outlined.DeleteOutline, "Remove saved search") }
-                    } }
-                }
-            }, confirmButton = { TextButton(onClick = { dialog = null }) { Text("Close") } })
             "relays" -> RelayDialog(state, model, onDismiss = { dialog = null })
         }
         selected?.let { event ->
@@ -412,7 +401,7 @@ private fun RelayDialog(state: SearchState, model: SearchModel, onDismiss: () ->
             TextButton(onClick = { text = defaultSearchRelays.joinToString("\n") }) { Text("Restore defaults") }
             if (state.statuses.isNotEmpty()) Text("LAST SEARCH", style = MaterialTheme.typography.labelSmall, color = muted)
             state.statuses.forEach { (url, status) -> Column { Text(url.removePrefix("wss://"), fontSize = 13.sp); Text(status, color = if (status == "Complete") blue else muted, fontSize = 12.sp) } }
-            Text("Direct lookups also use Damus, nos.lol, and Primal. Public profile names and avatars are fetched from purplepag.es and Damus. Searches and bookmarks stay on this device; queries are visible to relays and image requests go to their hosts.", style = MaterialTheme.typography.bodySmall, color = muted)
+            Text("Direct lookups also use Damus, nos.lol, and Primal. Public profile names and avatars are fetched from purplepag.es and Damus. Queries are visible to relays and image requests go to their hosts.", style = MaterialTheme.typography.bodySmall, color = muted)
         }
     }, confirmButton = { TextButton(onClick = { error = model.setRelays(text); if (error == null) onDismiss() }) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }

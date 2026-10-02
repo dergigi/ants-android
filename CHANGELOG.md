@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Resolve linked npub/nprofile mentions and profile URLs into compact, tappable @names across notes, highlights, details, and loaded thread parents, with shortened-key fallbacks.
+
+### Removed
+
+- Device-only saved searches, including bookmark controls, the saved-search dialog, and previously stored saved-search data.
+
 ## [0.8.1] - 2026-10-02
 
 ### Changed
