@@ -166,6 +166,7 @@ fun AntsApp(model: SearchModel) {
                 IconButton(onClick = { dialog = "saved" }) { Icon(Icons.Outlined.Bookmarks, "Saved searches") }
                 IconButton(onClick = { dialog = "help" }) { Icon(Icons.Outlined.HelpOutline, "Search help") }
                 IconButton(onClick = { dialog = "relays" }) { Icon(Icons.Outlined.Settings, "Relay settings") }
+                AccountMenu(state.pubkey, state.profiles[state.pubkey], onSearch = { search(it) })
             })
         }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
@@ -195,10 +196,7 @@ fun AntsApp(model: SearchModel) {
                     commandItems(state, onSearch = { search(it) }, onConnect = model::requestLogin)
                     if (!state.searched) {
                         item { Column(Modifier.padding(top = 24.dp, bottom = 18.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Follow your curiosity.", Modifier.weight(1f), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                                ActionIcon(if (state.pubkey == null) Icons.Outlined.PersonOutline else Icons.Outlined.AccountCircle, if (state.pubkey == null) "Connect signer" else "Connected account", { search("/login") }, selected = state.pubkey != null)
-                            }
+                            Text("Follow your curiosity.", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(12.dp))
                             Text("Advanced Nostr text search.\nFind notes, people, and rabbit holes.", color = muted, style = MaterialTheme.typography.bodyLarge)
                         } }
@@ -294,7 +292,7 @@ private fun relativeTime(timestamp: Long): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ActionIcon(icon: ImageVector, label: String, onClick: () -> Unit, selected: Boolean = false) {
+internal fun ActionIcon(icon: ImageVector, label: String, onClick: () -> Unit, selected: Boolean = false) {
     TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(), tooltip = { PlainTooltip { Text(label) } }, state = rememberTooltipState()) {
         IconButton(onClick = onClick) { Icon(icon, label, Modifier.size(19.dp), tint = if (selected) blue else muted) }
     }
