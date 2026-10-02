@@ -74,7 +74,7 @@ internal fun ThreadContext(event: Nip01Event, onNavigate: (String) -> Unit) {
                 Column(Modifier.fillMaxWidth().background(Color(0xFF242424)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(state.profiles[parent.pubkey]?.name ?: Nip19.npubEncode(parent.pubkey).take(16) + "…",
-                            Modifier.weight(1f).clickable { onNavigate("by:${Nip19.npubEncode(parent.pubkey)}") },
+                            Modifier.weight(1f).clickable { onNavigate("p:${Nip19.npubEncode(parent.pubkey)}") },
                             color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                         ActionIcon(Icons.Outlined.PhoneAndroid, "Open in app", { openInNostrApp(context, parent) })
                         ActionIcon(Icons.Outlined.NorthEast, "Open note", { onNavigate(Nip19.noteEncode(parent.id)) })

@@ -155,7 +155,7 @@ internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>,
                 withLink(LinkAnnotation.Clickable(source.query, linkStyle) { onNavigate(source.query) }) { append(source.label) }
                 if (author != null) {
                     append(" by ")
-                    withLink(LinkAnnotation.Clickable(author, linkStyle) { onNavigate("by:${Nip19.npubEncode(author)}") }) { append(profiles[author]?.name ?: "${Nip19.npubEncode(author).take(12)}…") }
+                    withLink(LinkAnnotation.Clickable(author, linkStyle) { onNavigate("p:${Nip19.npubEncode(author)}") }) { append(profiles[author]?.name ?: "${Nip19.npubEncode(author).take(12)}…") }
                 }
             }, color = Color(0xFF9CA3AF), style = MaterialTheme.typography.bodySmall)
         }

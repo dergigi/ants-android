@@ -12,7 +12,7 @@ internal fun Nip01Event.isRenderable(): Boolean {
     if (kind !in renderedKinds) return false
     if (kind == 0) return runCatching {
         val profile = JSONObject(content)
-        listOf("name", "display_name", "about").any { (profile.opt(it) as? String)?.isNotBlank() == true } ||
+        listOf("name", "display_name", "displayName", "about").any { (profile.opt(it) as? String)?.isNotBlank() == true } ||
             (profile.opt("picture") as? String)?.startsWith("https://") == true
     }.getOrDefault(false)
     val text = content.trim()

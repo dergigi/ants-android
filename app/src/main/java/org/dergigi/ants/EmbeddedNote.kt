@@ -34,9 +34,9 @@ internal fun EmbeddedNote(reference: QuoteReference, ancestors: Set<String>, onN
                 Icon(Icons.Outlined.FormatQuote, "Quoted note", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                 if (event != null) {
                     val profile = state.profiles[event.pubkey]
-                    Avatar(profile, event.pubkey, { onNavigate("by:${Nip19.npubEncode(event.pubkey)}") }, size = 22)
+                    Avatar(profile, event.pubkey, { onNavigate("p:${Nip19.npubEncode(event.pubkey)}") }, size = 22)
                     Text(profile?.name ?: Nip19.npubEncode(event.pubkey).take(12) + "…",
-                        Modifier.weight(1f).clickable { onNavigate("by:${Nip19.npubEncode(event.pubkey)}") }, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        Modifier.weight(1f).clickable { onNavigate("p:${Nip19.npubEncode(event.pubkey)}") }, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.labelMedium)
                 } else {
                     Text(if (failed) "Note unavailable" else "Loading note…", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)

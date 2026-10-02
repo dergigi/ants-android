@@ -13,8 +13,8 @@ private val legacyMention = Regex("#\\[(\\d+)\\]")
 internal fun pointerQuery(raw: String): String? = runCatching {
     val value = raw.removePrefix("nostr:").removePrefix("NOSTR:").removePrefix("@")
     when {
-        value.startsWith("npub1", true) -> "by:${Nip19.npubEncode(Nip19.npubDecode(value))}"
-        value.startsWith("nprofile1", true) -> "by:${Nip19.npubEncode(Nip19.nprofileDecode(value).pubkey)}"
+        value.startsWith("npub1", true) -> "p:${Nip19.npubEncode(Nip19.npubDecode(value))}"
+        value.startsWith("nprofile1", true) -> "p:${Nip19.npubEncode(Nip19.nprofileDecode(value).pubkey)}"
         value.startsWith("note1", true) -> Nip19.noteEncode(Nip19.noteDecode(value))
         value.startsWith("nevent1", true) -> { Nip19.neventDecode(value); value.lowercase() }
         value.startsWith("naddr1", true) -> { Nip19.naddrDecode(value); value.lowercase() }
@@ -31,7 +31,7 @@ internal fun addressQuery(value: String): String? = runCatching {
 }.getOrNull()
 
 internal fun referenceQuery(type: String, value: String): String? = when (type) {
-    "p" -> Nip19.normalizePubkey(value)?.let { "by:${Nip19.npubEncode(it)}" }
+    "p" -> Nip19.normalizePubkey(value)?.let { "p:${Nip19.npubEncode(it)}" }
     "e", "q" -> if (hexId.matches(value)) Nip19.noteEncode(value.lowercase()) else pointerQuery(value) ?: addressQuery(value)
     "a" -> addressQuery(value)
     else -> null
@@ -72,7 +72,7 @@ internal fun linkedProfileKeys(event: Nip01Event): List<String> =
         .mapNotNull { profileKey(it.query) }.distinct().take(100)
 
 private fun profileKey(query: String): String? =
-    if (query.startsWith("by:")) Nip19.normalizePubkey(query.removePrefix("by:")) else null
+    if (query.startsWith("p:")) Nip19.normalizePubkey(query.removePrefix("p:")) else null
 
 internal data class LinkedContent(val text: AnnotatedString, val ranges: List<IntRange>, private val starts: IntArray, private val ends: IntArray) {
     fun mapRange(start: Int, end: Int): IntRange? {

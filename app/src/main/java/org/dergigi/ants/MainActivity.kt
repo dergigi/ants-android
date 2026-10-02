@@ -211,7 +211,7 @@ fun AntsApp(model: SearchModel) {
                     navigationIcon = { IconButton(onClick = model::dismissDetail) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back to results") } })
             }) { padding ->
                 EventDetails(selected, state.profiles[selected.pubkey], state.profiles,
-                    onNavigate = { navigateContent(it) }, onAuthor = { search("by:${Nip19.npubEncode(selected.pubkey)}") },
+                    onNavigate = { navigateContent(it) }, onAuthor = { search("p:${Nip19.npubEncode(selected.pubkey)}") },
                     raw = state.detailRaw, initialScroll = state.detailScroll,
                     onScroll = { model.rememberDetailScroll(state.pageId, selected.id, it) }, onToggleRaw = model::toggleDetailRaw,
                     modifier = Modifier.fillMaxSize().padding(padding))
@@ -281,7 +281,7 @@ fun AntsApp(model: SearchModel) {
                     items(state.events, key = { it.id }) { event ->
                         if (state.command == "tutorial") CommandTerminal {
                             EventContent(event, state.profiles[event.pubkey], state.profiles, compact = false, onNavigate = { navigateContent(it) })
-                        } else EventCard(event, state.profiles[event.pubkey], state.profiles, onNavigate = { navigateContent(it) }, onOpen = { model.openDetail(event) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") })
+                        } else EventCard(event, state.profiles[event.pubkey], state.profiles, onNavigate = { navigateContent(it) }, onOpen = { model.openDetail(event) }, onAuthor = { search("p:${Nip19.npubEncode(event.pubkey)}") })
                     }
                     if (state.searched && state.statuses.isNotEmpty()) item {
                         TextButton(onClick = { dialog = "relays" }) { Text("${state.statuses.values.count { it == "Complete" }} / ${state.statuses.size} relays completed · relay details") }
@@ -313,7 +313,7 @@ fun AntsApp(model: SearchModel) {
         }
         selected?.let { event ->
             ModalBottomSheet(onDismissRequest = model::dismissDetail) {
-                EventDetails(event, state.profiles[event.pubkey], state.profiles, onNavigate = { navigateContent(it) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }, raw = state.detailRaw, initialScroll = state.detailScroll, onScroll = { model.rememberDetailScroll(state.pageId, event.id, it) }, onToggleRaw = model::toggleDetailRaw)
+                EventDetails(event, state.profiles[event.pubkey], state.profiles, onNavigate = { navigateContent(it) }, onAuthor = { search("p:${Nip19.npubEncode(event.pubkey)}") }, raw = state.detailRaw, initialScroll = state.detailScroll, onScroll = { model.rememberDetailScroll(state.pageId, event.id, it) }, onToggleRaw = model::toggleDetailRaw)
             }
         }
         }
@@ -376,6 +376,10 @@ internal fun ActionIcon(icon: ImageVector, label: String, onClick: () -> Unit, s
 
 @Composable
 private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onNavigate: (String) -> Unit, onOpen: () -> Unit, onAuthor: () -> Unit) {
+    if (event.kind == 0) {
+        ProfileCard(event, profile, profiles, onNavigate, onOpen)
+        return
+    }
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     Surface(onClick = onOpen, shape = RoundedCornerShape(8.dp), color = card, border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
