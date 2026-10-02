@@ -166,10 +166,12 @@ private fun ZoomableGalleryImage(url: String, isCurrent: Boolean, onZoomed: (Boo
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val start = down.uptimeMillis
+                        var endedAt = start
                         var pinching = false
                         var dragged = false
                         do {
                             val event = awaitPointerEvent()
+                            endedAt = event.changes.maxOf { it.uptimeMillis }
                             val pan = event.calculatePan()
                             if (event.changes.count { it.pressed } >= 2) pinching = true
                             if (abs(pan.x) > 1f || abs(pan.y) > 1f) dragged = true
@@ -181,7 +183,7 @@ private fun ZoomableGalleryImage(url: String, isCurrent: Boolean, onZoomed: (Boo
                                 event.changes.forEach { if (it.positionChanged()) it.consume() }
                             }
                         } while (event.changes.any { it.pressed })
-                        if (!pinching && !dragged && event.changes.last().uptimeMillis - start < 300) {
+                        if (!pinching && !dragged && endedAt - start < 300) {
                             if (lastTap > 0 && start - lastTap < 300) { applyScale(if (scale > 1f) 1f else 2.5f); lastTap = 0L }
                             else lastTap = start
                         }
