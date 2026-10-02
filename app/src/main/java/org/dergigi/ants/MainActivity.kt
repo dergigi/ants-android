@@ -211,7 +211,8 @@ fun AntsApp(model: SearchModel) {
                 AccountMenu(state.pubkey, state.profiles[state.pubkey], onSearch = { search(it) })
             })
         }) { padding ->
-            Column(Modifier.fillMaxSize().padding(padding).imePadding(), verticalArrangement = if (centeredHome) Arrangement.Center else Arrangement.Top) {
+            Box(Modifier.fillMaxSize().padding(padding).imePadding()) {
+            Column(Modifier.fillMaxSize(), verticalArrangement = if (centeredHome) Arrangement.Center else Arrangement.Top) {
                 OutlinedTextField(value = state.query, onValueChange = model::edit,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).onFocusChanged { searchFocused = it.isFocused },
                     placeholder = { Text("Search anything on Nostr", fontSize = 15.sp) },
@@ -267,6 +268,11 @@ fun AntsApp(model: SearchModel) {
                 if (canRefresh) PullToRefreshDefaults.Indicator(state = pullState, isRefreshing = refreshingFromPull, modifier = Modifier.align(Alignment.TopCenter))
                 }
                 }
+            }
+            if (centeredHome) Text("v${BuildConfig.VERSION_NAME}",
+                Modifier.align(Alignment.BottomCenter).clickable(onClickLabel = "Open GitHub release") {
+                    openUrl(context, "https://github.com/dergigi/ants-android/releases/tag/v${BuildConfig.VERSION_NAME}")
+                }.padding(16.dp), color = muted, style = MaterialTheme.typography.bodySmall)
             }
         }
         when (dialog) {

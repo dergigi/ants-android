@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Open to only a vertically centered search field. Show commands on slash input and move the field above results after searching; remove the start-screen toolbar, examples, history, and version footer.
+- Open to a vertically centered search field with a clickable version footer. Show commands on slash input and move the field above results after searching; remove the start-screen toolbar, examples, and history.
 
 ### Fixed
 
