@@ -20,12 +20,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal data class WebLink(val text: String, val start: Int, val end: Int)
 internal fun webLinks(text: String): List<WebLink> = Regex("https?://[^\\s<>\"]+", RegexOption.IGNORE_CASE).findAll(text).map { match ->
     var url = match.value.trimEnd('.', ',', ';', '!', '?')
     for ((open, close) in listOf('(' to ')', '[' to ']', '{' to '}')) {
-        while (url.endsWith(close) && url.count { it == close } > url.count { it == open }) url = url.dropLast(1)
+        var surplus = url.count { it == close } - url.count { it == open }
+        var end = url.length
+        while (end > 0 && url[end - 1] == close && surplus > 0) { end--; surplus-- }
+        url = url.substring(0, end)
     }
     WebLink(url, match.range.first, match.range.first + url.length)
 }.toList()
@@ -49,17 +54,35 @@ internal fun withoutRenderedImages(content: String, images: List<String>): Strin
     return out.toString().replace(Regex("[ \\t]+\\n"), "\n").replace(Regex("\\n{3,}"), "\n\n").trim()
 }
 
+private data class PreparedContent(
+    val gallery: List<String>, val images: List<String>, val videos: List<VideoAttachment>,
+    val text: String, val inlineQueries: Set<String>,
+)
+
 @Composable
 internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
-    val galleryImages = remember(event.id) { eventImages(event, compact = false) }
-    val images = remember(galleryImages, compact) { galleryImages.take(if (compact) 4 else 20) }
-    val videos = remember(event.id, compact) { eventVideos(event).take(if (compact) 4 else 20) }
-    val openGallery = LocalOpenGallery.current
     val content = if (event.kind == 0) profile?.about?.takeIf { it.isNotBlank() } ?: "Nostr profile" else event.content
-    val text = remember(content, galleryImages, videos) { withoutRenderedImages(content, galleryImages + videos.map { it.url }) }
+    val prepared by produceState<PreparedContent?>(null, event.id, content, compact) {
+        value = withContext(Dispatchers.Default) {
+            val gallery = eventImages(event, compact = false)
+            val videos = eventVideos(event).take(if (compact) 4 else 20)
+            val fullText = withoutRenderedImages(content, gallery + videos.map { it.url })
+            // maxLines alone still asks Android to shape the entire input string.
+            val text = if (compact && fullText.length > 4000) fullText.take(4000) + "…" else fullText
+            PreparedContent(gallery, gallery.take(if (compact) 4 else 20), videos, text, contentLinks(text, event).map { it.query }.toSet())
+        }
+    }
+    val rendered = prepared ?: return
+    val galleryImages = rendered.gallery
+    val images = rendered.images
+    val videos = rendered.videos
+    val text = rendered.text
+    val openGallery = LocalOpenGallery.current
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val currentNavigate by rememberUpdatedState(onNavigate)
-        val linked = remember(text, event.id, profiles) { linkedText(text, event, profiles) { currentNavigate(it) } }
+        val linked by produceState(androidx.compose.ui.text.AnnotatedString(text), text, event.id, profiles) {
+            value = withContext(Dispatchers.Default) { linkedText(text, event, profiles) { currentNavigate(it) } }
+        }
         if (text.isNotBlank()) CustomEmojiText(linked, event, maxLines = if (compact) 9 else Int.MAX_VALUE, emojiSize = 20.sp,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp, fontFamily = if (event.kind == 1337) FontFamily.Monospace else FontFamily.Default))
         else if (images.isEmpty() && videos.isEmpty()) Text("Open event to inspect its tags.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -70,7 +93,7 @@ internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<St
             }
         }
         videos.forEach { video -> key(video.url) { EventVideo(video) } }
-        val inlineQueries = remember(text, event.id) { contentLinks(text, event).map { it.query }.toSet() }
+        val inlineQueries = rendered.inlineQueries
         quotedQueries(event).filter { it !in inlineQueries }.forEach { query ->
             AssistChip(onClick = { onNavigate(query) }, label = { Text("Quoted note", maxLines = 1) }, leadingIcon = { Icon(Icons.Outlined.FormatQuote, null, Modifier.size(16.dp)) })
         }
