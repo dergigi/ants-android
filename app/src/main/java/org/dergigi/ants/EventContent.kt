@@ -60,8 +60,8 @@ internal fun EventContent(event: Nip01Event, profile: Profile?, compact: Boolean
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val currentNavigate by rememberUpdatedState(onNavigate)
         val linked = remember(text, event.id) { linkedText(text, event) { currentNavigate(it) } }
-        if (text.isNotBlank()) Text(linked, maxLines = if (compact) 9 else Int.MAX_VALUE, overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp), fontFamily = if (event.kind == 1337) FontFamily.Monospace else FontFamily.Default)
+        if (text.isNotBlank()) CustomEmojiText(linked, event, maxLines = if (compact) 9 else Int.MAX_VALUE, emojiSize = 20.sp,
+            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp, fontFamily = if (event.kind == 1337) FontFamily.Monospace else FontFamily.Default))
         else if (images.isEmpty() && videos.isEmpty()) Text("Open event to inspect its tags.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         images.forEachIndexed { index, image -> EventImage(image, compact) { openGallery(galleryImages, index) } }
         if (galleryImages.size > images.size) {

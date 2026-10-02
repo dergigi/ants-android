@@ -7,7 +7,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.AnnotatedString
 
 // NIP-25: the LAST e tag identifies the reacted-to event, not its thread root.
 internal fun reactionTargetId(event: Nip01Event): String? = if (event.kind == 7) {
@@ -33,7 +34,7 @@ internal fun ReactionContent(event: Nip01Event) {
     when (event.content.trim()) {
         "", "+" -> Icon(Icons.Outlined.ThumbUp, "Liked", Modifier.size(24.dp))
         "-" -> Icon(Icons.Outlined.ThumbDown, "Disliked", Modifier.size(24.dp))
-        else -> Text(event.content.take(120), maxLines = 2, overflow = TextOverflow.Ellipsis)
+        else -> CustomEmojiText(AnnotatedString(event.content.take(120)), event, MaterialTheme.typography.bodyLarge, emojiSize = 32.sp, maxLines = 2)
     }
     if (reactionTargetId(event) == null) Text("This reaction has no valid target reference.", style = MaterialTheme.typography.bodySmall)
 }

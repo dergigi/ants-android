@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Render NIP-30 custom emoji images in reactions and note text, including animated GIF and SVG assets. Preserve ordinary emoji, links, and shortcode text when an image is unavailable.
+
 ### Changed
 
 - Use a simple ants text search as the first home-screen example.
