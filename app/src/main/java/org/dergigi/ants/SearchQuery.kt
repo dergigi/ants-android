@@ -8,14 +8,6 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-// Keep ordinary discovery aligned with web ants; explicit kinds and event IDs
-// remain unrestricted, so reactions and other event kinds are still searchable.
-private val defaultContentKinds = listOf(1, 20, 21, 22, 9802, 39089)
-private fun SearchBranch.withDefaultKinds(): SearchBranch {
-    if (!filter.has("kinds") && !filter.has("ids")) filter.put("kinds", JSONArray(defaultContentKinds))
-    return this
-}
-
 private val kinds = mapOf("note" to 1, "notes" to 1, "profile" to 0, "article" to 30023, "highlight" to 9802, "code" to 1337, "reaction" to 7, "repost" to 6, "zap" to 9735, "picture" to 20, "video" to 21)
 val imagePattern = Regex("https://[^\\s<>\"]+\\.(?:png|jpe?g|gif|webp|avif)(?:\\?[^\\s<>\"]*)?", RegexOption.IGNORE_CASE)
 private val videoPattern = Regex("https?://[^\\s]+\\.(?:mp4|webm|mov)", RegexOption.IGNORE_CASE)
@@ -42,12 +34,12 @@ class SearchQuery(private val http: OkHttpClient) {
         require(query.isNotBlank()) { "Enter a search first." }
         require(query.length <= 2000) { "Please keep searches under 2,000 characters." }
         if ((query.startsWith("https://") || query.startsWith("http://")) && query.none { it.isWhitespace() }) {
-            return listOf(SearchBranch(JSONObject().put("limit", 100).put("search", query)).withDefaultKinds())
+            return listOf(SearchBranch(JSONObject().put("limit", 100).put("search", query)))
         }
         require(!query.contains('(') && !query.contains(')')) { "Grouped searches aren't supported yet. Use separate searches joined with OR." }
         val parts = splitOr(query)
         require(parts.size <= 8) { "Use at most eight OR branches." }
-        return parts.map { branch(it).withDefaultKinds() }
+        return parts.map { branch(it) }
     }
 
     private fun splitOr(query: String): List<String> {
