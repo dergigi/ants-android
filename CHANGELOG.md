@@ -7,13 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-02
+
 ### Added
 
 - Add a top-right history button and /history command for opening, rerunning, and clearing recent searches.
 
 ### Changed
 
-- Open to a vertically centered search field with a clickable version footer. Show commands on slash input and move the field above results after searching; remove the start-screen toolbar, examples, and history.
+- Open to a vertically centered search field with a clickable version footer. Show commands on slash input and move the field above results after searching; remove the start-screen toolbar, examples, and inline history list.
 
 ### Fixed
 
@@ -211,7 +213,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/dergigi/ants-android/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/dergigi/ants-android/compare/v0.10.2...v0.11.0
 [0.10.2]: https://github.com/dergigi/ants-android/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/dergigi/ants-android/compare/v0.10.0...v0.10.1
