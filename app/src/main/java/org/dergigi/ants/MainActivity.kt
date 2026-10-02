@@ -333,8 +333,10 @@ private fun relativeTime(timestamp: Long): String {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ActionIcon(icon: ImageVector, label: String, onClick: () -> Unit, selected: Boolean = false) {
+    Box(Modifier.requiredSize(48.dp), contentAlignment = Alignment.Center) {
     TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(), tooltip = { PlainTooltip { Text(label) } }, state = rememberTooltipState()) {
-        IconButton(onClick = onClick) { Icon(icon, label, Modifier.size(19.dp), tint = if (selected) blue else muted) }
+        IconButton(onClick = onClick) { Icon(icon, label, Modifier.size(20.dp), tint = if (selected) blue else muted) }
+    }
     }
 }
 
@@ -363,11 +365,13 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
                     Spacer(Modifier.width(7.dp))
                     Text(profile?.name ?: Nip19.npubEncode(event.pubkey).let { it.take(10) + "…" }, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Text(relativeTime(event.createdAt), color = muted, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
+                Text(relativeTime(event.createdAt), color = muted, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                Row(Modifier.width(192.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                 ActionIcon(Icons.Outlined.ContentCopy, "Copy event ID", { clipboard.setText(AnnotatedString("nostr:${Nip19.noteEncode(event.id)}")) })
                 ActionIcon(Icons.Outlined.PhoneAndroid, "Open in app", { openInNostrApp(context, event) })
                 ActionIcon(Icons.AutoMirrored.Outlined.OpenInNew, "Open in browser", { openUrl(context, "https://njump.to/${Nip19.noteEncode(event.id)}") })
                 ActionIcon(Icons.Outlined.MoreHoriz, "Event details and actions", onOpen)
+                }
             }
         }
     }
