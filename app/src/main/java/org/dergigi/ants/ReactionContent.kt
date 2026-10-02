@@ -18,6 +18,8 @@ internal fun reactionTargetId(event: Nip01Event): String? = if (event.kind == 7)
 // Marked references take precedence; explicit mentions are not reply parents.
 internal fun parentEventId(event: Nip01Event): String? {
     if (event.kind == 7) return reactionTargetId(event)
+    if (event.kind == 1111) return event.tags.firstOrNull { it.firstOrNull() == "e" }?.getOrNull(1)
+        ?.takeIf { it.matches(Regex("[0-9a-fA-F]{64}")) }?.lowercase()
     if (event.kind != 1) return null
     val tags = event.tags.filter { it.firstOrNull() == "e" }
     val tag = tags.firstOrNull { it.getOrNull(3) == "reply" }
