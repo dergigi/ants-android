@@ -265,7 +265,7 @@ fun AntsApp(model: SearchModel) {
                         }
                     },
                 )) {
-                LazyColumn(Modifier.fillMaxSize(), state = if (suggestingCommands) suggestionListState else listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(if (!state.searched || suggestingCommands || state.command in listOf("help", "examples", "kinds", "history")) 0.dp else 12.dp)) {
+                LazyColumn(Modifier.fillMaxSize(), state = if (suggestingCommands) suggestionListState else listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(if (!state.searched || suggestingCommands || state.command != null) 0.dp else 12.dp)) {
                     if (suggestingCommands) {
                         val matches = slashCommands.filter { it.name.startsWith(state.query.trim().lowercase()) }
                         items(matches, key = { "suggestion-${it.name}" }) { command ->
@@ -274,11 +274,15 @@ fun AntsApp(model: SearchModel) {
                         if (matches.isEmpty()) item { Text("No matching command", color = muted, style = MaterialTheme.typography.bodySmall) }
                     } else {
                     commandItems(state, onSearch = { search(it) }, onConnect = model::requestLogin, onClearHistory = model::clearHistory)
-                    state.error?.let { error -> item { MessageCard("Couldn't search", error) } }
+                    state.error?.let { error -> item { if (state.command != null) CommandTerminal { Text(error, color = MaterialTheme.colorScheme.error) } else MessageCard("Couldn't search", error) } }
                     if (state.searched && (state.command == null || state.command == "tutorial") && !state.loading && state.events.isEmpty() && state.error == null) {
-                        item { MessageCard("No results yet", "Try fewer filters, another keyword, or different search relays. Relay coverage varies.") }
+                        item { if (state.command == "tutorial") CommandTerminal { Text("Tutorial unavailable") } else MessageCard("No results yet", "Try fewer filters, another keyword, or different search relays. Relay coverage varies.") }
                     }
-                    items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], state.profiles, onNavigate = { navigateContent(it) }, onOpen = { model.openDetail(event) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
+                    items(state.events, key = { it.id }) { event ->
+                        if (state.command == "tutorial") CommandTerminal {
+                            EventContent(event, state.profiles[event.pubkey], state.profiles, compact = false, onNavigate = { navigateContent(it) })
+                        } else EventCard(event, state.profiles[event.pubkey], state.profiles, onNavigate = { navigateContent(it) }, onOpen = { model.openDetail(event) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") })
+                    }
                     if (state.searched && state.statuses.isNotEmpty()) item {
                         TextButton(onClick = { dialog = "relays" }) { Text("${state.statuses.values.count { it == "Complete" }} / ${state.statuses.size} relays completed · relay details") }
                     }

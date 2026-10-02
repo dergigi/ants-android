@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Use the /help terminal-panel style for all slash-command output: examples, history, kinds, login/logout, cache clearing, tutorial content, and command errors. Keep long lists lazy, queries tappable, and examples free of categories and descriptions.
+
 ## [0.13.1] - 2026-10-02
 
 ### Fixed
