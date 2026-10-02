@@ -129,6 +129,7 @@ fun AntsApp(model: SearchModel) {
         model.search(value)
     }
     MaterialTheme(colorScheme = darkColorScheme(primary = blue, background = background, surface = background, surfaceVariant = card, onSurfaceVariant = muted)) {
+        GalleryHost {
         Scaffold(topBar = {
             TopAppBar(navigationIcon = {
                 if (state.backDepth > 0) IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Previous search") }
@@ -224,6 +225,7 @@ fun AntsApp(model: SearchModel) {
             ModalBottomSheet(onDismissRequest = model::dismissDetail) {
                 EventDetails(event, state.profiles[event.pubkey], state.profiles, state.reactionTargets, state.loadingReactionTargets, onNavigate = { search(it) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }, raw = state.detailRaw, initialScroll = state.detailScroll, onScroll = { model.rememberDetailScroll(state.pageId, event.id, it) }, onToggleRaw = model::toggleDetailRaw)
             }
+        }
         }
     }
 }
