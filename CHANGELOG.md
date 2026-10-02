@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Inline, tap-to-play video players for linked MP4, WebM, MOV/M4V, Matroska, and other supported file formats, plus videos declared in event media tags. Show native playback and seeking controls, retry, and browser fallback without duplicate video URLs.
+- Pause videos when leaving the screen or app, release inactive players, and allow only one video to play at a time. Video decoding depends on the device's supported codecs.
+
+
 ### Changed
 
 - Load thread ancestors progressively above the search result: each tapped bar is replaced by its parent note, with the next load bar above the oldest visible note. Remove expand/collapse controls and nested depth limits.

@@ -1,7 +1,5 @@
 package org.dergigi.ants
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -80,13 +78,7 @@ internal fun LazyListScope.commandItems(state: SearchState, onSearch: (String) -
                 Text("The same tutorial event used by web ants.", style = MaterialTheme.typography.bodySmall)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { openUrl(context, "https://njump.to/$tutorialPointer") }) { Icon(Icons.AutoMirrored.Outlined.OpenInNew, "Open tutorial in browser") }
-                    val videos = state.events.flatMap { webLinks(it.content) }.map { it.text }.filter { Uri.parse(it).path.orEmpty().substringAfterLast('.').lowercase() in listOf("mp4", "webm", "mov", "m4v") }.distinct().take(4)
-                    videos.forEach { video ->
-                        IconButton(onClick = {
-                            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse(video), "video/*")) }
-                                .onFailure { openUrl(context, video) }
-                        }) { Icon(Icons.Outlined.PlayCircleOutline, "Play tutorial video") }
-                    }
+
                 }
             }
         }
