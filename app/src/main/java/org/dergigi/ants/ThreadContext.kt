@@ -12,6 +12,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
@@ -20,6 +21,7 @@ internal val LocalThreadState = staticCompositionLocalOf<ThreadState> { error("T
 
 @Composable
 internal fun ThreadContext(event: Nip01Event, onNavigate: (String) -> Unit) {
+    val context = LocalContext.current
     val thread = LocalThreadState.current
     val state = thread.state
     var requested by rememberSaveable(event.id) { mutableStateOf(emptyList<String>()) }
@@ -74,6 +76,7 @@ internal fun ThreadContext(event: Nip01Event, onNavigate: (String) -> Unit) {
                         Text(state.profiles[parent.pubkey]?.name ?: Nip19.npubEncode(parent.pubkey).take(16) + "…",
                             Modifier.weight(1f).clickable { onNavigate("by:${Nip19.npubEncode(parent.pubkey)}") },
                             color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                        ActionIcon(Icons.Outlined.OpenInMobile, "Open in app", { openInNostrApp(context, parent) })
                         ActionIcon(Icons.Outlined.NorthEast, "Open note", { onNavigate(Nip19.noteEncode(parent.id)) })
                     }
                     when (parent.kind) {
