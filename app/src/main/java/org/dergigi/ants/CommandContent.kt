@@ -15,13 +15,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 
 @Composable
-internal fun CommandRow(query: String, description: String, onSearch: (String) -> Unit) {
+internal fun CommandRow(query: String, onSearch: (String) -> Unit) {
     Surface(onClick = { onSearch(query) }, shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(query, color = MaterialTheme.colorScheme.primary, fontFamily = FontFamily.Monospace)
-                Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-            }
+            Text(query, Modifier.weight(1f), color = MaterialTheme.colorScheme.primary, fontFamily = FontFamily.Monospace)
             Spacer(Modifier.width(8.dp)); Icon(Icons.Outlined.NorthEast, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -30,13 +27,12 @@ internal fun CommandRow(query: String, description: String, onSearch: (String) -
 @Composable
 internal fun HelpContent(state: SearchState, onSearch: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        slashCommands.forEach { CommandRow(it.name, it.description, onSearch) }
+        slashCommands.forEach { CommandRow(it.name, onSearch) }
         Text("TRY A SEARCH", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         listOf("bitcoin OR lightning", "#asknostr", "GM by:dergigi", "is:highlight", "Bitcoin has:image", "is:reaction by:dergigi").forEach { query ->
-            val example = searchExamples.first { it.query == query }
-            CommandRow(query, example.description, onSearch)
+            CommandRow(query, onSearch)
         }
-        if (state.pubkey != null) CommandRow("mentions:@me", "Events tagging your connected account", onSearch)
+        if (state.pubkey != null) CommandRow("mentions:@me", onSearch)
     }
 }
 
@@ -54,22 +50,22 @@ internal fun LazyListScope.commandItems(state: SearchState, onSearch: (String) -
         "examples" -> {
             searchExamples.filter { !it.needsLogin || state.pubkey != null }.groupBy { it.section }.forEach { (section, examples) ->
                 item(key = "section-$section") { Text(section, style = MaterialTheme.typography.titleSmall) }
-                items(examples, key = { it.query }) { CommandRow(it.query, it.description, onSearch) }
+                items(examples, key = { it.query }) { CommandRow(it.query, onSearch) }
             }
-            item { CommandRow("/help", "All commands and search help", onSearch) }
+            item { CommandRow("/help", onSearch) }
         }
         "kinds" -> {
-            items(kindAliases.entries.filter { entry -> entry.value.all { it in renderedKinds } }, key = { it.key }) { alias -> CommandRow("is:${alias.key}", alias.value.joinToString(" OR ") { "kind:$it" }, onSearch) }
+            items(kindAliases.entries.filter { entry -> entry.value.all { it in renderedKinds } }, key = { it.key }) { alias -> CommandRow("is:${alias.key}", onSearch) }
         }
         "login" -> item { LoginContent(state, onConnect, onSearch) }
         "logout", "clear" -> {
             item { Text(state.commandMessage.orEmpty()) }
-            item { CommandRow("/examples", "Find something new", onSearch) }
+            item { CommandRow("/examples", onSearch) }
         }
         "tutorial" -> Unit
         else -> {
             item { Text(state.commandMessage.orEmpty(), color = MaterialTheme.colorScheme.error) }
-            items(slashCommands) { CommandRow(it.name, it.description, onSearch) }
+            items(slashCommands) { CommandRow(it.name, onSearch) }
         }
     }
 }
@@ -81,10 +77,10 @@ private fun LoginContent(state: SearchState, onConnect: () -> Unit, onSearch: (S
         state.commandMessage?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         val pubkey = state.pubkey
         if (pubkey != null) {
-            CommandRow("by:@me", "Search your events", onSearch)
-            CommandRow("mentions:@me", "Find events tagging you", onSearch)
+            CommandRow("by:@me", onSearch)
+            CommandRow("mentions:@me", onSearch)
             Text(Nip19.npubEncode(pubkey), style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
-            CommandRow("/logout", "Disconnect this account", onSearch)
+            CommandRow("/logout", onSearch)
         } else {
             FilledTonalButton(onClick = onConnect, enabled = !state.commandBusy) { Icon(Icons.Outlined.Key, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Connect signer") }
             TextButton(onClick = { openUrl(context, "https://zapstore.dev/apps/com.greenart7c3.nostrsigner") }) { Text("Get Amber") }

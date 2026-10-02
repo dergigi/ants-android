@@ -85,7 +85,7 @@ private val blue = Color(0xFF60A5FA)
 private val background = Color(0xFF1A1A1A)
 private val card = Color(0xFF2D2D2D)
 private val muted = Color(0xFF9CA3AF)
-private val examples = listOf("/examples" to "Explore search examples", "#asknostr" to "Follow a hashtag", "is:highlight" to "Find passages worth keeping", "GM by:dergigi" to "Search someone's notes", "p:fiatjaf" to "Discover people", "nostr has:image" to "Find images")
+private val examples = listOf("/examples", "#asknostr", "is:highlight", "GM by:dergigi", "p:fiatjaf", "nostr has:image")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -220,7 +220,7 @@ fun AntsApp(model: SearchModel) {
                     if (suggestingCommands) {
                         val matches = slashCommands.filter { it.name.startsWith(state.query.trim().lowercase()) }
                         items(matches, key = { "suggestion-${it.name}" }) { command ->
-                            CommandRow(command.name, command.description) { search(it) }
+                            CommandRow(command.name) { search(it) }
                         }
                         if (matches.isEmpty()) item { Text("No matching command", color = muted, style = MaterialTheme.typography.bodySmall) }
                     } else {
@@ -231,14 +231,7 @@ fun AntsApp(model: SearchModel) {
                             Spacer(Modifier.height(12.dp))
                             Text("Advanced Nostr text search.\nFind notes, people, and rabbit holes.", color = muted, style = MaterialTheme.typography.bodyLarge)
                         } }
-                        items(examples) { (query, label) ->
-                            Surface(onClick = { search(query) }, shape = RoundedCornerShape(8.dp), color = card) {
-                                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Column(Modifier.weight(1f)) { Text(query, color = blue, fontFamily = FontFamily.Monospace); Spacer(Modifier.height(4.dp)); Text(label, color = muted, style = MaterialTheme.typography.bodySmall) }
-                                    Icon(Icons.Outlined.NorthEast, null, tint = muted, modifier = Modifier.size(18.dp))
-                                }
-                            }
-                        }
+                        items(examples) { query -> CommandRow(query) { search(it) } }
                         if (state.history.isNotEmpty()) {
                             item { Row(verticalAlignment = Alignment.CenterVertically) { Text("RECENT SEARCHES", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelSmall); ActionIcon(Icons.Outlined.DeleteOutline, "Clear recent searches", model::clearHistory) } }
                             items(state.history) { q -> Text(q, Modifier.fillMaxWidth().clickable { search(q) }.padding(12.dp), color = blue) }

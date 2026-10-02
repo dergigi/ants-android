@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Show search examples and command shortcuts as query-only cards without explanatory subtitles.
+
 - Make /examples the first home-screen suggestion and remove its duplicate shortcut.
 
 ## [0.8.0] - 2026-10-02
