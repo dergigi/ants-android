@@ -279,9 +279,7 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (event.kind != 9802) event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
                 if (event.kind == 9802) HighlightContent(event, profiles, compact = true)
-                else Text(displayContent(event, profile).ifBlank { "Open event to inspect its tags." }, maxLines = 9, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp))
-                val image = event.tagValue("image")?.takeIf { it.startsWith("https://") } ?: imagePattern.find(event.content)?.value
-                if (image != null) AsyncImage(model = image, contentDescription = "Image attached to this event", modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.FillWidth)
+                else EventContent(event, profile, compact = true)
             }
             HorizontalDivider(color = Color(0xFF3D3D3D))
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -320,10 +318,12 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
             Column(Modifier.weight(1f).clickable(onClick = onAuthor)) { Text(profile?.name ?: Nip19.npubEncode(event.pubkey).take(24) + "…", fontWeight = FontWeight.Bold); Text("${kindLabel(event.kind)} · ${dateLabel(event.createdAt)}", color = muted, style = MaterialTheme.typography.bodySmall) }
         }
         event.tagValue("title")?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
-        SelectionContainer { if (!raw && event.kind == 9802) HighlightContent(event, profiles, compact = false) else Text(if (raw) event.toJsonString() else displayContent(event, profile).ifBlank { "No text content." }, fontFamily = if (raw || event.kind == 1337) FontFamily.Monospace else FontFamily.Default) }
-        if (!raw) {
-            val links = Regex("https?://[^\\s<>\"]+").findAll(event.content).map { it.value.trimEnd('.', ',', ')', ']') }.distinct().take(8).toList()
-            links.forEach { url -> TextButton(onClick = { openUrl(context, url) }) { Text(url, maxLines = 2, overflow = TextOverflow.Ellipsis) } }
+        SelectionContainer {
+            when {
+                raw -> Text(event.toJsonString(), fontFamily = FontFamily.Monospace)
+                event.kind == 9802 -> HighlightContent(event, profiles, compact = false)
+                else -> EventContent(event, profile, compact = false)
+            }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             ActionIcon(Icons.AutoMirrored.Outlined.OpenInNew, "Open in browser", { openUrl(context, "https://njump.me/${Nip19.noteEncode(event.id)}") })
@@ -351,6 +351,6 @@ private fun RelayDialog(state: SearchState, model: SearchModel, onDismiss: () ->
     }, confirmButton = { TextButton(onClick = { error = model.setRelays(text); if (error == null) onDismiss() }) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }
 
-private fun openUrl(context: android.content.Context, url: String) {
+internal fun openUrl(context: android.content.Context, url: String) {
     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }.onFailure { Toast.makeText(context, "No app available to open this link.", Toast.LENGTH_SHORT).show() }
 }

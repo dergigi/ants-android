@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Hide URLs for rendered images in cards and details while preserving captions and ordinary links; show multiple attached images and an open-image fallback on loading failure.
+
 - Keep new searches at the newest result as relays stream in. Preserve the reading position after scrolling and offer an icon to jump to newer results.
 
 ### Added
