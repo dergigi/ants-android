@@ -50,13 +50,22 @@ internal fun HelpContent(onSearch: (String) -> Unit) {
     }
 }
 
-internal fun LazyListScope.commandItems(state: SearchState, onSearch: (String) -> Unit, onConnect: () -> Unit) {
+internal fun LazyListScope.commandItems(state: SearchState, onSearch: (String) -> Unit, onConnect: () -> Unit, onClearHistory: () -> Unit) {
     val command = state.command ?: return
     when (command) {
         "help" -> item { HelpContent(onSearch) }
         "examples" -> {
             items(searchExamples.filter { !it.needsLogin || state.pubkey != null }, key = { it.query }) {
                 CommandRow(it.query, onSearch)
+            }
+        }
+        "history" -> {
+            if (state.history.isEmpty()) item { Text("No recent searches", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            else {
+                item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    ActionIcon(Icons.Outlined.DeleteOutline, "Clear search history", onClearHistory)
+                } }
+                items(state.history, key = { it }) { query -> CommandRow(query, onSearch) }
             }
         }
         "kinds" -> {

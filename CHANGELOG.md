@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add a top-right history button and /history command for opening, rerunning, and clearing recent searches.
+
 ### Changed
 
 - Open to a vertically centered search field with a clickable version footer. Show commands on slash input and move the field above results after searching; remove the start-screen toolbar, examples, and history.

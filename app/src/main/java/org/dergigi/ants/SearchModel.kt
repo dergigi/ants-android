@@ -266,7 +266,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     }
     private suspend fun runCommand(command: String, current: Int) {
         when (command) {
-            "help", "examples", "kinds" -> Unit
+            "help", "examples", "kinds", "history" -> Unit
             "login" -> requestLogin()
             "logout" -> {
                 profileResolver.clear()

@@ -4,6 +4,7 @@ internal data class CommandDefinition(val name: String, val description: String)
 internal val slashCommands = listOf(
     CommandDefinition("/help", "Search help"),
     CommandDefinition("/examples", "Example queries"),
+    CommandDefinition("/history", "Recent searches"),
     CommandDefinition("/kinds", "Kind mappings"),
     CommandDefinition("/login", "Connect signer"),
     CommandDefinition("/logout", "Disconnect"),

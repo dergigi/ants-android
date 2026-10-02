@@ -206,6 +206,7 @@ fun AntsApp(model: SearchModel) {
                 Image(painterResource(R.drawable.ant), null, Modifier.size(36.dp))
                 Spacer(Modifier.width(9.dp)); Text("ants", fontWeight = FontWeight.Bold, fontSize = 23.sp, fontFamily = FontFamily.Monospace)
             } }, actions = {
+                IconButton(onClick = { search("/history") }) { Icon(Icons.Outlined.History, "Search history") }
                 IconButton(onClick = { search("/help") }) { Icon(Icons.Outlined.HelpOutline, "Search help") }
                 IconButton(onClick = { dialog = "relays" }) { Icon(Icons.Outlined.Settings, "Relay settings") }
                 AccountMenu(state.pubkey, state.profiles[state.pubkey], onSearch = { search(it) })
@@ -245,7 +246,7 @@ fun AntsApp(model: SearchModel) {
                         }
                     },
                 )) {
-                LazyColumn(Modifier.fillMaxSize(), state = if (suggestingCommands) suggestionListState else listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(if (!state.searched || suggestingCommands || state.command in listOf("help", "examples", "kinds")) 0.dp else 12.dp)) {
+                LazyColumn(Modifier.fillMaxSize(), state = if (suggestingCommands) suggestionListState else listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(if (!state.searched || suggestingCommands || state.command in listOf("help", "examples", "kinds", "history")) 0.dp else 12.dp)) {
                     if (suggestingCommands) {
                         val matches = slashCommands.filter { it.name.startsWith(state.query.trim().lowercase()) }
                         items(matches, key = { "suggestion-${it.name}" }) { command ->
@@ -253,7 +254,7 @@ fun AntsApp(model: SearchModel) {
                         }
                         if (matches.isEmpty()) item { Text("No matching command", color = muted, style = MaterialTheme.typography.bodySmall) }
                     } else {
-                    commandItems(state, onSearch = { search(it) }, onConnect = model::requestLogin)
+                    commandItems(state, onSearch = { search(it) }, onConnect = model::requestLogin, onClearHistory = model::clearHistory)
                     state.error?.let { error -> item { MessageCard("Couldn't search", error) } }
                     if (state.searched && (state.command == null || state.command == "tutorial") && !state.loading && state.events.isEmpty() && state.error == null) {
                         item { MessageCard("No results yet", "Try fewer filters, another keyword, or different search relays. Relay coverage varies.") }
@@ -268,6 +269,9 @@ fun AntsApp(model: SearchModel) {
                 if (canRefresh) PullToRefreshDefaults.Indicator(state = pullState, isRefreshing = refreshingFromPull, modifier = Modifier.align(Alignment.TopCenter))
                 }
                 }
+            }
+            if (!state.searched) IconButton(onClick = { search("/history") }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                Icon(Icons.Outlined.History, "Search history", tint = muted)
             }
             if (centeredHome) Text("v${BuildConfig.VERSION_NAME}",
                 Modifier.align(Alignment.BottomCenter).clickable(onClickLabel = "Open GitHub release") {
