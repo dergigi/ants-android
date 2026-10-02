@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Present examples and command shortcuts as flat, minimal text lists without category headings, card backgrounds, or trailing arrows.
+
 - Show search examples and command shortcuts as query-only cards without explanatory subtitles.
 
 - Make /examples the first home-screen suggestion and remove its duplicate shortcut.

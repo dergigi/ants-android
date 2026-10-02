@@ -3,7 +3,8 @@ package org.dergigi.ants
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -16,19 +17,16 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun CommandRow(query: String, onSearch: (String) -> Unit) {
-    Surface(onClick = { onSearch(query) }, shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(query, Modifier.weight(1f), color = MaterialTheme.colorScheme.primary, fontFamily = FontFamily.Monospace)
-            Spacer(Modifier.width(8.dp)); Icon(Icons.Outlined.NorthEast, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
+    Text(query,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            .clickable(role = Role.Button) { onSearch(query) }.padding(vertical = 12.dp),
+        color = MaterialTheme.colorScheme.primary, fontFamily = FontFamily.Monospace)
 }
 
 @Composable
 internal fun HelpContent(state: SearchState, onSearch: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column {
         slashCommands.forEach { CommandRow(it.name, onSearch) }
-        Text("TRY A SEARCH", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         listOf("bitcoin OR lightning", "#asknostr", "GM by:dergigi", "is:highlight", "Bitcoin has:image", "is:reaction by:dergigi").forEach { query ->
             CommandRow(query, onSearch)
         }
@@ -48,11 +46,9 @@ internal fun LazyListScope.commandItems(state: SearchState, onSearch: (String) -
     when (command) {
         "help" -> item { HelpContent(state, onSearch) }
         "examples" -> {
-            searchExamples.filter { !it.needsLogin || state.pubkey != null }.groupBy { it.section }.forEach { (section, examples) ->
-                item(key = "section-$section") { Text(section, style = MaterialTheme.typography.titleSmall) }
-                items(examples, key = { it.query }) { CommandRow(it.query, onSearch) }
+            items(searchExamples.filter { !it.needsLogin || state.pubkey != null }, key = { it.query }) {
+                CommandRow(it.query, onSearch)
             }
-            item { CommandRow("/help", onSearch) }
         }
         "kinds" -> {
             items(kindAliases.entries.filter { entry -> entry.value.all { it in renderedKinds } }, key = { it.key }) { alias -> CommandRow("is:${alias.key}", onSearch) }

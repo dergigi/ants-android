@@ -216,7 +216,7 @@ fun AntsApp(model: SearchModel) {
                         }
                     },
                 )) {
-                LazyColumn(Modifier.fillMaxSize(), state = if (suggestingCommands) suggestionListState else listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                LazyColumn(Modifier.fillMaxSize(), state = if (suggestingCommands) suggestionListState else listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(if (!state.searched || suggestingCommands || state.command in listOf("help", "examples", "kinds")) 0.dp else 12.dp)) {
                     if (suggestingCommands) {
                         val matches = slashCommands.filter { it.name.startsWith(state.query.trim().lowercase()) }
                         items(matches, key = { "suggestion-${it.name}" }) { command ->
