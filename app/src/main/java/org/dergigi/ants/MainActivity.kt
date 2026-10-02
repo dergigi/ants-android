@@ -38,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -88,6 +89,8 @@ private val examples = listOf("bitcoin" to "Search the nostrverse", "#asknostr" 
 fun AntsApp(model: SearchModel) {
     val state by model.state.collectAsStateWithLifecycle()
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
+    var searchFocused by remember { mutableStateOf(false) }
+    val suggestingCommands = searchFocused && state.query.trimStart().startsWith("/")
     val selected = state.detail
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
@@ -149,6 +152,7 @@ fun AntsApp(model: SearchModel) {
     }
     fun back() { keyboard?.hide(); focus.clearFocus(); model.back() }
     BackHandler(enabled = (state.searched || state.backDepth > 0) && dialog == null && selected == null) { back() }
+    BackHandler(enabled = suggestingCommands) { keyboard?.hide(); focus.clearFocus() }
     fun search(value: String = state.query) {
         keyboard?.hide(); focus.clearFocus()
         model.rememberScroll(state.pageId, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset)
@@ -172,7 +176,7 @@ fun AntsApp(model: SearchModel) {
         }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
                 OutlinedTextField(value = state.query, onValueChange = model::edit,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).onFocusChanged { searchFocused = it.isFocused },
                     placeholder = { Text("Search anything on Nostr", fontSize = 15.sp) },
                     leadingIcon = { Icon(Icons.Outlined.Search, null) },
                     trailingIcon = { Row {
@@ -181,7 +185,7 @@ fun AntsApp(model: SearchModel) {
                     } },
                     singleLine = true, shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { search() }))
-                if (state.searched && (state.command == null || state.command == "tutorial")) {
+                if (!suggestingCommands && state.searched && (state.command == null || state.command == "tutorial")) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(if (state.loading) "Searching… ${state.events.size} results" else "${state.events.size} results · newest first", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
                         if (state.pendingEvents.isNotEmpty()) {
@@ -194,6 +198,13 @@ fun AntsApp(model: SearchModel) {
                     if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
                 LazyColumn(Modifier.weight(1f), state = listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (suggestingCommands) {
+                        val matches = slashCommands.filter { it.name.startsWith(state.query.trim().lowercase()) }
+                        items(matches, key = { "suggestion-${it.name}" }) { command ->
+                            CommandRow(command.name, command.description) { search(it) }
+                        }
+                        if (matches.isEmpty()) item { Text("No matching command", color = muted, style = MaterialTheme.typography.bodySmall) }
+                    } else {
                     commandItems(state, onSearch = { search(it) }, onConnect = model::requestLogin)
                     if (!state.searched) {
                         item { Column(Modifier.padding(top = 24.dp, bottom = 18.dp)) {
@@ -225,6 +236,7 @@ fun AntsApp(model: SearchModel) {
                         TextButton(onClick = { dialog = "relays" }) { Text("${state.statuses.values.count { it == "Complete" }} / ${state.statuses.size} relays completed · relay details") }
                     }
                     if (state.events.size >= 500) item { Text("Showing the first 500 matches. Narrow your search with since: / until:.", color = muted) }
+                    }
                 }
             }
         }
