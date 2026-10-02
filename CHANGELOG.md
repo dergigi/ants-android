@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Relative since:/until: dates using h, d, w, m, and y, matching web UTC date boundaries and calendar arithmetic. All branches in a search share one reference time; refreshing recalculates it.
+
 ### Removed
 
 - Home-screen Search Nostr heading and its extra spacing.

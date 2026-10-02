@@ -5,8 +5,7 @@ import okhttp3.Request
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.json.JSONArray
 import org.json.JSONObject
-import java.time.LocalDate
-import java.time.ZoneOffset
+import java.time.Instant
 
 val imagePattern = Regex("https://[^\\s<>\"]+\\.(?:png|jpe?g|gif|webp|avif)(?:\\?[^\\s<>\"]*)?", RegexOption.IGNORE_CASE)
 
@@ -38,7 +37,8 @@ class SearchQuery(private val http: OkHttpClient, private val currentPubkey: Str
         require(!query.contains('(') && !query.contains(')')) { "Grouped searches aren't supported yet. Use separate searches joined with OR." }
         val parts = splitOr(query)
         require(parts.size <= 8) { "Use at most eight OR branches." }
-        return parts.map { branch(it) }
+        val now = Instant.now()
+        return parts.map { branch(it, now) }
     }
 
     private fun splitOr(query: String): List<String> {
@@ -57,7 +57,7 @@ class SearchQuery(private val http: OkHttpClient, private val currentPubkey: Str
         return out
     }
 
-    private fun branch(query: String): SearchBranch {
+    private fun branch(query: String, now: Instant): SearchBranch {
         val f = JSONObject().put("limit", 100)
         val direct = query.removePrefix("nostr:")
         when {
@@ -88,8 +88,7 @@ class SearchQuery(private val http: OkHttpClient, private val currentPubkey: Str
                 }
                 prefix == "is" -> (kindAliases[value.lowercase()] ?: error("Unknown kind '$value'. Use /kinds to see available shortcuts.")).forEach { add("kinds", it) }
                 prefix == "since" || prefix == "until" -> {
-                    val date = runCatching { LocalDate.parse(value) }.getOrElse { error("Use $prefix:YYYY-MM-DD.") }
-                    f.put(prefix, date.atStartOfDay().toEpochSecond(ZoneOffset.UTC) + if (prefix == "until") 86399 else 0)
+                    f.put(prefix, searchDateTimestamp(value, prefix, now))
                 }
                 prefix == "has" -> {
                     require(value in listOf("image", "video")) { "Use has:image or has:video." }; media = value
