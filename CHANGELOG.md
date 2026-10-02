@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Make /examples the first home-screen suggestion and remove its duplicate shortcut.
+
 ## [0.8.0] - 2026-10-02
 
 ### Added

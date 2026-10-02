@@ -85,7 +85,7 @@ private val blue = Color(0xFF60A5FA)
 private val background = Color(0xFF1A1A1A)
 private val card = Color(0xFF2D2D2D)
 private val muted = Color(0xFF9CA3AF)
-private val examples = listOf("ants" to "Search the nostrverse", "#asknostr" to "Follow a hashtag", "is:highlight" to "Find passages worth keeping", "GM by:dergigi" to "Search someone's notes", "p:fiatjaf" to "Discover people", "nostr has:image" to "Find images")
+private val examples = listOf("/examples" to "Explore search examples", "#asknostr" to "Follow a hashtag", "is:highlight" to "Find passages worth keeping", "GM by:dergigi" to "Search someone's notes", "p:fiatjaf" to "Discover people", "nostr has:image" to "Find images")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -239,7 +239,6 @@ fun AntsApp(model: SearchModel) {
                                 }
                             }
                         }
-                        item { CommandRow("/examples", "More searches to explore", onSearch = { search(it) }) }
                         if (state.history.isNotEmpty()) {
                             item { Row(verticalAlignment = Alignment.CenterVertically) { Text("RECENT SEARCHES", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelSmall); ActionIcon(Icons.Outlined.DeleteOutline, "Clear recent searches", model::clearHistory) } }
                             items(state.history) { q -> Text(q, Modifier.fillMaxWidth().clickable { search(q) }.padding(12.dp), color = blue) }
