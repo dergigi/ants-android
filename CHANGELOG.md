@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-02
+
 ### Added
 
 - Rotate search placeholders through supported commands and examples every seven seconds, starting with /examples. Show the web-style countdown ring, tap it for the next example, and submit the displayed placeholder with the search button or keyboard when the field is empty. Pause rotation during input, loading, and background activity; hide login-only examples when signed out.
@@ -222,7 +224,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/dergigi/ants-android/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/dergigi/ants-android/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/dergigi/ants-android/compare/v0.10.2...v0.11.0
 [0.10.2]: https://github.com/dergigi/ants-android/compare/v0.10.1...v0.10.2
