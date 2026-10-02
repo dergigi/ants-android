@@ -63,6 +63,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import java.time.Instant
 import java.time.ZoneId
@@ -419,7 +421,10 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
     val clipboard = LocalClipboardManager.current
     val scrollState = remember(event.id) { ScrollState(initialScroll) }
     val saveScroll by rememberUpdatedState(onScroll)
-    LaunchedEffect(scrollState) { snapshotFlow { scrollState.value }.collectLatest { saveScroll(it) } }
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.value.takeUnless { scrollState.isScrollInProgress } }
+            .filterNotNull().distinctUntilChanged().collectLatest { saveScroll(it) }
+    }
     Column(modifier.fillMaxWidth().verticalScroll(scrollState).padding(horizontal = 20.dp).padding(bottom = 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Avatar(profile, event.pubkey, onAuthor); Spacer(Modifier.width(12.dp))

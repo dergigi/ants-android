@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Keep article Markdown parsing state stable during recomposition so scrolling no longer restarts parsing, collapses the article, and resets the scroll position.
+- Keep article Markdown parsing state stable during recomposition so scrolling no longer restarts parsing, collapses the article, and resets the scroll position. Save detail scroll positions after scrolling settles instead of updating the entire app on every scroll movement.
 
 ## [0.13.0] - 2026-10-02
 
