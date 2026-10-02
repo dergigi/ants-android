@@ -62,6 +62,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         mutable.value = previous.copy(
             profiles = current.profiles, saved = current.saved, history = current.history,
             relays = current.relays, pubkey = current.pubkey, signerRequest = null, commandBusy = false, backDepth = backStack.size,
+            commandMessage = if (previous.command == "login") null else previous.commandMessage,
         )
     }
     private fun rememberPage() {
