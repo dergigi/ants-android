@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-10-02
+
+### Fixed
+
+- Reduce UI stalls during busy searches by batching relay updates and moving result sorting, profile parsing, linked-profile discovery, and signer-response verification off the main thread.
+- Prepare note media and links in the background and bound feed preview text before Android lays it out. Full note text remains available in details.
+- Avoid repeated full-URL scans when trimming trailing punctuation.
+
 ## [0.10.0] - 2026-10-02
 
 ### Added
@@ -164,7 +172,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/dergigi/ants-android/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/dergigi/ants-android/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/dergigi/ants-android/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/dergigi/ants-android/compare/v0.8.0...v0.8.1
