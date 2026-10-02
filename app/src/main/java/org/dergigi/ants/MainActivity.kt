@@ -198,7 +198,7 @@ fun AntsApp(model: SearchModel) {
     }
     MaterialTheme(colorScheme = darkColorScheme(primary = blue, background = background, surface = background, surfaceVariant = card, onSurfaceVariant = muted)) {
         GalleryHost {
-        CompositionLocalProvider(LocalThreadState provides ThreadState(state, model::loadParent)) {
+        CompositionLocalProvider(LocalThreadState provides ThreadState(state, model::loadParent), LocalQuoteState provides QuoteState(state, model::loadQuote, model::openDetail)) {
         Scaffold(topBar = {
             TopAppBar(navigationIcon = {
                 if (state.backDepth > 0) IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Previous search") }
@@ -374,7 +374,7 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
 }
 
 @Composable
-private fun Avatar(profile: Profile?, pubkey: String, onClick: () -> Unit, size: Int = 38) {
+internal fun Avatar(profile: Profile?, pubkey: String, onClick: () -> Unit, size: Int = 38) {
     Box(Modifier.size(size.dp).clip(CircleShape).background(blue.copy(alpha = 0.15f)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         Text((profile?.name ?: pubkey).take(1).uppercase(), color = blue, fontWeight = FontWeight.Bold)
         profile?.picture?.let { AsyncImage(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }

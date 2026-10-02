@@ -56,20 +56,23 @@ internal fun withoutRenderedImages(content: String, images: List<String>): Strin
 
 private data class PreparedContent(
     val gallery: List<String>, val images: List<String>, val videos: List<VideoAttachment>,
-    val text: String, val inlineQueries: Set<String>,
+    val text: String, val quotes: List<QuoteReference>,
 )
 
 @Composable
 internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
+    val ancestors = LocalQuoteAncestors.current + event.id
+    val embedQuotes = ancestors.size <= 2
     val content = if (event.kind == 0) profile?.about?.takeIf { it.isNotBlank() } ?: "Nostr profile" else event.content
-    val prepared by produceState<PreparedContent?>(null, event.id, content, compact) {
+    val prepared by produceState<PreparedContent?>(null, event.id, content, compact, embedQuotes) {
         value = withContext(Dispatchers.Default) {
             val gallery = eventImages(event, compact = false)
             val videos = eventVideos(event).take(if (compact) 4 else 20)
-            val fullText = withoutRenderedImages(content, gallery + videos.map { it.url })
+            val quotes = if (embedQuotes) quoteReferences(event).filter { it.key !in ancestors } else emptyList()
+            val fullText = withoutEmbeddedQuotes(withoutRenderedImages(content, gallery + videos.map { it.url }), event, quotes)
             // maxLines alone still asks Android to shape the entire input string.
             val text = if (compact && fullText.length > 4000) fullText.take(4000) + "…" else fullText
-            PreparedContent(gallery, gallery.take(if (compact) 4 else 20), videos, text, contentLinks(text, event).map { it.query }.toSet())
+            PreparedContent(gallery, gallery.take(if (compact) 4 else 20), videos, text, quotes)
         }
     }
     val rendered = prepared ?: return
@@ -85,7 +88,7 @@ internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<St
         }
         if (text.isNotBlank()) CustomEmojiText(linked, event, maxLines = if (compact) 9 else Int.MAX_VALUE, emojiSize = 20.sp,
             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp, fontFamily = if (event.kind == 1337) FontFamily.Monospace else FontFamily.Default))
-        else if (images.isEmpty() && videos.isEmpty()) Text("Open event to inspect its tags.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        else if (images.isEmpty() && videos.isEmpty() && rendered.quotes.isEmpty()) Text("Open event to inspect its tags.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         images.forEachIndexed { index, image -> EventImage(image, compact) { openGallery(galleryImages, index) } }
         if (galleryImages.size > images.size) {
             IconButton(onClick = { openGallery(galleryImages, images.size) }) {
@@ -93,9 +96,9 @@ internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<St
             }
         }
         videos.forEach { video -> key(video.url) { EventVideo(video) } }
-        val inlineQueries = rendered.inlineQueries
-        quotedQueries(event).filter { it !in inlineQueries }.forEach { query ->
-            AssistChip(onClick = { onNavigate(query) }, label = { Text("Quoted note", maxLines = 1) }, leadingIcon = { Icon(Icons.Outlined.FormatQuote, null, Modifier.size(16.dp)) })
+        rendered.quotes.forEach { reference -> key(reference.key) { EmbeddedNote(reference, ancestors, onNavigate) } }
+        if (!embedQuotes) quotedQueries(event).forEach { query ->
+            IconButton(onClick = { onNavigate(query) }) { Icon(Icons.Outlined.FormatQuote, "Open quoted note") }
         }
     }
 }
