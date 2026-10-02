@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-02
+
+### Added
+
+- Render profile search results as native profile cards with avatars, optional banners, names, bios, website and Lightning details, and icon actions for posts, mentions, copying the public key, and opening profiles in other apps or the browser. Author taps, profile mentions, account-menu profiles, and pasted public keys open profile cards.
+- Render article footnotes as numbered references and formatted notes, with tap-to-jump navigation and a return-to-reference action. Preserve code examples and support multi-paragraph footnotes.
+
 ### Changed
 
 - Use the /help terminal-panel style for all slash-command output: examples, history, kinds, login/logout, cache clearing, tutorial content, and command errors. Keep long lists lazy, queries tappable, and examples free of categories and descriptions.
@@ -236,7 +243,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/dergigi/ants-android/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/dergigi/ants-android/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/dergigi/ants-android/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/dergigi/ants-android/compare/v0.11.0...v0.12.0
