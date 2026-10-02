@@ -130,6 +130,8 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.secp256k1.kmp)
     implementation(libs.secp256k1.jni.android)
+    implementation(libs.coil.gif)
+    implementation(libs.coil.svg)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
