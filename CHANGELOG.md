@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Vertex profile discovery with personalized PageRank through the connected external signer, used by p:, by:, from:, and mentions: searches. Relay fallback ranks name matches, verified NIP-05 addresses, follows, and zap activity; profile results retain relevance order.
+
 - Relative since:/until: dates using h, d, w, m, and y, matching web UTC date boundaries and calendar arithmetic. All branches in a search share one reference time; refreshing recalculates it.
 
 ### Removed

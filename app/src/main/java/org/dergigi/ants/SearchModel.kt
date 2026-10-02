@@ -192,7 +192,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     return@launch
                 }
                 val identity = state.value.pubkey
-                val branches = withContext(Dispatchers.IO) { SearchQuery(relay.http, identity) { profileResolver.resolve(it, identity, state.value.relays) }.parse(if (command == "tutorial") tutorialPointer else input).mapNotNull { it.forRenderedResults() } }
+                val branches = withContext(Dispatchers.IO) { SearchQuery(identity) { profileResolver.resolve(it, identity, state.value.relays) }.parse(if (command == "tutorial") tutorialPointer else input).mapNotNull { it.forRenderedResults() } }
                 require(branches.isNotEmpty()) { "This event type has no native display yet. Use /kinds to browse supported content." }
                 if (current != generation) return@launch
                 val history = (listOf(input) + state.value.history.filter { it != input }).take(20)

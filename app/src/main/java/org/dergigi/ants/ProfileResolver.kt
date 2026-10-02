@@ -131,7 +131,8 @@ internal class ProfileResolver(
                 JSONObject().put("kinds", JSONArray().put(9735)).put("#P", JSONArray().put(event.pubkey)).put("limit", 1),
             ) }
             // Keep relay requests small enough for commonly configured filter limits.
-            filters.chunked(10).map { batch -> async { collect(batch, generalRelays, 5000) } }.awaitAll().flatten()
+            val activitySlots = Semaphore(3)
+            filters.chunked(10).map { batch -> async { activitySlots.withPermit { collect(batch, generalRelays, 5000) } } }.awaitAll().flatten()
         }
         verification.join()
         val followed = friends.await(); val activity = zaps.await()

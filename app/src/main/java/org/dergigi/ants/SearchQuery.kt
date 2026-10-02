@@ -1,6 +1,5 @@
 package org.dergigi.ants
 
-import okhttp3.OkHttpClient
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
@@ -24,7 +23,7 @@ data class SearchBranch(val filter: JSONObject, val media: String? = null, val s
     }
 }
 
-class SearchQuery(private val http: OkHttpClient, private val currentPubkey: String? = null, private val resolveProfile: suspend (String) -> String) {
+class SearchQuery(private val currentPubkey: String? = null, private val resolveProfile: suspend (String) -> String) {
     suspend fun parse(input: String): List<SearchBranch> {
         val query = input.trim().removePrefix("nostr:")
         require(query.isNotBlank()) { "Enter a search first." }
