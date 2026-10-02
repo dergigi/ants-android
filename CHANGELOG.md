@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Image downloads to Pictures and binary image sharing using temporary content URIs.
+
 - Explicit reaction searches show the reaction above a verified preview of its target, with native links to the post and author. Missing targets can be opened for a direct lookup.
 
 ### Fixed
