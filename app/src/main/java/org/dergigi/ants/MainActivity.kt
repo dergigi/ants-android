@@ -101,6 +101,32 @@ fun AntsApp(model: SearchModel) {
     val selected = state.detail
     val keyboard = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
+    var signingActivityId by rememberSaveable { mutableStateOf<String?>(null) }
+    val eventSignerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val data = result.data
+        val id = signingActivityId
+        signingActivityId = null
+        val returnedId = data?.getStringExtra("id")
+        model.finishEventSigning(id, data?.getStringExtra("event"), data?.getStringExtra("result") ?: data?.getStringExtra("signature"),
+            result.resultCode != Activity.RESULT_OK || data?.getBooleanExtra("rejected", false) == true || (returnedId != null && returnedId != id))
+    }
+    LaunchedEffect(state.eventSignRequest) {
+        state.eventSignRequest?.let { request ->
+            model.eventSigningLaunched(request.id)
+            signingActivityId = request.id
+            try {
+                eventSignerLauncher.launch(Intent(Intent.ACTION_VIEW, Uri.parse("nostrsigner:${request.event.toJsonString()}")).apply {
+                    setPackage(request.packageName)
+                    putExtra("type", "sign_event")
+                    putExtra("current_user", request.event.pubkey)
+                    putExtra("id", request.id)
+                })
+            } catch (_: Exception) {
+                signingActivityId = null
+                model.finishEventSigning(request.id, null, null, true)
+            }
+        }
+    }
     val signerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val data = result.data
         val error = when {

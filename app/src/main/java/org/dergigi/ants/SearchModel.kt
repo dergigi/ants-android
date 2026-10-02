@@ -15,6 +15,7 @@ data class Profile(val name: String, val about: String, val picture: String?, va
 data class SearchState(
     val command: String? = null, val commandMessage: String? = null, val commandBusy: Boolean = false,
     val pubkey: String? = null, val signerRequest: String? = null,
+    val eventSignRequest: EventSignRequest? = null,
     val query: String = "", val submitted: String = "", val searched: Boolean = false,
     val loading: Boolean = false, val error: String? = null,
     val loadingParents: Set<String> = emptySet(), val failedParents: Set<String> = emptySet(),
@@ -37,6 +38,53 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     private val parentJobs = mutableMapOf<String, Job>()
     private var generation = 0
     private var loginAttempt: String? = null
+    private var signingWaiter: CompletableDeferred<Nip01Event?>? = null
+    private var pendingSignature: EventSignRequest? = null
+    private var activeSigningId: String? = null
+
+    private suspend fun signProfileRequest(event: Nip01Event): Nip01Event? {
+        val packageName = preferences.getString("signerPackage", null) ?: return null
+        if (state.value.pubkey != event.pubkey) return null
+        // Use previously granted signer permission without opening another app.
+        val background = withContext(Dispatchers.IO) {
+            runCatching {
+                getApplication<Application>().contentResolver.query(
+                    Uri.parse("content://$packageName.SIGN_EVENT"), arrayOf(event.toJsonString(), "", event.pubkey), null, null, null,
+                )?.use { cursor ->
+                    if (cursor.getColumnIndex("rejected") >= 0) return@withContext false to null
+                    if (!cursor.moveToFirst()) return@use null
+                    fun value(name: String) = cursor.getColumnIndex(name).takeIf { it >= 0 }?.let { cursor.getString(it) }
+                    true to validatedSignedEvent(event, value("event"), value("result") ?: value("signature"))
+                }
+            }.getOrNull()
+        }
+        if (background != null) return background.second
+        return withContext(Dispatchers.Main.immediate) {
+            if (activeSigningId != null || signingWaiter != null || state.value.pubkey != event.pubkey) return@withContext null
+            val request = EventSignRequest(UUID.randomUUID().toString(), event, packageName)
+            val waiter = CompletableDeferred<Nip01Event?>()
+            pendingSignature = request; signingWaiter = waiter
+            mutable.update { it.copy(eventSignRequest = request) }
+            try { withTimeoutOrNull(120_000) { waiter.await() } }
+            finally {
+                if (pendingSignature?.id == request.id) {
+                    pendingSignature = null; signingWaiter = null
+                    mutable.update { it.copy(eventSignRequest = null) }
+                }
+            }
+        }
+    }
+    fun eventSigningLaunched(id: String) {
+        activeSigningId = id
+        mutable.update { if (it.eventSignRequest?.id == id) it.copy(eventSignRequest = null) else it }
+    }
+    fun finishEventSigning(id: String?, eventJson: String?, signature: String?, rejected: Boolean) {
+        if (id == activeSigningId) activeSigningId = null
+        val request = pendingSignature ?: return
+        if (request.id != id) return
+        val result = if (rejected || state.value.pubkey != request.event.pubkey) null else validatedSignedEvent(request.event, eventJson, signature)
+        signingWaiter?.complete(result)
+    }
     private var nextPageId = 0L
     private val backStack = ArrayDeque<SearchState>()
 
@@ -86,7 +134,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         val current = state.value
         mutable.value = previous.copy(
             profiles = current.profiles, history = current.history,
-            relays = current.relays, pubkey = current.pubkey, signerRequest = null, commandBusy = false, backDepth = backStack.size,
+            relays = current.relays, pubkey = current.pubkey, signerRequest = null, eventSignRequest = null, commandBusy = false, backDepth = backStack.size,
             commandMessage = if (previous.command == "login") null else previous.commandMessage,
             loadingParents = emptySet(),
         )
@@ -95,7 +143,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         val page = state.value
         backStack.addLast(page.copy(
             query = if (page.searched) page.submitted else page.query,
-            followingNewest = false, signerRequest = null,
+            followingNewest = false, signerRequest = null, eventSignRequest = null,
             profiles = emptyMap(), history = emptyList(), relays = emptyList(),
         ))
         // Bound retained results: history is a session convenience, not a disk cache.
