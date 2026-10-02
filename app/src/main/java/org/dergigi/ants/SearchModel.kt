@@ -13,6 +13,7 @@ data class Profile(val name: String, val about: String, val picture: String?, va
 data class SearchState(
     val query: String = "", val submitted: String = "", val searched: Boolean = false,
     val loading: Boolean = false, val error: String? = null,
+    val reactionTargets: Map<String, Nip01Event> = emptyMap(), val loadingReactionTargets: Boolean = false,
     val pageId: Long = 0, val backDepth: Int = 0,
     val scrollIndex: Int = 0, val scrollOffset: Int = 0,
     val followingNewest: Boolean = true, val pendingEvents: List<Nip01Event> = emptyList(),
@@ -66,7 +67,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             profiles = emptyMap(), saved = emptyList(), history = emptyList(), relays = emptyList(),
         ))
         // Bound retained results: history is a session convenience, not a disk cache.
-        fun retainedChars() = backStack.sumOf { page -> (page.events + page.pendingEvents).sumOf { event ->
+        fun retainedChars() = backStack.sumOf { page -> (page.events + page.pendingEvents + page.reactionTargets.values).sumOf { event ->
             event.content.length.toLong() + event.tags.sumOf { row -> row.sumOf { it.length.toLong() } }
         } }
         while (backStack.size > 20 || (backStack.size > 1 && retainedChars() > 8_000_000)) backStack.removeFirst()
@@ -88,18 +89,18 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         if (urls.any { url -> runCatching { val uri = Uri.parse(url); uri.scheme != "wss" || uri.host.isNullOrBlank() || uri.userInfo != null || uri.fragment != null }.getOrDefault(true) }) return "Use secure wss:// relay URLs, one per line."
         persist("relays", urls); mutable.update { it.copy(relays = urls) }; return null
     }
-    fun stop() { generation++; searchJob?.cancel(); mutable.update { it.copy(loading = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
+    fun stop() { generation++; searchJob?.cancel(); mutable.update { it.copy(loading = false, loadingReactionTargets = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
     fun home() {
         stop()
         backStack.clear()
-        mutable.update { it.copy(query = "", submitted = "", searched = false, error = null, events = emptyList(), statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(query = "", submitted = "", searched = false, error = null, events = emptyList(), reactionTargets = emptyMap(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
     }
     fun search(query: String = state.value.query) {
         val input = query.trim(); if (input.isBlank()) return
         stop()
         if (input != state.value.submitted || state.value.detail != null) rememberPage()
         val current = ++generation
-        mutable.update { it.copy(query = input, submitted = input, searched = true, loading = true, error = null, events = emptyList(), statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(query = input, submitted = input, searched = true, loading = true, error = null, events = emptyList(), reactionTargets = emptyMap(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
         searchJob = viewModelScope.launch {
             try {
                 val branches = withContext(Dispatchers.IO) { SearchQuery(relay.http).parse(input) }
@@ -124,7 +125,17 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 }
                 if (current != generation) return@launch
                 mutable.update { it.copy(loading = false) }
-                val authors = (state.value.events + state.value.pendingEvents).flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) }.distinct().filter { it !in state.value.profiles }.take(200)
+                val targetIds = (state.value.events + state.value.pendingEvents).mapNotNull(::reactionTargetId).distinct().take(100)
+                if (targetIds.isNotEmpty()) {
+                    mutable.update { it.copy(loadingReactionTargets = true) }
+                    val filter = JSONObject().put("ids", JSONArray(targetIds)).put("limit", targetIds.size)
+                    relay.search(listOf(SearchBranch(filter)), (state.value.relays + generalRelays).distinct(), 7000).flowOn(Dispatchers.IO).collect { update ->
+                        if (current == generation && update is RelayUpdate.Event) mutable.update { it.copy(reactionTargets = it.reactionTargets + (update.event.id to update.event)) }
+                    }
+                    if (current != generation) return@launch
+                    mutable.update { it.copy(loadingReactionTargets = false) }
+                }
+                val authors = (state.value.events + state.value.pendingEvents + state.value.reactionTargets.values).flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) }.distinct().filter { it !in state.value.profiles }.take(200)
                 if (authors.isNotEmpty()) {
                     val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
                     relay.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000).flowOn(Dispatchers.IO).collect {
@@ -132,7 +143,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { if (current == generation) mutable.update { it.copy(loading = false, error = e.message ?: "Search failed. Check your connection and try again.") } }
+            catch (e: Exception) { if (current == generation) mutable.update { it.copy(loading = false, loadingReactionTargets = false, error = e.message ?: "Search failed. Check your connection and try again.") } }
         }
     }
     private fun updateProfile(event: Nip01Event) {

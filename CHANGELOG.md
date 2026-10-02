@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Explicit reaction searches show the reaction above a verified preview of its target, with native links to the post and author. Missing targets can be opened for a direct lookup.
+
 ### Fixed
 
 - Match web ants discovery defaults so reactions and other non-content events do not crowd ordinary searches. Explicit kind filters and direct event lookups remain available.

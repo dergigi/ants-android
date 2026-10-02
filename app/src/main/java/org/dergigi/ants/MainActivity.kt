@@ -189,7 +189,7 @@ fun AntsApp(model: SearchModel) {
                     if (state.searched && !state.loading && state.events.isEmpty() && state.error == null) {
                         item { MessageCard("No results yet", "Try fewer filters, another keyword, or different search relays. Relay coverage varies.") }
                     }
-                    items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], state.profiles, onNavigate = { search(it) }, onOpen = { model.openDetail(event) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
+                    items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], state.profiles, state.reactionTargets, state.loadingReactionTargets, onNavigate = { search(it) }, onOpen = { model.openDetail(event) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
                     if (state.searched && state.statuses.isNotEmpty()) item {
                         TextButton(onClick = { dialog = "relays" }) { Text("${state.statuses.values.count { it == "Complete" }} / ${state.statuses.size} relays completed · relay details") }
                     }
@@ -203,6 +203,7 @@ fun AntsApp(model: SearchModel) {
                     Text("Searches go directly to Nostr relays. Text matching depends on each relay's search index.")
                     Text("bitcoin lightning\n\"exact phrase\"\n#asknostr\nby:dergigi\nby:name@example.com\nby:npub1…\nmentions:npub1…\np:alice\nis:note / article / highlight / code\nkind:30023\nsince:2026-01-01\nuntil:2026-10-02\nhas:image / video\nsite:github.com\nbitcoin OR lightning", fontFamily = FontFamily.Monospace, color = blue, fontSize = 13.sp)
                     Text("Paste npub, nprofile, note, nevent, naddr, or an event's hex ID for direct lookup. Share text or ants.sh links to ants from other apps.")
+                    Text("Ordinary searches show notes, pictures, videos, highlights, and follow packs, like web ants. Use is:reaction or kind:7 to discover reactions with their referenced posts; other kinds remain available through explicit filters.")
                     Text("Tap hashtags, mentions, quotes, or source links to keep exploring inside ants. Back restores the previous search and your place. The ants logo returns home. While reading, incoming results wait behind the jump-to-newest icon.")
                     Text("MVP: read-only; no login, posting, zaps, grouped boolean expressions, or reverse image search. Images and video are filtered from returned candidates. Results are capped at 500, with up to 100 requested per query per relay.", color = muted)
                     TextButton(onClick = { openUrl(context, "https://github.com/dergigi/ants-android") }) { Text("Source · v${BuildConfig.VERSION_NAME}") }
@@ -221,7 +222,7 @@ fun AntsApp(model: SearchModel) {
         }
         selected?.let { event ->
             ModalBottomSheet(onDismissRequest = model::dismissDetail) {
-                EventDetails(event, state.profiles[event.pubkey], state.profiles, onNavigate = { search(it) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }, raw = state.detailRaw, initialScroll = state.detailScroll, onScroll = { model.rememberDetailScroll(state.pageId, event.id, it) }, onToggleRaw = model::toggleDetailRaw)
+                EventDetails(event, state.profiles[event.pubkey], state.profiles, state.reactionTargets, state.loadingReactionTargets, onNavigate = { search(it) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }, raw = state.detailRaw, initialScroll = state.detailScroll, onScroll = { model.rememberDetailScroll(state.pageId, event.id, it) }, onToggleRaw = model::toggleDetailRaw)
             }
         }
     }
@@ -272,7 +273,7 @@ private fun ActionIcon(icon: ImageVector, label: String, onClick: () -> Unit, se
 }
 
 @Composable
-private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onNavigate: (String) -> Unit, onOpen: () -> Unit, onAuthor: () -> Unit) {
+private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, reactionTargets: Map<String, Nip01Event>, loadingTargets: Boolean, onNavigate: (String) -> Unit, onOpen: () -> Unit, onAuthor: () -> Unit) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     Surface(onClick = onOpen, shape = RoundedCornerShape(8.dp), color = card, border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
@@ -284,7 +285,8 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
             }
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (event.kind != 9802) event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
-                if (event.kind == 9802) HighlightContent(event, profiles, compact = true, onNavigate = onNavigate)
+                if (event.kind == 7) ReactionContent(event, reactionTargets, loadingTargets, profiles, onNavigate)
+                else if (event.kind == 9802) HighlightContent(event, profiles, compact = true, onNavigate = onNavigate)
                 else EventContent(event, profile, compact = true, onNavigate = onNavigate)
             }
             HorizontalDivider(color = Color(0xFF3D3D3D))
@@ -312,7 +314,7 @@ private fun Avatar(profile: Profile?, pubkey: String, onClick: () -> Unit, size:
 }
 
 @Composable
-private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onNavigate: (String) -> Unit, onAuthor: () -> Unit, raw: Boolean, initialScroll: Int, onScroll: (Int) -> Unit, onToggleRaw: () -> Unit) {
+private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, reactionTargets: Map<String, Nip01Event>, loadingTargets: Boolean, onNavigate: (String) -> Unit, onAuthor: () -> Unit, raw: Boolean, initialScroll: Int, onScroll: (Int) -> Unit, onToggleRaw: () -> Unit) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val scrollState = remember(event.id) { ScrollState(initialScroll) }
@@ -327,6 +329,7 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
         SelectionContainer {
             when {
                 raw -> Text(event.toJsonString(), fontFamily = FontFamily.Monospace)
+                event.kind == 7 -> ReactionContent(event, reactionTargets, loadingTargets, profiles, onNavigate)
                 event.kind == 9802 -> HighlightContent(event, profiles, compact = false, onNavigate = onNavigate)
                 else -> EventContent(event, profile, compact = false, onNavigate = onNavigate)
             }
