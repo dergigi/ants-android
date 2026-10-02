@@ -270,7 +270,7 @@ fun AntsApp(model: SearchModel) {
                 }
                 }
             }
-            if (!state.searched) IconButton(onClick = { search("/history") }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+            if (centeredHome) IconButton(onClick = { search("/history") }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
                 Icon(Icons.Outlined.History, "Search history", tint = muted)
             }
             if (centeredHome) Text("v${BuildConfig.VERSION_NAME}",
