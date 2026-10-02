@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Render highlights as warm yellow marked passages with surrounding context, source links, and source-author attribution in results and details.
+
 ### Fixed
 
 - Stop publishing if certificate proof generation fails, preventing empty signer output from reaching the relay publisher.

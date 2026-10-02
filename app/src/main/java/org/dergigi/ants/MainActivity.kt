@@ -135,7 +135,7 @@ fun AntsApp(model: SearchModel) {
                     if (state.searched && !state.loading && state.events.isEmpty() && state.error == null) {
                         item { MessageCard("No results yet", "Try fewer filters, another keyword, or different search relays. Relay coverage varies.") }
                     }
-                    items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], onOpen = { selected = event }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
+                    items(state.events, key = { it.id }) { event -> EventCard(event, state.profiles[event.pubkey], state.profiles, onOpen = { selected = event }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }) }
                     if (state.searched && state.statuses.isNotEmpty()) item {
                         TextButton(onClick = { dialog = "relays" }) { Text("${state.statuses.values.count { it == "Complete" }} / ${state.statuses.size} relays completed · relay details") }
                     }
@@ -166,7 +166,7 @@ fun AntsApp(model: SearchModel) {
         }
         selected?.let { event ->
             ModalBottomSheet(onDismissRequest = { selected = null }) {
-                EventDetails(event, state.profiles[event.pubkey], onAuthor = { selected = null; search("by:${Nip19.npubEncode(event.pubkey)}") })
+                EventDetails(event, state.profiles[event.pubkey], state.profiles, onAuthor = { selected = null; search("by:${Nip19.npubEncode(event.pubkey)}") })
             }
         }
     }
@@ -185,7 +185,7 @@ private fun displayContent(event: Nip01Event, profile: Profile?) = if (event.kin
 private fun eventUrl(event: Nip01Event) = "https://ants.sh/e/${Nip19.noteEncode(event.id)}"
 
 @Composable
-private fun EventCard(event: Nip01Event, profile: Profile?, onOpen: () -> Unit, onAuthor: () -> Unit) {
+private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onOpen: () -> Unit, onAuthor: () -> Unit) {
     Surface(onClick = onOpen, shape = RoundedCornerShape(18.dp), color = card) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -198,7 +198,8 @@ private fun EventCard(event: Nip01Event, profile: Profile?, onOpen: () -> Unit, 
                 Text(kindLabel(event.kind), color = blue, style = MaterialTheme.typography.labelSmall)
             }
             event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
-            Text(displayContent(event, profile).ifBlank { "Open event to inspect its tags." }, maxLines = 9, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
+            if (event.kind == 9802) HighlightContent(event, profiles, compact = true)
+            else Text(displayContent(event, profile).ifBlank { "Open event to inspect its tags." }, maxLines = 9, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
             val image = event.tagValue("image")?.takeIf { it.startsWith("https://") } ?: imagePattern.find(event.content)?.value
             if (image != null) AsyncImage(model = image, contentDescription = "Image attached to this event", modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.FillWidth)
         }
@@ -214,7 +215,7 @@ private fun Avatar(profile: Profile?, pubkey: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun EventDetails(event: Nip01Event, profile: Profile?, onAuthor: () -> Unit) {
+private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onAuthor: () -> Unit) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     var raw by remember(event.id) { mutableStateOf(false) }
@@ -224,7 +225,7 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, onAuthor: () -> U
             Column(Modifier.weight(1f).clickable(onClick = onAuthor)) { Text(profile?.name ?: Nip19.npubEncode(event.pubkey).take(24) + "…", fontWeight = FontWeight.Bold); Text("${kindLabel(event.kind)} · ${dateLabel(event.createdAt)}", color = muted, style = MaterialTheme.typography.bodySmall) }
         }
         event.tagValue("title")?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
-        SelectionContainer { Text(if (raw) event.toJsonString() else displayContent(event, profile).ifBlank { "No text content." }, fontFamily = if (raw || event.kind == 1337) FontFamily.Monospace else FontFamily.Default) }
+        SelectionContainer { if (!raw && event.kind == 9802) HighlightContent(event, profiles, compact = false) else Text(if (raw) event.toJsonString() else displayContent(event, profile).ifBlank { "No text content." }, fontFamily = if (raw || event.kind == 1337) FontFamily.Monospace else FontFamily.Default) }
         if (!raw) {
             val links = Regex("https?://[^\\s<>\"]+").findAll(event.content).map { it.value.trimEnd('.', ',', ')', ']') }.distinct().take(8).toList()
             links.forEach { url -> TextButton(onClick = { openUrl(context, url) }) { Text(url, maxLines = 2, overflow = TextOverflow.Ellipsis) } }

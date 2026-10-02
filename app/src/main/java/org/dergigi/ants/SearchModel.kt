@@ -67,7 +67,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 }
                 if (current != generation) return@launch
                 mutable.update { it.copy(loading = false) }
-                val authors = state.value.events.map { it.pubkey }.distinct().filter { it !in state.value.profiles }.take(200)
+                val authors = state.value.events.flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) }.distinct().filter { it !in state.value.profiles }.take(200)
                 if (authors.isNotEmpty()) {
                     val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
                     relay.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000).flowOn(Dispatchers.IO).collect {
