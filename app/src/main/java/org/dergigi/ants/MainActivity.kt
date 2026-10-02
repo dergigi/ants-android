@@ -436,6 +436,7 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
         }
         if (!raw) ThreadContext(event, onNavigate)
         if (raw || event.kind != 30023) event.tagValue("title")?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
+        CompositionLocalProvider(LocalArticleScroll provides scrollState) {
         SelectionContainer {
             when {
                 raw -> Text(event.toJsonString(), fontFamily = FontFamily.Monospace)
@@ -443,6 +444,7 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
                 event.kind == 9802 -> HighlightContent(event, profiles, compact = false, onNavigate = onNavigate)
                 else -> EventContent(event, profile, profiles, compact = false, onNavigate = onNavigate)
             }
+        }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             ActionIcon(Icons.Outlined.PhoneAndroid, "Open in app", { openInNostrApp(context, event) })

@@ -2,6 +2,13 @@ package org.dergigi.ants
 
 import android.net.Uri
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowUpward
+import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -29,7 +36,9 @@ import kotlinx.coroutines.withContext
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.parser.MarkdownParser
 
-private data class ArticlePreview(val title: String, val summary: String, val body: String, val cover: String?, val images: List<String>)
+internal val LocalArticleScroll = staticCompositionLocalOf<ScrollState?> { null }
+
+private data class ArticlePreview(val title: String, val summary: String, val body: String, val cover: String?, val images: List<String>, val footnotes: List<MarkdownFootnote>)
 
 @Composable
 internal fun ArticleContent(event: Nip01Event, compact: Boolean, onNavigate: (String) -> Unit) {
@@ -43,15 +52,32 @@ internal fun ArticleContent(event: Nip01Event, compact: Boolean, onNavigate: (St
             if (title.isNotBlank() && firstLine.matches(Regex("^#{1,6}\\s+.*")) && firstLine.trimStart('#', ' ').trimEnd(' ', '#') == title) {
                 body = body.substringAfter('\n', "").trimStart()
             }
+            val document = MarkdownFootnotes.parse(body)
+            body = document.body
             if (compact) body = if (summary.isNotBlank()) "" else body.take(1200).let { if (body.length > it.length) "$it…" else it }
-            ArticlePreview(title, summary, body, cover, (listOfNotNull(cover) + eventImages(event, compact = false)).distinct())
+            ArticlePreview(title, summary, body, cover, (listOfNotNull(cover) + eventImages(event, compact = false)).distinct(), if (compact) emptyList() else document.notes)
         }
     }
     val rendered = article ?: return
     val openGallery = LocalOpenGallery.current
     val currentNavigate by rememberUpdatedState(onNavigate)
-    val uriHandler = remember { object : UriHandler {
+    val scope = rememberCoroutineScope()
+    val scroll = LocalArticleScroll.current
+    val openArticle = LocalQuoteState.current.open
+    val footnoteTargets = remember(event.id, rendered.footnotes) { rendered.footnotes.associate { it.number to BringIntoViewRequester() } }
+    var returnScroll by remember(event.id) { mutableStateOf<Int?>(null) }
+    val uriHandler = remember(event.id, compact, footnoteTargets, scroll, openArticle) { object : UriHandler {
         override fun openUri(uri: String) {
+            if (uri.startsWith("#ants-footnote-")) {
+                if (compact) openArticle(event)
+                else uri.removePrefix("#ants-footnote-").toIntOrNull()?.let { number ->
+                    footnoteTargets[number]?.let { target ->
+                        returnScroll = scroll?.value
+                        scope.launch { target.bringIntoView() }
+                    }
+                }
+                return
+            }
             val scheme = Uri.parse(uri).scheme?.lowercase()
             if (scheme in listOf("https", "http")) currentNavigate(uri)
             else if (scheme == "nostr") pointerQuery(uri)?.let(currentNavigate)
@@ -78,22 +104,37 @@ internal fun ArticleContent(event: Nip01Event, compact: Boolean, onNavigate: (St
         if (rendered.summary.isNotBlank()) Text(rendered.summary.take(if (compact) 1200 else 6000),
             style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = if (compact) 6 else Int.MAX_VALUE, overflow = TextOverflow.Ellipsis)
-        if (rendered.body.isNotBlank()) {
-            val flavour = remember { GFMFlavourDescriptor() }
-            val parser = remember(flavour) { MarkdownParser(flavour) }
-            // The library includes this resolver in its parsing-state key. Its
-            // default creates a new instance on every recomposition, which can
-            // clear the article and collapse the scroll range while scrolling.
-            val referenceLinks = remember(event.id, rendered.body) { ReferenceLinkHandlerImpl() }
-            val markdown = rememberMarkdownState(content = rendered.body, flavour = flavour, parser = parser, referenceLinkHandler = referenceLinks)
-            val bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 25.sp)
-            CompositionLocalProvider(LocalUriHandler provides uriHandler) {
-                Markdown(markdownState = markdown, modifier = Modifier.fillMaxWidth(), imageTransformer = imageTransformer,
-                    colors = markdownColor(text = MaterialTheme.colorScheme.onSurface, codeBackground = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        inlineCodeBackground = MaterialTheme.colorScheme.surfaceContainerHighest),
-                    typography = markdownTypography(text = bodyStyle, paragraph = bodyStyle, quote = bodyStyle,
-                        code = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace), inlineCode = bodyStyle.copy(fontFamily = FontFamily.Monospace)))
+        CompositionLocalProvider(LocalUriHandler provides uriHandler) {
+            if (rendered.body.isNotBlank()) ArticleMarkdown(rendered.body, imageTransformer)
+            if (rendered.footnotes.isNotEmpty()) {
+                HorizontalDivider()
+                rendered.footnotes.forEach { footnote -> key(footnote.number) {
+                    Column(Modifier.fillMaxWidth().bringIntoViewRequester(footnoteTargets.getValue(footnote.number))) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("${footnote.number}.", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                            if (returnScroll != null && scroll != null) IconButton(onClick = { scope.launch { scroll.animateScrollTo(returnScroll ?: 0) } }) {
+                                Icon(Icons.Outlined.ArrowUpward, "Back to footnote reference")
+                            }
+                        }
+                        ArticleMarkdown(footnote.markdown, imageTransformer)
+                    }
+                } }
             }
         }
     }
+}
+
+@Composable
+private fun ArticleMarkdown(body: String, imageTransformer: ImageTransformer) {
+    val flavour = remember { GFMFlavourDescriptor() }
+    val parser = remember(flavour) { MarkdownParser(flavour) }
+    // All parser inputs must survive scrolling and other recompositions.
+    val referenceLinks = remember(body) { ReferenceLinkHandlerImpl() }
+    val markdown = rememberMarkdownState(content = body, flavour = flavour, parser = parser, referenceLinkHandler = referenceLinks)
+    val bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 25.sp)
+    Markdown(markdownState = markdown, modifier = Modifier.fillMaxWidth(), imageTransformer = imageTransformer,
+        colors = markdownColor(text = MaterialTheme.colorScheme.onSurface, codeBackground = MaterialTheme.colorScheme.surfaceContainerHighest,
+            inlineCodeBackground = MaterialTheme.colorScheme.surfaceContainerHighest),
+        typography = markdownTypography(text = bodyStyle, paragraph = bodyStyle, quote = bodyStyle,
+            code = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace), inlineCode = bodyStyle.copy(fontFamily = FontFamily.Monospace)))
 }
