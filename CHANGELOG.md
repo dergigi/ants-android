@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Open to only a vertically centered search field. Show commands on slash input and move the field above results after searching; remove the start-screen toolbar, examples, history, and version footer.
+
 ### Fixed
 
 - Focus gallery double-tap zoom on the tapped image area, retaining double-tap zoom-out and recentering.

@@ -85,7 +85,6 @@ private val blue = Color(0xFF60A5FA)
 private val background = Color(0xFF1A1A1A)
 private val card = Color(0xFF2D2D2D)
 private val muted = Color(0xFF9CA3AF)
-private val examples = listOf("/examples", "#asknostr", "is:highlight", "GM by:dergigi", "p:fiatjaf", "nostr has:image")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,6 +93,7 @@ fun AntsApp(model: SearchModel) {
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
     var searchFocused by remember { mutableStateOf(false) }
     val suggestingCommands = searchFocused && state.query.trimStart().startsWith("/")
+    val centeredHome = !state.searched && !suggestingCommands && state.error == null
     val pullState = rememberPullToRefreshState()
     var pullRefreshPage by remember { mutableStateOf<Long?>(null) }
     val canRefresh = state.searched && !suggestingCommands && (state.command == null || state.command == "tutorial")
@@ -200,7 +200,7 @@ fun AntsApp(model: SearchModel) {
         GalleryHost {
         CompositionLocalProvider(LocalThreadState provides ThreadState(state, model::loadParent), LocalQuoteState provides QuoteState(state, model::loadQuote, model::openDetail)) {
         Scaffold(topBar = {
-            TopAppBar(navigationIcon = {
+            if (state.searched) TopAppBar(navigationIcon = {
                 if (state.backDepth > 0) IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Previous search") }
             }, title = { Row(Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClickLabel = "Go to home", onClick = { home() }).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(R.drawable.ant), null, Modifier.size(36.dp))
@@ -211,7 +211,7 @@ fun AntsApp(model: SearchModel) {
                 AccountMenu(state.pubkey, state.profiles[state.pubkey], onSearch = { search(it) })
             })
         }) { padding ->
-            Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
+            Column(Modifier.fillMaxSize().padding(padding).imePadding(), verticalArrangement = if (centeredHome) Arrangement.Center else Arrangement.Top) {
                 OutlinedTextField(value = state.query, onValueChange = model::edit,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).onFocusChanged { searchFocused = it.isFocused },
                     placeholder = { Text("Search anything on Nostr", fontSize = 15.sp) },
@@ -232,6 +232,7 @@ fun AntsApp(model: SearchModel) {
                     }
                     if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
+                if (!centeredHome) {
                 Box(Modifier.weight(1f).pullToRefresh(
                     state = pullState,
                     isRefreshing = refreshingFromPull,
@@ -252,14 +253,6 @@ fun AntsApp(model: SearchModel) {
                         if (matches.isEmpty()) item { Text("No matching command", color = muted, style = MaterialTheme.typography.bodySmall) }
                     } else {
                     commandItems(state, onSearch = { search(it) }, onConnect = model::requestLogin)
-                    if (!state.searched) {
-                        items(examples) { query -> CommandRow(query) { search(it) } }
-                        if (state.history.isNotEmpty()) {
-                            item { Row(verticalAlignment = Alignment.CenterVertically) { Text("RECENT SEARCHES", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelSmall); ActionIcon(Icons.Outlined.DeleteOutline, "Clear recent searches", model::clearHistory) } }
-                            items(state.history) { q -> Text(q, Modifier.fillMaxWidth().clickable { search(q) }.padding(12.dp), color = blue) }
-                        }
-                        item { Text("v${BuildConfig.VERSION_NAME}", Modifier.fillMaxWidth().clickable(onClickLabel = "Open GitHub release") { openUrl(context, "https://github.com/dergigi/ants-android/releases/tag/v${BuildConfig.VERSION_NAME}") }.padding(vertical = 16.dp), color = muted, style = MaterialTheme.typography.bodySmall) }
-                    }
                     state.error?.let { error -> item { MessageCard("Couldn't search", error) } }
                     if (state.searched && (state.command == null || state.command == "tutorial") && !state.loading && state.events.isEmpty() && state.error == null) {
                         item { MessageCard("No results yet", "Try fewer filters, another keyword, or different search relays. Relay coverage varies.") }
@@ -272,6 +265,7 @@ fun AntsApp(model: SearchModel) {
                     }
                 }
                 if (canRefresh) PullToRefreshDefaults.Indicator(state = pullState, isRefreshing = refreshingFromPull, modifier = Modifier.align(Alignment.TopCenter))
+                }
                 }
             }
         }
