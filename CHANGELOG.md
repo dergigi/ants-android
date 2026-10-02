@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-02
+
 ### Added
 
 - Render NIP-30 custom emoji images in reactions and note text, including animated GIF and SVG assets. Preserve ordinary emoji, links, and shortcode text when an image is unavailable.
@@ -14,9 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Remove explanatory filler from command pages and shorten account/cache status messages.
-
 - Use a simple ants text search as the first home-screen example.
-
 - Limit search results and loaded thread parents to supported native content types. Exclude encrypted/protocol events, raw JSON payloads, and empty or unsupported media cards while preserving reactions and intentional code snippets.
 - Request supported kinds from relays so unsupported events do not consume result limits. Show only supported shortcuts and examples, and explain unsupported explicit kind searches.
 
@@ -118,7 +118,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/dergigi/ants-android/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/dergigi/ants-android/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/dergigi/ants-android/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/dergigi/ants-android/compare/v0.3.0...v0.4.0

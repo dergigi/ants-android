@@ -9,6 +9,7 @@ Follow your curiosity. A native Android search and discovery app for Nostr, base
 - Text search across configurable NIP-50 relays, with deduplicated, signature-verified results. Only supported native content types are shown; encrypted/protocol events, raw JSON payloads (except intentional code snippets), and empty media cards are excluded.
 - Hashtags, author and mention filters, NIP-05 resolution, kinds, date ranges, simple OR queries, and image/video filters.
 - Direct lookup of `npub`, `nprofile`, `note`, `nevent`, `naddr`, and event hex IDs.
+- Custom emoji images in reactions and note text, including animated GIF and SVG assets, with shortcode fallback on loading failure.
 - Profile names and avatars, inline images without duplicate URLs, full event text, raw JSON, copying and sharing.
 - Linked videos play inline with native play/pause and seeking controls. MP4, WebM, MOV/M4V, Matroska, and other supported file formats are detected, including video media tags. Playback starts on tap, pauses offscreen or in the background, and offers retry/browser fallback; codec support depends on your phone. Rendered video URLs are hidden, with up to four players per result and twenty in details.
 - Tap images for a Boris-style gallery: swipe, pinch/double-tap zoom, previous/next, background switching, save one/all, share the image file, or copy/open its URL.
