@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-02
+
 ### Added
 
 - Inline, tap-to-play video players for linked MP4, WebM, MOV/M4V, Matroska, and other supported file formats, plus videos declared in event media tags. Show native playback and seeking controls, retry, and browser fallback without duplicate video URLs.
@@ -99,7 +101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/dergigi/ants-android/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/dergigi/ants-android/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/dergigi/ants-android/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/dergigi/ants-android/compare/v0.2.0...v0.3.0
