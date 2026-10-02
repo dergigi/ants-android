@@ -100,7 +100,7 @@ internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>,
         Text(styled, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp),
             onTextLayout = { layout = it }, modifier = Modifier.fillMaxWidth().drawBehind {
                 layout?.let { result ->
-                    for (range in passage.ranges) for (line in 0 until result.lineCount) {
+                    for (range in passage.ranges) for (line in result.getLineForOffset(range.first)..result.getLineForOffset(range.last)) {
                         val start = maxOf(range.first, result.getLineStart(line))
                         val end = minOf(range.last + 1, result.getLineEnd(line, visibleEnd = true))
                         if (start < end) {

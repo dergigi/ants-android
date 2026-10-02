@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Draw highlight underlines only on the lines they touch, keeping long passages responsive.
+
 - Stop publishing if certificate proof generation fails, preventing empty signer output from reaching the relay publisher.
 
 ## [0.1.0] - 2026-10-02
