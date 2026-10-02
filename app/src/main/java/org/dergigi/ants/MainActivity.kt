@@ -199,6 +199,19 @@ fun AntsApp(model: SearchModel) {
     MaterialTheme(colorScheme = darkColorScheme(primary = blue, background = background, surface = background, surfaceVariant = card, onSurfaceVariant = muted)) {
         GalleryHost {
         CompositionLocalProvider(LocalThreadState provides ThreadState(state, model::loadParent), LocalQuoteState provides QuoteState(state, model::loadQuote, model::openDetail)) {
+        if (selected?.kind == 30023) {
+            BackHandler(onBack = model::dismissDetail)
+            Scaffold(topBar = {
+                TopAppBar(title = { Text(selected.tagValue("title").orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium) },
+                    navigationIcon = { IconButton(onClick = model::dismissDetail) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back to results") } })
+            }) { padding ->
+                EventDetails(selected, state.profiles[selected.pubkey], state.profiles,
+                    onNavigate = { navigateContent(it) }, onAuthor = { search("by:${Nip19.npubEncode(selected.pubkey)}") },
+                    raw = state.detailRaw, initialScroll = state.detailScroll,
+                    onScroll = { model.rememberDetailScroll(state.pageId, selected.id, it) }, onToggleRaw = model::toggleDetailRaw,
+                    modifier = Modifier.fillMaxSize().padding(padding))
+            }
+        } else {
         Scaffold(topBar = {
             if (state.searched) TopAppBar(navigationIcon = {
                 if (state.backDepth > 0) IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Previous search") }
@@ -286,6 +299,7 @@ fun AntsApp(model: SearchModel) {
             ModalBottomSheet(onDismissRequest = model::dismissDetail) {
                 EventDetails(event, state.profiles[event.pubkey], state.profiles, onNavigate = { navigateContent(it) }, onAuthor = { search("by:${Nip19.npubEncode(event.pubkey)}") }, raw = state.detailRaw, initialScroll = state.detailScroll, onScroll = { model.rememberDetailScroll(state.pageId, event.id, it) }, onToggleRaw = model::toggleDetailRaw)
             }
+        }
         }
         }
         }
@@ -384,13 +398,13 @@ internal fun Avatar(profile: Profile?, pubkey: String, onClick: () -> Unit, size
 }
 
 @Composable
-private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onNavigate: (String) -> Unit, onAuthor: () -> Unit, raw: Boolean, initialScroll: Int, onScroll: (Int) -> Unit, onToggleRaw: () -> Unit) {
+private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onNavigate: (String) -> Unit, onAuthor: () -> Unit, raw: Boolean, initialScroll: Int, onScroll: (Int) -> Unit, onToggleRaw: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val scrollState = remember(event.id) { ScrollState(initialScroll) }
     val saveScroll by rememberUpdatedState(onScroll)
     LaunchedEffect(scrollState) { snapshotFlow { scrollState.value }.collectLatest { saveScroll(it) } }
-    Column(Modifier.fillMaxWidth().verticalScroll(scrollState).padding(horizontal = 20.dp).padding(bottom = 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(modifier.fillMaxWidth().verticalScroll(scrollState).padding(horizontal = 20.dp).padding(bottom = 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Avatar(profile, event.pubkey, onAuthor); Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f).clickable(onClick = onAuthor)) { Text(profile?.name ?: Nip19.npubEncode(event.pubkey).take(24) + "…", fontWeight = FontWeight.Bold); Text("${kindLabel(event.kind)} · ${dateLabel(event.createdAt)}", color = muted, style = MaterialTheme.typography.bodySmall) }

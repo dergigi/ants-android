@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Open long-form articles in a full-screen scrollable reader with a back button instead of a bottom-sheet overlay, including articles opened from embedded cards.
+
 - Focus gallery double-tap zoom on the tapped image area, retaining double-tap zoom-out and recentering.
 
 ## [0.11.0] - 2026-10-02
