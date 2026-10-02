@@ -43,6 +43,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -216,7 +218,7 @@ fun AntsApp(model: SearchModel) {
             if (state.searched) TopAppBar(navigationIcon = {
                 if (state.backDepth > 0) IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Previous search") }
             }, title = { Row(Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClickLabel = "Go to home", onClick = { home() }).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Image(painterResource(R.drawable.ant), null, Modifier.size(36.dp))
+                AntLogo(loggedIn = state.pubkey != null)
                 Spacer(Modifier.width(9.dp)); Text("ants", fontWeight = FontWeight.Bold, fontSize = 23.sp, fontFamily = FontFamily.Monospace)
             } }, actions = {
                 IconButton(onClick = { search("/history") }) { Icon(Icons.Outlined.History, "Search history") }
@@ -283,8 +285,14 @@ fun AntsApp(model: SearchModel) {
                 }
                 }
             }
-            if (centeredHome) IconButton(onClick = { search("/history") }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
-                Icon(Icons.Outlined.History, "Search history", tint = muted)
+            if (centeredHome) Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { home() }) {
+                    AntLogo(loggedIn = state.pubkey != null, description = if (state.pubkey != null) "Home, signed in" else "Home, signed out")
+                }
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { search("/history") }) { Icon(Icons.Outlined.History, "Search history", tint = muted) }
+                IconButton(onClick = { search("/help") }) { Icon(Icons.Outlined.HelpOutline, "Search help", tint = muted) }
+                AccountMenu(state.pubkey, state.profiles[state.pubkey], onSearch = { search(it) })
             }
             if (centeredHome) Text("v${BuildConfig.VERSION_NAME}",
                 Modifier.align(Alignment.BottomCenter).clickable(onClickLabel = "Open GitHub release") {
@@ -304,6 +312,12 @@ fun AntsApp(model: SearchModel) {
         }
         }
     }
+}
+
+@Composable
+private fun AntLogo(loggedIn: Boolean, description: String? = null) {
+    val grayscale = remember { ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }) }
+    Image(painterResource(R.drawable.ant), description, Modifier.size(36.dp), colorFilter = if (loggedIn) null else grayscale)
 }
 
 @Composable

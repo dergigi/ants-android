@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Add a logo-only home control at the top left of the start screen and history, help, and login/account controls at the top right, keeping the search field centered.
+- Show the ant logo in grayscale when logged out and its original blue when logged in, on both the start screen and search toolbar.
+
 ## [0.12.0] - 2026-10-02
 
 ### Added
