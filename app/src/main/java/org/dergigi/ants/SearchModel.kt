@@ -41,6 +41,9 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     private val parentJobs = mutableMapOf<String, Job>()
     private val quoteJobs = mutableMapOf<String, Job>()
     private val quoteSlots = Semaphore(3)
+    private var mentionJob: Job? = null
+    private val pendingMentions = linkedSetOf<String>()
+    private val requestedMentions = mutableSetOf<String>()
     private var generation = 0
     private var loginAttempt: String? = null
     private var signingWaiter: CompletableDeferred<Nip01Event?>? = null
@@ -180,7 +183,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         if (urls.any { url -> runCatching { val uri = Uri.parse(url); uri.scheme != "wss" || uri.host.isNullOrBlank() || uri.userInfo != null || uri.fragment != null }.getOrDefault(true) }) return "Use secure wss:// relay URLs, one per line."
         persist("relays", urls); mutable.update { it.copy(relays = urls) }; return null
     }
-    fun stop() { generation++; signingWaiter?.cancel(); pendingSignature = null; signingWaiter = null; mutable.update { it.copy(eventSignRequest = null) }; searchJob?.cancel(); parentJobs.values.forEach { it.cancel() }; parentJobs.clear(); quoteJobs.values.forEach { it.cancel() }; quoteJobs.clear(); mutable.update { it.copy(loadingParents = emptySet(), failedQuotes = it.failedQuotes + it.loadingQuotes, loadingQuotes = emptySet()) }; mutable.update { it.copy(loading = false, commandBusy = false, loadingReactionTargets = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
+    fun stop() { generation++; mentionJob?.cancel(); mentionJob = null; pendingMentions.clear(); requestedMentions.clear(); signingWaiter?.cancel(); pendingSignature = null; signingWaiter = null; mutable.update { it.copy(eventSignRequest = null) }; searchJob?.cancel(); parentJobs.values.forEach { it.cancel() }; parentJobs.clear(); quoteJobs.values.forEach { it.cancel() }; quoteJobs.clear(); mutable.update { it.copy(loadingParents = emptySet(), failedQuotes = it.failedQuotes + it.loadingQuotes, loadingQuotes = emptySet()) }; mutable.update { it.copy(loading = false, commandBusy = false, loadingReactionTargets = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
     fun home() {
         stop()
         backStack.clear()
@@ -325,6 +328,32 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         refreshAccountProfile()
     }
 
+    internal fun loadMentionProfiles(keys: List<String>) {
+        val missing = keys.mapNotNull(Nip19::normalizePubkey)
+            .filter { it !in state.value.profiles && it !in requestedMentions }
+            .distinct().take((500 - requestedMentions.size).coerceAtLeast(0))
+        requestedMentions.addAll(missing)
+        pendingMentions.addAll(missing)
+        if (pendingMentions.isEmpty() || mentionJob?.isActive == true) return
+        val current = generation
+        mentionJob = viewModelScope.launch {
+            try {
+                delay(100) // Coalesce cards entering the viewport into one metadata request.
+                while (pendingMentions.isNotEmpty() && current == generation) {
+                    val authors = pendingMentions.take(30)
+                    pendingMentions.removeAll(authors.toSet())
+                    val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
+                    relay.search(listOf(SearchBranch(filter)), (listOf("wss://purplepag.es") + generalRelays).distinct(), 7000)
+                        .batched().flowOn(Dispatchers.IO).collect { updates ->
+                            if (current == generation) updateProfiles(updates.filterIsInstance<RelayUpdate.Event>().map { it.event })
+                        }
+                }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* Keep the clickable key fallback if metadata is unavailable. */ }
+            finally { if (current == generation) mentionJob = null }
+        }
+    }
+
     internal fun loadQuote(reference: QuoteReference) {
         val key = reference.key
         if (key in quoteJobs || key in state.value.quotes) return
@@ -419,7 +448,8 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         withContext(Dispatchers.Default) {
             val profiles = events.mapNotNull { event -> runCatching {
                 val json = JSONObject(event.content)
-                event.pubkey to Profile(json.optString("display_name").ifBlank { json.optString("name") }.ifBlank { event.pubkey.take(12) }, json.optString("about"), json.optString("picture").takeIf { it.startsWith("https://") }, event.createdAt)
+                val fields = profileFields(event)
+                event.pubkey to Profile(fields.display.ifBlank { fields.name }.ifBlank { event.pubkey.take(12) }, json.optString("about"), json.optString("picture").takeIf { it.startsWith("https://") }, event.createdAt)
             }.getOrNull() }
             mutable.update { state ->
                 if (state.pageId != pageId) state else {

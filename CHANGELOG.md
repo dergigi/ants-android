@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Resolve visible npub/nprofile mentions immediately through batched metadata lookups, including highlight context and comments. Use displayName metadata as well as display_name and name, updating mentions to clickable profile names as metadata arrives.
+
 - Keep article Markdown parsing state stable during recomposition so scrolling no longer restarts parsing, collapses the article, and resets the scroll position. Save detail scroll positions after scrolling settles instead of updating the entire app on every scroll movement.
 
 ## [0.13.0] - 2026-10-02

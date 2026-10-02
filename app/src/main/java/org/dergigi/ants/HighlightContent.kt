@@ -89,6 +89,7 @@ private fun highlightSource(event: Nip01Event): HighlightSource? {
 
 @Composable
 internal fun HighlightContent(event: Nip01Event, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
+    ResolveMentionProfiles(event)
     val currentNavigate by rememberUpdatedState(onNavigate)
     val uriHandler = remember { object : UriHandler {
         override fun openUri(uri: String) {

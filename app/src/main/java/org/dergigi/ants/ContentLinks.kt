@@ -68,7 +68,7 @@ internal fun contentLinks(content: String, event: Nip01Event): List<SearchLink> 
 }
 
 internal fun linkedProfileKeys(event: Nip01Event): List<String> =
-    contentLinks(event.content + "\n" + event.tagValue("comment").orEmpty(), event)
+    contentLinks(event.content + "\n" + event.tagValue("comment").orEmpty() + "\n" + event.tagValue("context").orEmpty(), event)
         .mapNotNull { profileKey(it.query) }.distinct().take(100)
 
 private fun profileKey(query: String): String? =
