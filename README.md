@@ -10,6 +10,8 @@ Follow your curiosity. A native Android search and discovery app for Nostr, base
 - Hashtags, author and mention filters, NIP-05 resolution, kinds, date ranges, simple OR queries, and image/video filters.
 - Direct lookup of `npub`, `nprofile`, `note`, `nevent`, `naddr`, and event hex IDs.
 - Profile names and avatars, inline images without duplicate URLs, full event text, raw JSON, copying and sharing.
+- Tap images for a Boris-style gallery: swipe, pinch/double-tap zoom, previous/next, background switching, save one/all, share the image file, or copy/open its URL.
+- Reactions stay in ordinary results, with previews of the reacted-to posts and native navigation to their targets.
 - Tappable hashtags, Nostr mentions, quoted-note references, web links, and highlight sources that lead to native searches.
 - Back navigation restores results, scroll position, and event details within the current session; tap the ants logo to return home.
 - New searches stay at the top while results arrive. Scrolling pauses updates to the visible list; tap the new-results icon to reveal queued results.
@@ -19,11 +21,11 @@ Follow your curiosity. A native Android search and discovery app for Nostr, base
 
 Try `bitcoin`, `#asknostr`, `GM by:dergigi`, `p:fiatjaf`, `is:highlight`, `by:name@example.com`, `kind:30023 since:2026-01-01`, or `bitcoin OR lightning`.
 
-The initial release is read-only. It does not include login, posting, zaps, grouped boolean expressions, reverse image search, persistent offline result caching, or pagination. Navigation history is held in memory (up to 20 prior screens, further bounded by retained content size) and does not survive process termination. Up to 100 candidates are requested per query per relay, and results are capped at 500. Media filters operate on returned candidates. Search semantics and coverage depend on the relay. Dates use UTC, with `until:` including the specified day. Profile metadata can arrive after results.
+The initial release is read-only. It does not include login, posting, zaps, grouped boolean expressions, reverse image search, persistent offline result caching, or pagination. Navigation history is held in memory (up to 20 prior screens, further bounded by retained content size) and does not survive process termination. Up to 100 candidates are requested per query per relay, and results are capped at 500. Media filters operate on returned candidates. Search semantics and coverage depend on the relay. Dates use UTC, with `until:` including the specified day. Profile metadata and reaction previews can arrive after results. Up to 100 distinct reaction targets are fetched per search; any target can also be tapped for a direct lookup. Galleries include up to 100 images per event.
 
 ## Privacy
 
-Search queries go directly to configured relays. Author aliases / NIP-05 addresses are resolved over HTTPS. Direct lookups also use Damus, nos.lol, and Primal; profile metadata is fetched from purplepag.es and Damus. Images load from their hosts. Saved searches, history, and settings remain on the device; no analytics or account keys are collected. Clear recent searches from the home screen. Android backups are disabled.
+Search queries go directly to configured relays. Author aliases / NIP-05 addresses are resolved over HTTPS. Direct lookups also use Damus, nos.lol, and Primal; profile metadata is fetched from purplepag.es and Damus. Images load from their hosts. Saved searches, history, and settings remain on the device; no analytics or account keys are collected. Clear recent searches from the home screen. Saved images go to Pictures/ants on Android 10+ (Pictures on older versions, which request storage permission). Image sharing downloads a temporary file into app cache and grants the receiving app access to that file. Android backups are disabled.
 
 ## Build
 

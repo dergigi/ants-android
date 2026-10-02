@@ -7,14 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-02
+
 ### Added
 
 - Boris-style fullscreen image gallery with swiping, pinch/double-tap zoom, previous/next controls, background switching, save/share actions, download-all, URL copying, and loading retry.
-
 - Image downloads to Pictures and binary image sharing using temporary content URIs.
-
 - Reaction results show the reaction above a verified preview of its target, with native links to the post and author. Missing targets can be opened for a direct lookup.
-
 
 ## [0.2.0] - 2026-10-02
 
@@ -62,7 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/dergigi/ants-android/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/dergigi/ants-android/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/dergigi/ants-android/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/dergigi/ants-android/releases/tag/v0.1.0
