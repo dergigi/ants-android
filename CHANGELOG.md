@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Match web ants with charcoal cards, subtle borders, compact kind icons, author footers, and blue source links.
+- Prefer icon actions with accessibility labels and long-press tooltips for copying, opening, sharing, stopping searches, and inspecting events.
+
 - Render highlights as warm yellow marked passages with surrounding context, source links, and source-author attribution in results and details.
 
 ### Fixed

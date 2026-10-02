@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -64,10 +66,10 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val blue = Color(0xFF91B4FF)
-private val background = Color(0xFF0D1117)
-private val card = Color(0xFF161C25)
-private val muted = Color(0xFF99A7B9)
+private val blue = Color(0xFF60A5FA)
+private val background = Color(0xFF1A1A1A)
+private val card = Color(0xFF2D2D2D)
+private val muted = Color(0xFF9CA3AF)
 private val examples = listOf("bitcoin" to "Search the nostrverse", "#asknostr" to "Follow a hashtag", "is:highlight" to "Find passages worth keeping", "GM by:dergigi" to "Search someone's notes", "p:fiatjaf" to "Discover people", "nostr has:image" to "Find images")
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,7 +85,7 @@ fun AntsApp(model: SearchModel) {
         Scaffold(topBar = {
             TopAppBar(title = { Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(painterResource(R.drawable.ant), null, Modifier.size(36.dp))
-                Spacer(Modifier.width(9.dp)); Text("ants", fontWeight = FontWeight.Bold, fontSize = 27.sp, fontFamily = FontFamily.Monospace)
+                Spacer(Modifier.width(9.dp)); Text("ants", fontWeight = FontWeight.Bold, fontSize = 23.sp, fontFamily = FontFamily.Monospace)
             } }, actions = {
                 IconButton(onClick = { dialog = "saved" }) { Icon(Icons.Outlined.Bookmarks, "Saved searches") }
                 IconButton(onClick = { dialog = "help" }) { Icon(Icons.Outlined.HelpOutline, "Search help") }
@@ -99,13 +101,13 @@ fun AntsApp(model: SearchModel) {
                         if (state.query.isNotEmpty()) IconButton(onClick = { model.edit("") }) { Icon(Icons.Outlined.Close, "Clear query") }
                         IconButton(onClick = { search() }, enabled = state.query.isNotBlank()) { Icon(Icons.Outlined.ArrowForward, "Search", tint = blue) }
                     } },
-                    singleLine = true, shape = RoundedCornerShape(16.dp),
+                    singleLine = true, shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { search() }))
                 if (state.searched) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(if (state.loading) "Searching… ${state.events.size} results" else "${state.events.size} results · newest first", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
                         IconButton(onClick = { model.toggleSaved(state.submitted) }) { Icon(if (state.submitted in state.saved) Icons.Outlined.BookmarkAdded else Icons.Outlined.BookmarkAdd, "Save search", tint = blue) }
-                        if (state.loading) TextButton(onClick = model::stop) { Text("Stop") }
+                        if (state.loading) ActionIcon(Icons.Outlined.Stop, "Stop search", model::stop)
                         else IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
                     }
                     if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -118,7 +120,7 @@ fun AntsApp(model: SearchModel) {
                             Text("Advanced Nostr text search.\nFind notes, people, and rabbit holes.", color = muted, style = MaterialTheme.typography.bodyLarge)
                         } }
                         items(examples) { (query, label) ->
-                            Surface(onClick = { search(query) }, shape = RoundedCornerShape(16.dp), color = card) {
+                            Surface(onClick = { search(query) }, shape = RoundedCornerShape(8.dp), color = card) {
                                 Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) { Text(query, color = blue, fontFamily = FontFamily.Monospace); Spacer(Modifier.height(4.dp)); Text(label, color = muted, style = MaterialTheme.typography.bodySmall) }
                                     Icon(Icons.Outlined.NorthEast, null, tint = muted, modifier = Modifier.size(18.dp))
@@ -126,7 +128,7 @@ fun AntsApp(model: SearchModel) {
                             }
                         }
                         if (state.history.isNotEmpty()) {
-                            item { Row(verticalAlignment = Alignment.CenterVertically) { Text("RECENT SEARCHES", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelSmall); TextButton(onClick = model::clearHistory) { Text("Clear") } } }
+                            item { Row(verticalAlignment = Alignment.CenterVertically) { Text("RECENT SEARCHES", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelSmall); ActionIcon(Icons.Outlined.DeleteOutline, "Clear recent searches", model::clearHistory) } }
                             items(state.history) { q -> Text(q, Modifier.fillMaxWidth().clickable { search(q) }.padding(12.dp), color = blue) }
                         }
                         item { Text("No account needed. Stay curious.\nv${BuildConfig.VERSION_NAME}", Modifier.fillMaxWidth().padding(vertical = 16.dp), color = muted, style = MaterialTheme.typography.bodySmall) }
@@ -174,7 +176,7 @@ fun AntsApp(model: SearchModel) {
 
 @Composable
 private fun MessageCard(title: String, message: String) {
-    Surface(color = card, shape = RoundedCornerShape(16.dp)) { Column(Modifier.fillMaxWidth().padding(20.dp)) {
+    Surface(color = card, shape = RoundedCornerShape(8.dp)) { Column(Modifier.fillMaxWidth().padding(20.dp)) {
         Text(title, style = MaterialTheme.typography.titleMedium); Spacer(Modifier.height(8.dp)); Text(message, color = muted)
     } }
 }
@@ -184,31 +186,75 @@ private fun dateLabel(time: Long) = runCatching { DateTimeFormatter.ofPattern("M
 private fun displayContent(event: Nip01Event, profile: Profile?) = if (event.kind == 0) profile?.about ?: event.content else event.content
 private fun eventUrl(event: Nip01Event) = "https://ants.sh/e/${Nip19.noteEncode(event.id)}"
 
+private fun kindIcon(kind: Int): ImageVector = when (kind) {
+    9802 -> Icons.Outlined.BorderColor
+    30023 -> Icons.Outlined.Article
+    0 -> Icons.Outlined.PersonOutline
+    1337 -> Icons.Outlined.Code
+    20 -> Icons.Outlined.Image
+    21, 22 -> Icons.Outlined.Videocam
+    7 -> Icons.Outlined.FavoriteBorder
+    6 -> Icons.Outlined.Repeat
+    9735 -> Icons.Outlined.Bolt
+    else -> Icons.Outlined.ChatBubbleOutline
+}
+
+private fun relativeTime(timestamp: Long): String {
+    val seconds = (System.currentTimeMillis() / 1000 - timestamp).coerceAtLeast(0)
+    return when {
+        seconds < 60 -> "now"
+        seconds < 3600 -> "${seconds / 60}m"
+        seconds < 86400 -> "${seconds / 3600}h"
+        seconds < 604800 -> "${seconds / 86400}d"
+        else -> runCatching { DateTimeFormatter.ofPattern("MMM d").withZone(ZoneId.systemDefault()).format(Instant.ofEpochSecond(timestamp)) }.getOrDefault("")
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ActionIcon(icon: ImageVector, label: String, onClick: () -> Unit, selected: Boolean = false) {
+    TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(), tooltip = { PlainTooltip { Text(label) } }, state = rememberTooltipState()) {
+        IconButton(onClick = onClick) { Icon(icon, label, Modifier.size(19.dp), tint = if (selected) blue else muted) }
+    }
+}
+
 @Composable
 private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onOpen: () -> Unit, onAuthor: () -> Unit) {
-    Surface(onClick = onOpen, shape = RoundedCornerShape(18.dp), color = card) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Avatar(profile, event.pubkey, onAuthor)
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f).clickable(onClick = onAuthor)) {
-                    Text(profile?.name ?: Nip19.npubEncode(event.pubkey).let { it.take(13) + "…" + it.takeLast(5) }, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(dateLabel(event.createdAt), style = MaterialTheme.typography.labelSmall, color = muted)
-                }
-                Text(kindLabel(event.kind), color = blue, style = MaterialTheme.typography.labelSmall)
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    Surface(onClick = onOpen, shape = RoundedCornerShape(8.dp), color = card, border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
+        Column(Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth().background(Color(0xFF353535)).padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(kindIcon(event.kind), kindLabel(event.kind), Modifier.size(16.dp), tint = muted)
+                Spacer(Modifier.weight(1f))
+                Icon(Icons.Outlined.Dns, "Nostr event", Modifier.size(14.dp), tint = muted)
             }
-            event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
-            if (event.kind == 9802) HighlightContent(event, profiles, compact = true)
-            else Text(displayContent(event, profile).ifBlank { "Open event to inspect its tags." }, maxLines = 9, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
-            val image = event.tagValue("image")?.takeIf { it.startsWith("https://") } ?: imagePattern.find(event.content)?.value
-            if (image != null) AsyncImage(model = image, contentDescription = "Image attached to this event", modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.FillWidth)
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (event.kind != 9802) event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                if (event.kind == 9802) HighlightContent(event, profiles, compact = true)
+                else Text(displayContent(event, profile).ifBlank { "Open event to inspect its tags." }, maxLines = 9, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp))
+                val image = event.tagValue("image")?.takeIf { it.startsWith("https://") } ?: imagePattern.find(event.content)?.value
+                if (image != null) AsyncImage(model = image, contentDescription = "Image attached to this event", modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(6.dp)), contentScale = ContentScale.FillWidth)
+            }
+            HorizontalDivider(color = Color(0xFF3D3D3D))
+            Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f).clickable(onClick = onAuthor).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Avatar(profile, event.pubkey, onAuthor, size = 22)
+                    Spacer(Modifier.width(7.dp))
+                    Text(profile?.name ?: Nip19.npubEncode(event.pubkey).let { it.take(10) + "…" }, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Text(relativeTime(event.createdAt), color = muted, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
+                ActionIcon(Icons.Outlined.ContentCopy, "Copy event ID", { clipboard.setText(AnnotatedString("nostr:${Nip19.noteEncode(event.id)}")) })
+                ActionIcon(Icons.AutoMirrored.Outlined.OpenInNew, "Open in browser", { openUrl(context, "https://njump.me/${Nip19.noteEncode(event.id)}") })
+                ActionIcon(Icons.Outlined.MoreHoriz, "Event details and actions", onOpen)
+            }
         }
     }
 }
 
 @Composable
-private fun Avatar(profile: Profile?, pubkey: String, onClick: () -> Unit) {
-    Box(Modifier.size(38.dp).clip(CircleShape).background(blue.copy(alpha = 0.15f)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+private fun Avatar(profile: Profile?, pubkey: String, onClick: () -> Unit, size: Int = 38) {
+    Box(Modifier.size(size.dp).clip(CircleShape).background(blue.copy(alpha = 0.15f)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         Text((profile?.name ?: pubkey).take(1).uppercase(), color = blue, fontWeight = FontWeight.Bold)
         profile?.picture?.let { AsyncImage(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
     }
@@ -231,12 +277,11 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
             links.forEach { url -> TextButton(onClick = { openUrl(context, url) }) { Text(url, maxLines = 2, overflow = TextOverflow.Ellipsis) } }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            TextButton(onClick = { openUrl(context, "https://njump.me/${Nip19.noteEncode(event.id)}") }) { Icon(Icons.AutoMirrored.Outlined.OpenInNew, null, Modifier.size(16.dp)); Spacer(Modifier.width(5.dp)); Text("Open") }
-            TextButton(onClick = { context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, eventUrl(event)) }, "Share event")) }) { Text("Share") }
-            TextButton(onClick = { clipboard.setText(AnnotatedString("nostr:${Nip19.noteEncode(event.id)}")) }) { Text("Copy ID") }
+            ActionIcon(Icons.AutoMirrored.Outlined.OpenInNew, "Open in browser", { openUrl(context, "https://njump.me/${Nip19.noteEncode(event.id)}") })
+            ActionIcon(Icons.Outlined.Share, "Share event", { context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, eventUrl(event)) }, "Share event")) })
+            ActionIcon(Icons.Outlined.ContentCopy, if (raw) "Copy event JSON" else "Copy event ID", { clipboard.setText(AnnotatedString(if (raw) event.toJsonString() else "nostr:${Nip19.noteEncode(event.id)}")) })
+            ActionIcon(Icons.Outlined.DataObject, if (raw) "Show rendered event" else "Show raw event JSON", { raw = !raw }, selected = raw)
         }
-        Row(verticalAlignment = Alignment.CenterVertically) { Text("Raw event JSON", Modifier.weight(1f), color = muted); Switch(checked = raw, onCheckedChange = { raw = it }) }
-        if (raw) TextButton(onClick = { clipboard.setText(AnnotatedString(event.toJsonString())) }) { Text("Copy JSON") }
     }
 }
 
