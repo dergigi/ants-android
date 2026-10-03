@@ -19,8 +19,11 @@ sealed interface RelayUpdate {
 
 class RelaySearch {
     val http = OkHttpClient.Builder().connectTimeout(7, TimeUnit.SECONDS).readTimeout(10, TimeUnit.SECONDS).callTimeout(12, TimeUnit.SECONDS).build()
-    fun search(branches: List<SearchBranch>, relays: List<String>, duration: Long = 14000) = callbackFlow {
-        val pending = ConcurrentHashMap.newKeySet<String>().apply { addAll(relays) }
+    fun search(branches: List<SearchBranch>, relays: List<String>, duration: Long = 14000) =
+        searchRoutes(relays.distinct().associateWith { branches }, duration)
+
+    fun searchRoutes(routes: Map<String, List<SearchBranch>>, duration: Long = 14000) = callbackFlow {
+        val pending = ConcurrentHashMap.newKeySet<String>().apply { addAll(routes.keys) }
         val seen = ConcurrentHashMap.newKeySet<String>()
         val sockets = mutableListOf<WebSocket>()
         fun finish(url: String, status: String) {
@@ -28,7 +31,7 @@ class RelaySearch {
             pending.remove(url)
             if (pending.isEmpty()) close()
         }
-        relays.forEach { url ->
+        routes.forEach { (url, branches) ->
             trySend(RelayUpdate.Status(url, "Connecting"))
             sockets += http.newWebSocket(Request.Builder().url(url).build(), object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
@@ -58,7 +61,7 @@ class RelaySearch {
             })
         }
         val timeout = launch { delay(duration); pending.toList().forEach { finish(it, "Timed out") }; close() }
-        if (relays.isEmpty()) close()
+        if (routes.isEmpty()) close()
         awaitClose { timeout.cancel(); sockets.forEach { it.cancel() } }
     }
 }

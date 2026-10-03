@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add cached NIP-65 relay discovery and per-relay query routing: authors use advertised write relays, mentions use read relays, and NIP-50 branches stay on search relays. Retain fallback coverage, signed-event verification, bounded connections, and cancellation.
+
 ## [0.22.0] - 2026-10-03
 
 ### Added
