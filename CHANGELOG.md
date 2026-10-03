@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Render public mute lists, pinned notes, bookmarks, and follow packs with clickable entries, resolved profile avatars, cover images, and paged member lists. Keep encrypted entries private and enable their search shortcuts.
+
 ## [0.20.1] - 2026-10-03
 
 ### Changed
