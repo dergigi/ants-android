@@ -244,27 +244,34 @@ fun AntsApp(model: SearchModel) {
                     } },
                     singleLine = true, shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { search() }))
-                if (!suggestingCommands && state.translation.isNotBlank() && state.query.trim() == state.submitted) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.Top) {
-                        Text("=", color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
-                        Spacer(Modifier.width(8.dp))
-                        SelectionContainer(Modifier.weight(1f)) {
-                            Text(state.translation, color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp)
-                        }
-                        if (state.loading) {
+                val showTranslation = !suggestingCommands && state.translation.isNotBlank() && state.query.trim() == state.submitted
+                if (showTranslation || state.loading) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (showTranslation) {
+                            Text("=", color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
                             Spacer(Modifier.width(8.dp))
-                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = muted)
+                            SelectionContainer(Modifier.weight(1f)) {
+                                Text(state.translation, color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp)
+                            }
+                        } else Spacer(Modifier.weight(1f))
+                        if (state.loading) {
+                            IconButton(onClick = model::stop) {
+                                Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(Modifier.fillMaxSize(), strokeWidth = 2.dp, color = muted)
+                                    Icon(Icons.Outlined.Stop, "Stop search", Modifier.size(12.dp), tint = muted)
+                                }
+                            }
                         }
                     }
                 }
-                if (!suggestingCommands && state.searched && (state.command == null || state.command == "tutorial")) {
+                if (!suggestingCommands && state.searched && (state.command == null || state.command == "tutorial") &&
+                    (!state.loading || state.events.isNotEmpty() || state.pendingEvents.isNotEmpty())) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(if (state.loading && state.events.isEmpty()) "" else "${state.events.size} results · ${if (state.rankedProfiles) "best matches" else "newest first"}", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
+                        Text("${state.events.size} results · ${if (state.rankedProfiles) "best matches" else "newest first"}", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
                         if (state.pendingEvents.isNotEmpty()) {
                             ActionIcon(Icons.Outlined.VerticalAlignTop, "${state.pendingEvents.size} new results · jump to newest", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
                         }
-                        if (state.loading) ActionIcon(Icons.Outlined.Stop, "Stop search", model::stop)
-                        else IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
+                        if (!state.loading) IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
                     }
                 }
                 if (!centeredHome) {

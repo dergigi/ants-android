@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Combine the loading spinner and stop button into one control beside the query translation, removing the empty results row while awaiting results. Keep stop available while editing a running query.
+
 - Open profile-card pictures and banners in the image gallery, starting at the tapped image and allowing swiping between both, zooming, and downloading.
 
 ## [0.17.0] - 2026-10-03
