@@ -38,6 +38,10 @@ internal fun publicListEntries(event: Nip01Event): List<ListEntry> = event.tags.
 /** A reference is navigation, never raw JSON or an automatically expanded list. */
 @Composable
 internal fun EventReferenceRow(entry: ListEntry, profiles: Map<String, Profile>, onNavigate: (String) -> Unit) {
+    val destination = remember(entry.query) {
+        val kind = runCatching { Nip19.naddrDecode(entry.query).kind }.getOrNull()
+        if (kind != null && kind !in renderedKinds) "https://njump.to/${entry.query}" else entry.query
+    }
     val pubkey = if (entry.type == "p") Nip19.normalizePubkey(entry.value) else null
     val name = pubkey?.let { profiles[it]?.name }
     val label = name ?: when (entry.type) {
@@ -46,9 +50,9 @@ internal fun EventReferenceRow(entry: ListEntry, profiles: Map<String, Profile>,
         "word" -> entry.value
         else -> entry.query.let { if (it.length > 34) it.take(18) + "…" + it.takeLast(8) else it }
     }
-    Row(Modifier.fillMaxWidth().clickable { onNavigate(entry.query) }.heightIn(min = 48.dp),
+    Row(Modifier.fillMaxWidth().clickable { onNavigate(destination) }.heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (pubkey != null) Avatar(profiles[pubkey], pubkey, { onNavigate(entry.query) }, size = 28)
+        if (pubkey != null) Avatar(profiles[pubkey], pubkey, { onNavigate(destination) }, size = 28)
         else Icon(when (entry.type) { "t" -> Icons.Outlined.Tag; "word" -> Icons.Outlined.TextFields; else -> Icons.Outlined.Article }, null, Modifier.size(20.dp))
         Text(label, Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.primary)
         Icon(Icons.Outlined.ChevronRight, "Open", Modifier.size(18.dp))

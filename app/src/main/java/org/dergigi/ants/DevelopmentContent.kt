@@ -49,13 +49,16 @@ internal fun DevelopmentContent(event: Nip01Event, compact: Boolean, onNavigate:
 
 @Composable
 internal fun ReportContent(event: Nip01Event, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
-    val targets = remember(event.id) { event.tags.mapNotNull { tag ->
+    val preparedTargets by produceState<List<Pair<ListEntry, String?>>?>(null, event.id) {
+        value = withContext(Dispatchers.Default) { event.tags.mapNotNull { tag ->
         val type = tag.firstOrNull()
         if (type != "p" && type != "e") return@mapNotNull null
         val value = tag.getOrNull(1) ?: return@mapNotNull null
         val query = referenceQuery(type, value) ?: return@mapNotNull null
         ListEntry(type, value, query) to tag.getOrNull(2)?.takeIf { it in setOf("nudity", "malware", "profanity", "illegal", "spam", "impersonation", "other") }
     }.distinctBy { it.first.query } }
+    }
+    val targets = preparedTargets ?: return
     var limit by remember(event.id, compact) { mutableIntStateOf(if (compact) 3 else 20) }
     val open = LocalQuoteState.current.open
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

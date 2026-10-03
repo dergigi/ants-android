@@ -6,12 +6,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-internal fun taggedNoteReferences(event: Nip01Event): List<QuoteReference> = event.tags.mapNotNull { tag ->
+internal fun taggedNoteReferences(event: Nip01Event): List<QuoteReference> = event.tags.asSequence().mapNotNull { tag ->
     val type = tag.firstOrNull()
     if (type != "e" && type != "a") return@mapNotNull null
     val query = tag.getOrNull(1)?.let { referenceQuery(type, it) } ?: return@mapNotNull null
     quoteReference(query)?.let { it.copy(relays = listOfNotNull(tag.getOrNull(2))) }
-}.distinctBy { it.key }
+}.distinctBy { it.key }.take(8).toList()
 
 @Composable
 internal fun RepostContent(event: Nip01Event, onNavigate: (String) -> Unit) {

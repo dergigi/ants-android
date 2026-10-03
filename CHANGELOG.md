@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Prepare report targets off the main thread, bound embedded reference lookups, and open unsupported addressable targets such as Git repositories in the browser.
+
 - Require 48 dp of deliberate scroll movement before hiding or restoring the search controls. Small direction reversals and separate drags no longer make the header flicker.
 
 ### Added
