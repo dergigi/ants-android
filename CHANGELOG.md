@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Render reposts as embedded original notes, validating included note signatures and loading missing originals from relays with retry and bounded nesting.
+
 - Render public mute lists, pinned notes, bookmarks, and follow packs with clickable entries, resolved profile avatars, cover images, and paged member lists. Keep encrypted entries private and enable their search shortcuts.
 
 ## [0.20.1] - 2026-10-03

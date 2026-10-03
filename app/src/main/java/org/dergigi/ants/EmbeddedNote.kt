@@ -18,12 +18,12 @@ internal val LocalQuoteState = staticCompositionLocalOf<QuoteState> { error("Quo
 internal val LocalQuoteAncestors = staticCompositionLocalOf<Set<String>> { emptySet() }
 
 @Composable
-internal fun EmbeddedNote(reference: QuoteReference, ancestors: Set<String>, onNavigate: (String) -> Unit) {
+internal fun EmbeddedNote(reference: QuoteReference, ancestors: Set<String>, onNavigate: (String) -> Unit, initialEvent: Nip01Event? = null, label: String = "Quoted note") {
     val quotes = LocalQuoteState.current
     val state = quotes.state
-    val event = state.quotes[reference.key]
+    val event = state.quotes[reference.key] ?: initialEvent
     val failed = reference.key in state.failedQuotes
-    LaunchedEffect(state.pageId, reference.key) {
+    LaunchedEffect(state.pageId, reference.key, event?.id) {
         if (event == null && !failed && reference.key !in ancestors) quotes.load(reference)
     }
     Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -31,7 +31,7 @@ internal fun EmbeddedNote(reference: QuoteReference, ancestors: Set<String>, onN
         onClick = { if (event != null) quotes.open(event) else if (failed) quotes.load(reference) else onNavigate(reference.query) }) {
         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.FormatQuote, "Quoted note", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                Icon(if (label == "Reposted note") Icons.Outlined.Repeat else Icons.Outlined.FormatQuote, label, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                 if (event != null) {
                     val profile = state.profiles[event.pubkey]
                     Avatar(profile, event.pubkey, { onNavigate("p:${Nip19.npubEncode(event.pubkey)}") }, size = 22)
