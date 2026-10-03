@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Show the resolved query below the search field with a muted equals sign and monospace text, including numeric kinds, resolved public keys, dates, and OR branches. Reuse the executed query’s resolution and restore translations with navigation history.
+
 - Match the web profile indicators: verified NIP-05 identities in green, mismatches in red, missing identities in yellow, and root-domain double checks. Add domain-search, Lightning, and website shortcuts with long-press labels. Lightning bolts indicate sent zaps (yellow), sent nutzaps (purple), or both (green), using bounded background lookups cached in memory.
 
 ### Changed

@@ -18,7 +18,7 @@ data class SearchState(
     val command: String? = null, val commandMessage: String? = null, val commandBusy: Boolean = false,
     val pubkey: String? = null, val signerRequest: String? = null,
     val eventSignRequest: EventSignRequest? = null,
-    val query: String = "", val submitted: String = "", val searched: Boolean = false,
+    val query: String = "", val submitted: String = "", val translation: String = "", val searched: Boolean = false,
     val loading: Boolean = false, val rankedProfiles: Boolean = false, val error: String? = null,
     val loadingParents: Set<String> = emptySet(), val failedParents: Set<String> = emptySet(),
     val quotes: Map<String, Nip01Event> = emptyMap(), val loadingQuotes: Set<String> = emptySet(), val failedQuotes: Set<String> = emptySet(),
@@ -187,7 +187,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     fun home() {
         stop()
         backStack.clear()
-        mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", searched = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", translation = "", searched = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
     }
     fun search(query: String = state.value.query) {
         val raw = query.trim(); if (raw.isBlank()) return
@@ -197,7 +197,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         stop()
         if (input != state.value.submitted || state.value.detail != null) rememberPage()
         val current = ++generation
-        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, translation = if (command != null) input else "", searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
         searchJob = viewModelScope.launch {
             try {
                 if (command != null && command != "tutorial") {
@@ -205,7 +205,10 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     return@launch
                 }
                 val identity = state.value.pubkey
-                val branches = withContext(Dispatchers.IO) { SearchQuery(identity) { profileResolver.resolve(it, identity, state.value.relays) }.parse(if (command == "tutorial") tutorialPointer else input).mapNotNull { it.forRenderedResults() } }
+                val parsed = withContext(Dispatchers.IO) { SearchQuery(identity) { profileResolver.resolve(it, identity, state.value.relays) }.parse(if (command == "tutorial") tutorialPointer else input) }
+                if (current != generation) return@launch
+                mutable.update { it.copy(translation = if (command != null) input else parsed.joinToString("\nOR ") { branch -> branch.queryTranslation() }) }
+                val branches = parsed.mapNotNull { it.forRenderedResults() }
                 require(branches.isNotEmpty()) { "This event type has no native display yet. Use /kinds to browse supported content." }
                 if (current != generation) return@launch
                 val history = (listOf(input) + state.value.history.filter { it != input }).take(20)

@@ -244,6 +244,15 @@ fun AntsApp(model: SearchModel) {
                     } },
                     singleLine = true, shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { search() }))
+                if (!suggestingCommands && state.translation.isNotBlank() && state.query.trim() == state.submitted) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.Top) {
+                        Text("=", color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                        Spacer(Modifier.width(8.dp))
+                        SelectionContainer {
+                            Text(state.translation, color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp)
+                        }
+                    }
+                }
                 if (!suggestingCommands && state.searched && (state.command == null || state.command == "tutorial")) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(if (state.loading) "Searching… ${state.events.size} results" else "${state.events.size} results · ${if (state.rankedProfiles) "best matches" else "newest first"}", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
