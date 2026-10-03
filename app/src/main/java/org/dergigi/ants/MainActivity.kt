@@ -241,13 +241,9 @@ fun AntsApp(model: SearchModel) {
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { search() }))
                 val showTranslation = !suggestingCommands && state.translation.isNotBlank() && state.query.trim() == state.submitted
                 if (showTranslation || state.loading) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.Top) {
                         if (showTranslation) {
-                            Text("=", color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
-                            Spacer(Modifier.width(8.dp))
-                            SelectionContainer(Modifier.weight(1f)) {
-                                Text(state.translation, color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp)
-                            }
+                            QueryTranslationView(state.translation, state.pageId, Modifier.weight(1f))
                         } else Spacer(Modifier.weight(1f))
                         if (state.loading) {
                             IconButton(onClick = model::stop) {

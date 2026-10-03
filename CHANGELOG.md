@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Collapse long query translations to one line with an ellipsis and expand chevron. Tap to expand or collapse; expanded text remains selectable and scrollable, and each new search starts collapsed.
+
 ### Fixed
 
 - Request up to 500 candidates per relay for non-text queries such as author, kind, and hashtag filters, and prevent fast relay result bursts from being silently dropped by a full delivery channel.
