@@ -248,21 +248,24 @@ fun AntsApp(model: SearchModel) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.Top) {
                         Text("=", color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
                         Spacer(Modifier.width(8.dp))
-                        SelectionContainer {
+                        SelectionContainer(Modifier.weight(1f)) {
                             Text(state.translation, color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp)
+                        }
+                        if (state.loading) {
+                            Spacer(Modifier.width(8.dp))
+                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = muted)
                         }
                     }
                 }
                 if (!suggestingCommands && state.searched && (state.command == null || state.command == "tutorial")) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(if (state.loading) "Searching… ${state.events.size} results" else "${state.events.size} results · ${if (state.rankedProfiles) "best matches" else "newest first"}", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
+                        Text(if (state.loading && state.events.isEmpty()) "" else "${state.events.size} results · ${if (state.rankedProfiles) "best matches" else "newest first"}", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
                         if (state.pendingEvents.isNotEmpty()) {
                             ActionIcon(Icons.Outlined.VerticalAlignTop, "${state.pendingEvents.size} new results · jump to newest", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
                         }
                         if (state.loading) ActionIcon(Icons.Outlined.Stop, "Stop search", model::stop)
                         else IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
                     }
-                    if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 }
                 if (!centeredHome) {
                 Box(Modifier.weight(1f).pullToRefresh(

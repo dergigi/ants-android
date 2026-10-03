@@ -197,7 +197,9 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         stop()
         if (input != state.value.submitted || state.value.detail != null) rememberPage()
         val current = ++generation
-        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, translation = if (command != null) input else "", searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        val queryTime = java.time.Instant.now()
+        val preview = queryPreview(input, state.value.pubkey, queryTime)
+        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, translation = preview, searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
         searchJob = viewModelScope.launch {
             try {
                 if (command != null && command != "tutorial") {
@@ -205,7 +207,19 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     return@launch
                 }
                 val identity = state.value.pubkey
-                val parsed = withContext(Dispatchers.IO) { SearchQuery(identity) { profileResolver.resolve(it, identity, state.value.relays) }.parse(if (command == "tutorial") tutorialPointer else input) }
+                val resolved = mutableMapOf<String, String>()
+                val parsed = withContext(Dispatchers.IO) {
+                    SearchQuery(identity) { name ->
+                        profileResolver.resolve(name, identity, state.value.relays).also { key ->
+                            resolved[name] = key
+                            withContext(Dispatchers.Main.immediate) {
+                                if (current == generation && command == null) mutable.update {
+                                    it.copy(translation = queryPreview(input, identity, queryTime, resolved))
+                                }
+                            }
+                        }
+                    }.parse(if (command == "tutorial") tutorialPointer else input, queryTime)
+                }
                 if (current != generation) return@launch
                 mutable.update { it.copy(translation = if (command != null) input else parsed.joinToString("\nOR ") { branch -> branch.queryTranslation() }) }
                 val branches = parsed.mapNotNull { it.forRenderedResults() }

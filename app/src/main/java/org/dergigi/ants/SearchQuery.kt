@@ -24,7 +24,7 @@ data class SearchBranch(val filter: JSONObject, val media: String? = null, val s
 }
 
 class SearchQuery(private val currentPubkey: String? = null, private val resolveProfile: suspend (String) -> String) {
-    suspend fun parse(input: String): List<SearchBranch> {
+    suspend fun parse(input: String, now: Instant = Instant.now()): List<SearchBranch> {
         val query = input.trim().removePrefix("nostr:")
         require(query.isNotBlank()) { "Enter a search first." }
         require(query.length <= 2000) { "Please keep searches under 2,000 characters." }
@@ -34,7 +34,6 @@ class SearchQuery(private val currentPubkey: String? = null, private val resolve
         require(!query.contains('(') && !query.contains(')')) { "Grouped searches aren't supported yet. Use separate searches joined with OR." }
         val parts = splitOr(query)
         require(parts.size <= 8) { "Use at most eight OR branches." }
-        val now = Instant.now()
         return parts.map { branch(it, now) }
     }
 
