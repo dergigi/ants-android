@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-10-03
+
 ### Fixed
 
 - Prepare report targets off the main thread, bound embedded reference lookups, and open unsupported addressable targets such as Git repositories in the browser.
@@ -335,7 +337,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.20.1...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/dergigi/ants-android/compare/v0.20.1...v0.21.0
 [0.20.1]: https://github.com/dergigi/ants-android/compare/v0.20.0...v0.20.1
 [0.20.0]: https://github.com/dergigi/ants-android/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/dergigi/ants-android/compare/v0.18.0...v0.19.0
