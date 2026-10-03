@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Limit decoded feed images to 1536 px per dimension, use a small shared image cache and two concurrent decoders, and clear cached images on memory pressure. Gallery images use a separate 2048 px request without retaining full-size gallery bitmaps in the feed cache; downloads keep original files.
+
 - Bound relay result queues, retained search payloads, thread/quote context, back navigation, and profile caches by estimated bytes as well as counts. Reduce buffered relay events and cap cached profile text to limit heap growth during large searches.
 
 ## [0.23.1] - 2026-10-03

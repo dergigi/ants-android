@@ -39,6 +39,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.CachePolicy
+import coil3.request.maxBitmapSize
+import coil3.size.Size
 import kotlinx.coroutines.*
 import kotlin.math.abs
 
@@ -141,6 +145,11 @@ private fun ImageGallery(urls: List<String>, initialIndex: Int, onPage: (Int) ->
 
 @Composable
 private fun ZoomableGalleryImage(url: String, isCurrent: Boolean, onZoomed: (Boolean) -> Unit) {
+    val context = LocalContext.current
+    val request = remember(context, url) {
+        ImageRequest.Builder(context).data(url).size(2048, 2048).maxBitmapSize(Size(2048, 2048))
+            .memoryCachePolicy(CachePolicy.DISABLED).build()
+    }
     var scale by remember(url) { mutableFloatStateOf(1f) }
     var offset by remember(url) { mutableStateOf(Offset.Zero) }
     var lastTap by remember(url) { mutableLongStateOf(0L) }
@@ -158,7 +167,7 @@ private fun ZoomableGalleryImage(url: String, isCurrent: Boolean, onZoomed: (Boo
         if (failed) {
             IconButton(onClick = { failed = false; loaded = false; retry++ }) { Icon(Icons.Outlined.Refresh, "Image failed to load. Retry.") }
         } else key(url, retry) {
-            AsyncImage(model = url, contentDescription = "Gallery image; pinch or double-tap to zoom", contentScale = ContentScale.Fit,
+            AsyncImage(model = request, contentDescription = "Gallery image; pinch or double-tap to zoom", contentScale = ContentScale.Fit,
                 onSuccess = { loaded = true }, onError = { failed = true },
                 modifier = Modifier.fillMaxSize().semantics {
                     customActions = listOf(CustomAccessibilityAction("Zoom in") { applyScale(2.5f); true }, CustomAccessibilityAction("Reset zoom") { applyScale(1f); true })
