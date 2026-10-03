@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.23.1] - 2026-10-03
+
 ### Fixed
 
 - Prioritize relevant name matches for fallback profile verification and activity checks instead of metadata recency. Treat unavailable NIP-05 lookups as unknown rather than identity mismatches.
@@ -361,7 +363,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.23.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.23.1...HEAD
+[0.23.1]: https://github.com/dergigi/ants-android/compare/v0.23.0...v0.23.1
 [0.23.0]: https://github.com/dergigi/ants-android/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/dergigi/ants-android/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/dergigi/ants-android/compare/v0.20.1...v0.21.0
