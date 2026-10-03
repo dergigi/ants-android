@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-03
+
 ### Changed
 
 - Show query translations immediately on submission, expanding local aliases and dates before network lookups and updating names as they resolve. Show a small spinner beside the translation while searching instead of “Searching…” text and a full-width progress bar.
@@ -283,7 +285,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/dergigi/ants-android/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/dergigi/ants-android/compare/v0.15.1...v0.16.0
 [0.15.1]: https://github.com/dergigi/ants-android/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/dergigi/ants-android/compare/v0.14.1...v0.15.0
