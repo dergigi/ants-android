@@ -45,6 +45,8 @@ internal class ProfileResolver(
             }
         })
     }
+    suspend fun verifyNip05(value: String, pubkey: String): Boolean? = nip05(value)?.let { it == pubkey }
+
     private suspend fun nip05(value: String): String? {
         val address = normalizedNip05(value)
         verified[address]?.takeIf { System.currentTimeMillis() - it.first < 300_000 }?.let { return it.second }

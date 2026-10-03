@@ -272,14 +272,14 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             "help", "examples", "kinds", "history" -> Unit
             "login" -> requestLogin()
             "logout" -> {
-                profileResolver.clear()
+                profileResolver.clear(); ProfileIndicatorLookup.clear()
                 loginAttempt = null
                 accountProfileJob?.cancel()
                 preferences.edit().remove("pubkey").remove("signerPackage").apply()
                 mutable.update { it.copy(pubkey = null, signerRequest = null, commandMessage = "Logged out.") }
             }
             "clear" -> {
-                profileResolver.clear()
+                profileResolver.clear(); ProfileIndicatorLookup.clear()
                 backStack.clear()
                 mutable.update { it.copy(backDepth = 0, profiles = emptyMap(), commandBusy = true, commandMessage = "Clearing cache…") }
                 try {
@@ -322,7 +322,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             mutable.update { it.copy(signerRequest = null, commandBusy = false, commandMessage = error ?: "The signer returned an invalid account. Please try again.") }
             return
         }
-        profileResolver.clear()
+        profileResolver.clear(); ProfileIndicatorLookup.clear()
         preferences.edit().putString("pubkey", key).putString("signerPackage", validPackage).apply()
         mutable.update { it.copy(pubkey = key, signerRequest = null, commandBusy = false, commandMessage = "Connected.") }
         refreshAccountProfile()
