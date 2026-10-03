@@ -101,18 +101,20 @@ internal class ProfileResolver(
             listOf("request_id", java.util.UUID.randomUUID().toString()),
         ), "", "")
         val signed = sign(unsigned) ?: return null
-        return withTimeoutOrNull(10_000) { optional {
+        // Only the Vertex request uses this deadline. Outbox discovery and
+        // metadata hydration have their own budgets and must not discard rank.
+        val keys = withTimeoutOrNull(10_000) { optional {
             val response = request(Request.Builder().url("https://relay.vertexlab.io/api/v1/dvms")
                 .post(signed.toJsonString().toRequestBody("application/json".toMediaType())).build())
             val event = checkNotNull(Nip01Event.parse(JSONObject(response)))
             check(event.kind == 6315 && event.verify() && event.tags.any { it.size > 1 && it[0] == "e" && it[1] == signed.id })
             check(event.tags.filter { it.firstOrNull() == "p" }.all { it.getOrNull(1) == identity })
             val results = JSONArray(event.content)
-            val keys = (0 until results.length()).mapNotNull { Nip19.normalizePubkey(results.getJSONObject(it).optString("pubkey")) }.distinct().take(10)
-            if (keys.isEmpty()) return@optional null
-            val found = profiles(keys).associateBy { it.pubkey }
-            keys.mapNotNull(found::get).takeIf { it.isNotEmpty() }
-        } }
+            (0 until results.length()).mapNotNull { Nip19.normalizePubkey(results.getJSONObject(it).optString("pubkey")) }.distinct().take(10)
+        } } ?: return null
+        if (keys.isEmpty()) return null
+        val found = profiles(keys).associateBy { it.pubkey }
+        return keys.mapNotNull(found::get).takeIf { it.isNotEmpty() }
     }
     suspend fun search(query: String, identity: String?, urls: List<String>): List<Nip01Event> {
         val term = query.trim()
