@@ -4,6 +4,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import okhttp3.*
@@ -28,11 +30,15 @@ class RelaySearch {
         val seen = ConcurrentHashMap.newKeySet<String>()
         val sockets = mutableListOf<WebSocket>()
         val admission = Any()
+        val completion = Any()
         var retainedBytes = 0L
         fun finish(url: String, status: String) {
-            trySend(RelayUpdate.Status(url, status))
-            pending.remove(url)
-            if (pending.isEmpty()) close()
+            synchronized(completion) {
+                if (!pending.remove(url)) return
+                // Preserve terminal statuses even when the bounded queue is full.
+                trySendBlocking(RelayUpdate.Status(url, status))
+                if (pending.isEmpty()) close()
+            }
         }
         routes.forEach { (url, branches) ->
             trySend(RelayUpdate.Status(url, "Connecting"))
@@ -44,7 +50,7 @@ class RelaySearch {
                     webSocket.send(req.toString())
                 }
                 override fun onMessage(webSocket: WebSocket, text: String) {
-                    if (text.length > 1_000_000) return
+                    if (url !in pending || text.length > 1_000_000) return
                     runCatching {
                         val message = JSONArray(text)
                         when (message.optString(0)) {
@@ -79,5 +85,5 @@ class RelaySearch {
         val timeout = launch { delay(duration); pending.toList().forEach { finish(it, "Timed out") }; close() }
         if (routes.isEmpty()) close()
         awaitClose { timeout.cancel(); sockets.forEach { it.cancel() } }
-    }.buffer(8)
+    }.buffer(8).flowOn(Dispatchers.IO)
 }
