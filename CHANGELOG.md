@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Replace result-order text with a clock/sort icon toggle for newest or oldest first. Sort the loaded results immediately, keep single-profile cards first, preserve order through refresh and back navigation, and default new searches to newest first.
+
 - Make result-card kind icons search their corresponding `is:` keyword (or numeric kind for comments), with accessible touch targets and query tooltips. Reply/reaction header icons search by kind while the rest of the header still loads the parent.
 
 - Show an author’s feed beneath their profile card when a completed profile search has exactly one match. Keep the latest profile card first, load up to 500 events across supported kinds, and retain stop, refresh, and back-navigation behavior.

@@ -20,7 +20,7 @@ data class SearchState(
     val eventSignRequest: EventSignRequest? = null,
     val query: String = "", val submitted: String = "", val translation: String = "", val searched: Boolean = false,
     val loading: Boolean = false, val rankedProfiles: Boolean = false, val error: String? = null,
-    val profileFeedAuthor: String? = null,
+    val profileFeedAuthor: String? = null, val newestFirst: Boolean = true,
     val loadingParents: Set<String> = emptySet(), val failedParents: Set<String> = emptySet(),
     val quotes: Map<String, Nip01Event> = emptyMap(), val loadingQuotes: Set<String> = emptySet(), val failedQuotes: Set<String> = emptySet(),
     val reactionTargets: Map<String, Nip01Event> = emptyMap(), val loadingReactionTargets: Boolean = false,
@@ -135,6 +135,11 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     fun followNewest() { mutable.update {
         it.copy(followingNewest = true, newerResultIds = emptySet(), scrollIndex = 0, scrollOffset = 0)
     } }
+    fun toggleSort() { mutable.update {
+        val newestFirst = !it.newestFirst
+        it.copy(newestFirst = newestFirst, events = orderedResults(it.events, newestFirst, it.profileFeedAuthor),
+            followingNewest = true, newerResultIds = emptySet(), scrollIndex = 0, scrollOffset = 0)
+    } }
     fun openDetail(event: Nip01Event) { mutable.update { it.copy(detail = event, detailScroll = 0, detailRaw = false) } }
     fun dismissDetail() { mutable.update { it.copy(detail = null, detailScroll = 0, detailRaw = false) } }
     fun rememberDetailScroll(pageId: Long, eventId: String, scroll: Int) {
@@ -188,19 +193,20 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     fun home() {
         stop()
         backStack.clear()
-        mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", translation = "", searched = false, error = null, profileFeedAuthor = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, newerResultIds = emptySet(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", translation = "", searched = false, error = null, profileFeedAuthor = null, newestFirst = true, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, newerResultIds = emptySet(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
     }
     fun search(query: String = state.value.query) {
         val raw = query.trim(); if (raw.isBlank()) return
         if (containsSecret(raw)) { rejectSecret(); return }
         val input = if (raw.startsWith('/')) "/" + raw.drop(1).trim().lowercase() else raw
+        val newestFirst = if (input == state.value.submitted) state.value.newestFirst else true
         val command = if (input.startsWith('/')) input.drop(1) else null
         stop()
         if (input != state.value.submitted || state.value.detail != null) rememberPage()
         val current = ++generation
         val queryTime = java.time.Instant.now()
         val preview = queryPreview(input, state.value.pubkey, queryTime)
-        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, translation = preview, searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, profileFeedAuthor = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, newerResultIds = emptySet(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, translation = preview, searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, profileFeedAuthor = null, newestFirst = newestFirst, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, newerResultIds = emptySet(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
         searchJob = viewModelScope.launch {
             try {
                 if (command != null && command != "tutorial") {
@@ -314,7 +320,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     }
                     val retained = merged.map { it.id }.toHashSet()
                     // Stable keys preserve reading position as new items arrive.
-                    previous.copy(events = merged, newerResultIds = if (previous.followingNewest) emptySet()
+                    previous.copy(events = if (profileOnly) merged else orderedResults(merged, previous.newestFirst, previous.profileFeedAuthor), newerResultIds = if (previous.followingNewest) emptySet()
                         else (previous.newerResultIds + events.map { it.id }.filterNot(shown::contains)).intersect(retained),
                         statuses = previous.statuses + statuses)
                 }

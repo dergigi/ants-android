@@ -301,11 +301,15 @@ fun AntsApp(model: SearchModel) {
                     (!state.loading || state.events.isNotEmpty() || state.newerResultIds.isNotEmpty())) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         val feedCount = state.events.count { it.kind != 0 }
-                        val resultSummary = if (state.profileFeedAuthor != null) "$feedCount events · newest first"
-                            else "${state.events.size} results · ${if (state.rankedProfiles) "best matches" else "newest first"}"
+                        val resultSummary = if (state.profileFeedAuthor != null) "$feedCount events"
+                            else "${state.events.size} results"
                         Text(resultSummary, Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
+                        if (state.events.any { it.kind != 0 }) ResultSortButton(state.newestFirst) {
+                            model.toggleSort()
+                            listState.requestScrollToItem(0)
+                        }
                         if (state.newerResultIds.isNotEmpty()) {
-                            ActionIcon(Icons.Outlined.VerticalAlignTop, "${state.newerResultIds.size} new results · jump to newest", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
+                            ActionIcon(Icons.Outlined.VerticalAlignTop, "${state.newerResultIds.size} new results · jump to top", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
                         }
                         if (!state.loading && !showTranslation) IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
                     }
