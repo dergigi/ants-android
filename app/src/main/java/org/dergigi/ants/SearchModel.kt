@@ -25,7 +25,7 @@ data class SearchState(
     val reactionTargets: Map<String, Nip01Event> = emptyMap(), val loadingReactionTargets: Boolean = false,
     val pageId: Long = 0, val backDepth: Int = 0,
     val scrollIndex: Int = 0, val scrollOffset: Int = 0,
-    val followingNewest: Boolean = true, val pendingEvents: List<Nip01Event> = emptyList(),
+    val followingNewest: Boolean = true, val newerResultIds: Set<String> = emptySet(),
     val detail: Nip01Event? = null, val detailScroll: Int = 0, val detailRaw: Boolean = false,
     val events: List<Nip01Event> = emptyList(), val profiles: Map<String, Profile> = emptyMap(),
     val statuses: Map<String, String> = emptyMap(), val history: List<String> = emptyList(),
@@ -132,7 +132,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         mutable.update { if (it.pageId == pageId && it.followingNewest) it.copy(followingNewest = false) else it }
     }
     fun followNewest() { mutable.update {
-        it.copy(followingNewest = true, events = (it.events + it.pendingEvents).distinctBy { e -> e.id }.sortedByDescending { e -> e.createdAt }.take(500), pendingEvents = emptyList(), scrollIndex = 0, scrollOffset = 0)
+        it.copy(followingNewest = true, newerResultIds = emptySet(), scrollIndex = 0, scrollOffset = 0)
     } }
     fun openDetail(event: Nip01Event) { mutable.update { it.copy(detail = event, detailScroll = 0, detailRaw = false) } }
     fun dismissDetail() { mutable.update { it.copy(detail = null, detailScroll = 0, detailRaw = false) } }
@@ -161,7 +161,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             profiles = emptyMap(), history = emptyList(), relays = emptyList(),
         ))
         // Bound retained results: history is a session convenience, not a disk cache.
-        fun retainedChars() = backStack.sumOf { page -> (page.events + page.pendingEvents + page.reactionTargets.values + page.quotes.values).sumOf { event ->
+        fun retainedChars() = backStack.sumOf { page -> (page.events + page.reactionTargets.values + page.quotes.values).sumOf { event ->
             event.content.length.toLong() + event.tags.sumOf { row -> row.sumOf { it.length.toLong() } }
         } }
         while (backStack.size > 20 || (backStack.size > 1 && retainedChars() > 8_000_000)) backStack.removeFirst()
@@ -187,7 +187,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     fun home() {
         stop()
         backStack.clear()
-        mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", translation = "", searched = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", translation = "", searched = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, newerResultIds = emptySet(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
     }
     fun search(query: String = state.value.query) {
         val raw = query.trim(); if (raw.isBlank()) return
@@ -199,7 +199,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         val current = ++generation
         val queryTime = java.time.Instant.now()
         val preview = queryPreview(input, state.value.pubkey, queryTime)
-        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, translation = preview, searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, pendingEvents = emptyList(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, translation = preview, searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, newerResultIds = emptySet(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
         searchJob = viewModelScope.launch {
             try {
                 if (command != null && command != "tutorial") {
@@ -245,19 +245,22 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     withContext(Dispatchers.Default) {
                         mutable.update {
                             if (it.pageId != pageId) it
-                            else if (it.followingNewest) it.copy(
-                                events = (it.events + events).distinctBy { e -> e.id }.sortedByDescending { e -> e.createdAt }.take(500),
-                                statuses = it.statuses + statuses,
-                            ) else {
+                            else {
                                 val shown = it.events.map { e -> e.id }.toHashSet()
-                                it.copy(pendingEvents = (it.pendingEvents + events.filter { e -> e.id !in shown }).distinctBy { e -> e.id }.take(500), statuses = it.statuses + statuses)
+                                val merged = (it.events + events).distinctBy { e -> e.id }.sortedByDescending { e -> e.createdAt }.take(500)
+                                val retained = merged.map { e -> e.id }.toHashSet()
+                                // Stable LazyColumn keys retain the reader's position. Never
+                                // hide historical query results merely because they scrolled.
+                                it.copy(events = merged, newerResultIds = if (it.followingNewest) emptySet()
+                                    else (it.newerResultIds + events.map { e -> e.id }.filterNot(shown::contains)).intersect(retained),
+                                    statuses = it.statuses + statuses)
                             }
                         }
                     }
                 }
                 if (current != generation) return@launch
                 mutable.update { it.copy(loading = false) }
-                val targetIds = (state.value.events + state.value.pendingEvents).mapNotNull(::reactionTargetId).distinct().take(100)
+                val targetIds = state.value.events.mapNotNull(::reactionTargetId).distinct().take(100)
                 if (targetIds.isNotEmpty()) {
                     mutable.update { it.copy(loadingReactionTargets = true) }
                     val filter = JSONObject().put("ids", JSONArray(targetIds)).put("limit", targetIds.size)
@@ -269,7 +272,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 }
                 val snapshot = state.value
                 val authors = withContext(Dispatchers.Default) {
-                    (snapshot.events + snapshot.pendingEvents + snapshot.reactionTargets.values).asSequence()
+                    (snapshot.events + snapshot.reactionTargets.values).asSequence()
                         .flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) + linkedProfileKeys(it) }
                         .distinct().filter { it !in snapshot.profiles }.take(200).toList()
                 }
@@ -384,7 +387,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 quoteSlots.withPermit {
                     val cached = withContext(Dispatchers.Default) {
                         val snapshot = state.value
-                        (snapshot.events + snapshot.pendingEvents + snapshot.reactionTargets.values + snapshot.quotes.values)
+                        (snapshot.events + snapshot.reactionTargets.values + snapshot.quotes.values)
                             .filter(reference::matches).maxByOrNull { it.createdAt }
                     }
                     var found = cached
@@ -423,7 +426,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
 
     fun loadParent(id: String) {
         if (!id.matches(Regex("[0-9a-f]{64}")) || id in parentJobs || id in state.value.reactionTargets) return
-        val cached = (state.value.events + state.value.pendingEvents).firstOrNull { it.id == id }
+        val cached = state.value.events.firstOrNull { it.id == id }
         if (cached != null) {
             mutable.update { it.copy(reactionTargets = it.reactionTargets + (id to cached)) }
             return

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep incoming results visible and included in the result count after scrolling, rather than hiding the rest of the search behind the jump-to-newest button. Preserve reading position with stable note keys and pause top anchoring only on a user drag, not keyboard-driven scrolling.
+
 ## [0.18.0] - 2026-10-03
 
 ### Changed

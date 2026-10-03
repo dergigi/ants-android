@@ -169,11 +169,6 @@ fun AntsApp(model: SearchModel) {
             if (interaction is DragInteraction.Start) model.pauseFollowing(pageId)
         }
     }
-    LaunchedEffect(listState) {
-        val pageId = state.pageId
-        snapshotFlow { listState.isScrollInProgress && (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0) }
-            .collectLatest { scrollingAway -> if (scrollingAway) model.pauseFollowing(pageId) }
-    }
     // requestScrollToItem overrides LazyColumn's key anchoring before the next
     // measure, so arriving results cannot silently push the top out of view.
     var pinnedHead by remember(state.pageId) { mutableStateOf<String?>(null) }
@@ -265,11 +260,11 @@ fun AntsApp(model: SearchModel) {
                     }
                 }
                 if (!suggestingCommands && state.searched && (state.command == null || state.command == "tutorial") &&
-                    (!state.loading || state.events.isNotEmpty() || state.pendingEvents.isNotEmpty())) {
+                    (!state.loading || state.events.isNotEmpty() || state.newerResultIds.isNotEmpty())) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("${state.events.size} results · ${if (state.rankedProfiles) "best matches" else "newest first"}", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
-                        if (state.pendingEvents.isNotEmpty()) {
-                            ActionIcon(Icons.Outlined.VerticalAlignTop, "${state.pendingEvents.size} new results · jump to newest", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
+                        if (state.newerResultIds.isNotEmpty()) {
+                            ActionIcon(Icons.Outlined.VerticalAlignTop, "${state.newerResultIds.size} new results · jump to newest", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
                         }
                         if (!state.loading) IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
                     }
