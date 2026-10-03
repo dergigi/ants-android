@@ -18,7 +18,7 @@ internal class ProfileLookupCache<T>(
     // Fixed stripes avoid retaining a mutex for every name ever searched.
     private val locks = Array(32) { Mutex() }
     private val epoch = AtomicInteger()
-    fun clear() { epoch.incrementAndGet(); entries.clear() }
+    fun clear() { synchronized(entries) { epoch.incrementAndGet(); entries.clear() } }
 
     suspend fun get(key: String, load: suspend () -> T): T = locks[(key.hashCode() and Int.MAX_VALUE) % locks.size].withLock {
         val now = SystemClock.elapsedRealtime()
@@ -27,6 +27,7 @@ internal class ProfileLookupCache<T>(
         val value = load() // Exceptions and cancellations are not cached.
         val size = weight(value)
         val ttl = lifetime(value)
+        synchronized(entries) {
         if (revision == epoch.get() && size <= maxWeight && ttl > 0) {
             entries.entries.removeIf { it.value.expires <= now }
             entries[key] = Entry(value, SystemClock.elapsedRealtime() + ttl, size)
@@ -34,6 +35,7 @@ internal class ProfileLookupCache<T>(
                 val oldest = entries.minByOrNull { it.value.expires }?.key ?: break
                 entries.remove(oldest)
             }
+        }
         }
         value
     }

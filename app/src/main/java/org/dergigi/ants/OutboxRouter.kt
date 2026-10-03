@@ -38,7 +38,7 @@ internal class OutboxRouter(private val relay: RelaySearch) {
     private val cache = ConcurrentHashMap<String, Entry>()
     private val discoveryLock = Mutex()
     private val revision = AtomicInteger()
-    fun clear() { revision.incrementAndGet(); cache.clear() }
+    fun clear() { synchronized(cache) { revision.incrementAndGet(); cache.clear() } }
 
     fun search(branches: List<SearchBranch>, searchRelays: List<String>, duration: Long = 14000) = flow {
         emitAll(relay.searchRoutes(routes(branches, searchRelays), duration))
@@ -65,6 +65,7 @@ internal class OutboxRouter(private val relay: RelaySearch) {
                 }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { /* A missing relay list never blocks fallback queries. */ }
+            synchronized(cache) {
             if (epoch == revision.get()) {
                 val now = SystemClock.elapsedRealtime()
                 missing.forEach { key ->
@@ -74,6 +75,7 @@ internal class OutboxRouter(private val relay: RelaySearch) {
                 }
                 while (cache.size > 256) cache.keys.firstOrNull()?.let(cache::remove) ?: break
             }
+        }
         }
         keys.mapNotNull { key -> cache[key]?.let { key to it.relays } }.toMap()
     }
