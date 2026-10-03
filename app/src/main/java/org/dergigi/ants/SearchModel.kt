@@ -20,6 +20,7 @@ data class SearchState(
     val eventSignRequest: EventSignRequest? = null,
     val query: String = "", val submitted: String = "", val translation: String = "", val searched: Boolean = false,
     val loading: Boolean = false, val rankedProfiles: Boolean = false, val error: String? = null,
+    val profileFeedAuthor: String? = null,
     val loadingParents: Set<String> = emptySet(), val failedParents: Set<String> = emptySet(),
     val quotes: Map<String, Nip01Event> = emptyMap(), val loadingQuotes: Set<String> = emptySet(), val failedQuotes: Set<String> = emptySet(),
     val reactionTargets: Map<String, Nip01Event> = emptyMap(), val loadingReactionTargets: Boolean = false,
@@ -187,7 +188,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     fun home() {
         stop()
         backStack.clear()
-        mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", translation = "", searched = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, newerResultIds = emptySet(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", translation = "", searched = false, error = null, profileFeedAuthor = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, newerResultIds = emptySet(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
     }
     fun search(query: String = state.value.query) {
         val raw = query.trim(); if (raw.isBlank()) return
@@ -199,7 +200,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         val current = ++generation
         val queryTime = java.time.Instant.now()
         val preview = queryPreview(input, state.value.pubkey, queryTime)
-        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, translation = preview, searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, newerResultIds = emptySet(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
+        mutable.update { it.copy(command = command, commandMessage = null, commandBusy = false, query = input, submitted = input, translation = preview, searched = true, loading = command == null || command == "tutorial", rankedProfiles = false, error = null, profileFeedAuthor = null, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, newerResultIds = emptySet(), backDepth = backStack.size, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
         searchJob = viewModelScope.launch {
             try {
                 if (command != null && command != "tutorial") {
@@ -230,33 +231,33 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 val urls = if (branches.any { it.filter.has("search") }) state.value.relays else (state.value.relays + generalRelays).distinct()
                 val profileBranches = branches.filter { it.filter.has("search") && it.filter.optJSONArray("kinds")?.let { kinds -> kinds.length() == 1 && kinds.optInt(0) == 0 } == true }
                 val ordinaryBranches = branches - profileBranches.toSet()
+                val profileOnly = branches.all { branch ->
+                    branch.filter.optJSONArray("kinds")?.let { it.length() == 1 && it.optInt(0) == 0 } == true
+                }
                 for (branch in profileBranches) {
                     val profiles = withContext(Dispatchers.IO) { profileResolver.search(branch.filter.getString("search"), identity, urls).filter(branch::accepts) }
                     if (current != generation) return@launch
                     updateProfiles(profiles)
-                    mutable.update { it.copy(events = (it.events + profiles).distinctBy { e -> e.pubkey }, rankedProfiles = ordinaryBranches.isEmpty()) }
+                    mutable.update { it.copy(events = latestProfileEvents(it.events + profiles), rankedProfiles = ordinaryBranches.isEmpty()) }
                 }
                 if (ordinaryBranches.isNotEmpty()) relay.search(ordinaryBranches, urls).batched().flowOn(Dispatchers.IO).collect { updates ->
                     if (current != generation) return@collect
-                    val pageId = state.value.pageId
-                    val events = updates.filterIsInstance<RelayUpdate.Event>().map { it.event }
-                    val statuses = updates.filterIsInstance<RelayUpdate.Status>().associate { it.relay to it.text }
-                    updateProfiles(events.filter { it.kind == 0 })
-                    withContext(Dispatchers.Default) {
-                        mutable.update {
-                            if (it.pageId != pageId) it
-                            else {
-                                val shown = it.events.map { e -> e.id }.toHashSet()
-                                val merged = (it.events + events).distinctBy { e -> e.id }.sortedByDescending { e -> e.createdAt }.take(500)
-                                val retained = merged.map { e -> e.id }.toHashSet()
-                                // Stable LazyColumn keys retain the reader's position. Never
-                                // hide historical query results merely because they scrolled.
-                                it.copy(events = merged, newerResultIds = if (it.followingNewest) emptySet()
-                                    else (it.newerResultIds + events.map { e -> e.id }.filterNot(shown::contains)).intersect(retained),
-                                    statuses = it.statuses + statuses)
-                            }
+                    receiveSearchUpdates(updates, current, profileOnly)
+                }
+                if (current != generation) return@launch
+                // Wait for the profile search to finish: a transient first match
+                // must not turn a multi-profile search into someone's feed.
+                val singleProfile = state.value.events.singleOrNull()?.takeIf { profileOnly && it.kind == 0 }
+                if (singleProfile != null) {
+                    mutable.update { it.copy(profileFeedAuthor = singleProfile.pubkey, rankedProfiles = false, statuses = emptyMap()) }
+                    val feed = SearchBranch(JSONObject()
+                        .put("authors", JSONArray().put(singleProfile.pubkey))
+                        .put("kinds", JSONArray(renderedKinds.filter { it != 0 }))
+                        .put("limit", 500), renderedOnly = true)
+                    relay.search(listOf(feed), (state.value.relays + generalRelays).distinct())
+                        .batched().flowOn(Dispatchers.IO).collect { updates ->
+                            receiveSearchUpdates(updates, current)
                         }
-                    }
                 }
                 if (current != generation) return@launch
                 mutable.update { it.copy(loading = false) }
@@ -287,6 +288,40 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             catch (e: Exception) { if (current == generation) mutable.update { it.copy(loading = false, loadingReactionTargets = false, error = e.message ?: "Search failed. Check your connection and try again.") } }
         }
     }
+    private fun latestProfileEvents(events: List<Nip01Event>): List<Nip01Event> =
+        events.groupBy { it.pubkey }.values.map { versions -> versions.maxWith(compareBy<Nip01Event> { it.createdAt }.thenBy { it.id }) }
+
+    private suspend fun receiveSearchUpdates(updates: List<RelayUpdate>, current: Int, profileOnly: Boolean = false) {
+        if (current != generation) return
+        val pageId = state.value.pageId
+        val events = updates.filterIsInstance<RelayUpdate.Event>().map { it.event }
+        val statuses = updates.filterIsInstance<RelayUpdate.Status>().associate { it.relay to it.text }
+        updateProfiles(events.filter { it.kind == 0 })
+        withContext(Dispatchers.Default) {
+            mutable.update { previous ->
+                if (previous.pageId != pageId || current != generation) previous
+                else {
+                    val shown = previous.events.map { it.id }.toHashSet()
+                    val candidates = (previous.events + events).distinctBy { it.id }
+                    val merged = when {
+                        previous.profileFeedAuthor != null -> {
+                            val profile = previous.events.firstOrNull { it.kind == 0 && it.pubkey == previous.profileFeedAuthor }
+                            listOfNotNull(profile) + candidates.filter { it.kind != 0 && it.pubkey == previous.profileFeedAuthor }
+                                .sortedByDescending { it.createdAt }.take(500)
+                        }
+                        profileOnly -> latestProfileEvents(candidates).sortedByDescending { it.createdAt }.take(500)
+                        else -> candidates.sortedByDescending { it.createdAt }.take(500)
+                    }
+                    val retained = merged.map { it.id }.toHashSet()
+                    // Stable keys preserve reading position as new items arrive.
+                    previous.copy(events = merged, newerResultIds = if (previous.followingNewest) emptySet()
+                        else (previous.newerResultIds + events.map { it.id }.filterNot(shown::contains)).intersect(retained),
+                        statuses = previous.statuses + statuses)
+                }
+            }
+        }
+    }
+
     private suspend fun runCommand(command: String, current: Int) {
         when (command) {
             "help", "examples", "kinds", "history" -> Unit

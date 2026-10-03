@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Show an author’s feed beneath their profile card when a completed profile search has exactly one match. Keep the latest profile card first, load up to 500 events across supported kinds, and retain stop, refresh, and back-navigation behavior.
+
 ## [0.21.0] - 2026-10-03
 
 ### Fixed
