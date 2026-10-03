@@ -37,9 +37,11 @@ internal fun QueryTranslationView(translation: String, pageId: Long, modifier: M
                 Text(translation, color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp)
             }
         } else {
-            Text(translation.replace('\n', ' '), Modifier.weight(1f).padding(vertical = 15.5.dp), color = muted, fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp, lineHeight = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                onTextLayout = { overflows = it.hasVisualOverflow })
+            Box(Modifier.weight(1f).height(48.dp), contentAlignment = Alignment.CenterStart) {
+                Text(translation.replace('\n', ' '), color = muted, fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp, lineHeight = 17.sp, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    onTextLayout = { overflows = it.hasVisualOverflow })
+            }
         }
         Spacer(Modifier.width(6.dp))
         // Reserve the affordance width so measuring overflow does not change the text width.

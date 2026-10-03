@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Align the translation chevron and stop/refresh controls to the same 48 dp row in collapsed and expanded states. Keep refresh in the stop button’s position when a search finishes.
+- Show up to two lines of collapsed query translations. Align the translation chevron and stop/refresh controls to the same 48 dp row in collapsed and expanded states, keeping refresh in the stop button’s position when a search finishes.
 
 ## [0.19.0] - 2026-10-03
 
