@@ -66,16 +66,16 @@ internal class OutboxRouter(private val relay: RelaySearch) {
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { /* A missing relay list never blocks fallback queries. */ }
             synchronized(cache) {
-            if (epoch == revision.get()) {
-                val now = SystemClock.elapsedRealtime()
-                missing.forEach { key ->
-                    val event = latest[key]
-                    cache[key] = Entry(event?.let(::advertisedRelays) ?: AdvertisedRelays(emptyList(), emptyList()),
-                        now + if (event == null) 60_000 else 600_000)
+                if (epoch == revision.get()) {
+                    val now = SystemClock.elapsedRealtime()
+                    missing.forEach { key ->
+                        val event = latest[key]
+                        cache[key] = Entry(event?.let(::advertisedRelays) ?: AdvertisedRelays(emptyList(), emptyList()),
+                            now + if (event == null) 60_000 else 600_000)
+                    }
+                    while (cache.size > 256) cache.keys.firstOrNull()?.let(cache::remove) ?: break
                 }
-                while (cache.size > 256) cache.keys.firstOrNull()?.let(cache::remove) ?: break
             }
-        }
         }
         keys.mapNotNull { key -> cache[key]?.let { key to it.relays } }.toMap()
     }

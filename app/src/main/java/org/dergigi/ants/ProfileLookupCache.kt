@@ -28,14 +28,14 @@ internal class ProfileLookupCache<T>(
         val size = weight(value)
         val ttl = lifetime(value)
         synchronized(entries) {
-        if (revision == epoch.get() && size <= maxWeight && ttl > 0) {
-            entries.entries.removeIf { it.value.expires <= now }
-            entries[key] = Entry(value, SystemClock.elapsedRealtime() + ttl, size)
-            while (entries.size > capacity || entries.values.sumOf { it.weight } > maxWeight) {
-                val oldest = entries.minByOrNull { it.value.expires }?.key ?: break
-                entries.remove(oldest)
+            if (revision == epoch.get() && size <= maxWeight && ttl > 0) {
+                entries.entries.removeIf { it.value.expires <= now }
+                entries[key] = Entry(value, SystemClock.elapsedRealtime() + ttl, size)
+                while (entries.size > capacity || entries.values.sumOf { it.weight } > maxWeight) {
+                    val oldest = entries.minByOrNull { it.value.expires }?.key ?: break
+                    entries.remove(oldest)
+                }
             }
-        }
         }
         value
     }
