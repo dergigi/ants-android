@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Use the same keyword-only search shortcut list in account and profile menus, matching the web app’s `is:` aliases and ordering. Scope searches to the selected profile or `@me`, use `mentions:` for mention searches and `/logout` for sign-out, and disable kinds without native renderers.
+
 ## [0.20.0] - 2026-10-03
 
 ### Changed

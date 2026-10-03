@@ -107,13 +107,7 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
                     ActionIcon(Icons.Outlined.MoreHoriz, "Profile searches and actions", { menuOpen = true })
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }, modifier = Modifier.heightIn(max = 420.dp)) {
                         fun navigate(query: String) { menuOpen = false; onNavigate(query) }
-                        DropdownMenuItem(text = { Text("Posts") },
-                            leadingIcon = { Icon(Icons.Outlined.Notes, null) }, onClick = { navigate("by:$npub") })
-                        DropdownMenuItem(text = { Text("Mentions") },
-                            leadingIcon = { Icon(Icons.Outlined.AlternateEmail, null) }, onClick = { navigate("mentions:$npub") })
-                        profileKindSearches.forEach { query ->
-                            DropdownMenuItem(text = { Text(query) }, onClick = { navigate("$query by:$npub") })
-                        }
+                        ProfileSearchMenu(npub, ::navigate)
                         HorizontalDivider()
                         if (domain.isNotBlank()) DropdownMenuItem(text = { Text("p:$domain") },
                             leadingIcon = { Icon(Icons.Outlined.Group, null, tint = identityColor) }, onClick = { navigate("p:$domain") })
@@ -137,12 +131,4 @@ private fun ProfileStatusIcon(icon: ImageVector, label: String, tint: Color, onC
         tooltip = { PlainTooltip { Text(label) } }, state = rememberTooltipState()) {
         IconButton(onClick = onClick) { Icon(icon, label, tint = tint) }
     }
-}
-
-// One shortcut per supported kind set; aliases such as note/tweet need no duplicate rows.
-private val profileKindSearches = buildList {
-    val supported = kindAliases.entries.filter { (_, kinds) -> kinds.all { it in renderedKinds } }.distinctBy { it.value.toSet() }
-    addAll(supported.map { "is:${it.key}" })
-    val covered = supported.flatMap { it.value }.toSet()
-    addAll((renderedKinds - covered).sorted().map { "kind:$it" })
 }
