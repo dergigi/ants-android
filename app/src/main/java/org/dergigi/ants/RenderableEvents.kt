@@ -6,7 +6,7 @@ import org.json.JSONTokener
 
 // Keep this list aligned with the native content renderers, not the protocol's
 // full kind catalog. Metadata lookups can still fetch profiles independently.
-internal val renderedKinds = setOf(0, 1, 6, 7, 20, 21, 22, 1063, 1111, 1337, 9802, 10000, 10001, 10003, 30023, 39089)
+internal val renderedKinds = setOf(0, 1, 6, 7, 20, 21, 22, 1063, 1111, 1337, 1617, 1621, 1984, 9802, 10000, 10001, 10003, 30023, 39089)
 
 internal fun Nip01Event.isRenderable(): Boolean {
     if (kind !in renderedKinds) return false
@@ -30,6 +30,7 @@ internal fun Nip01Event.isRenderable(): Boolean {
         if (payloadOnly) return false
     }
     return when (kind) {
+        1984 -> tags.any { it.firstOrNull() in setOf("p", "e") && it.getOrNull(1)?.let { v -> referenceQuery(it[0], v) } != null }
         7 -> reactionTargetId(this) != null
         20 -> eventImages(this, compact = true).isNotEmpty()
         21, 22 -> eventVideos(this).isNotEmpty()

@@ -376,7 +376,7 @@ private fun MessageCard(title: String, message: String) {
     } }
 }
 
-private fun kindLabel(kind: Int) = when (kind) { 0 -> "Profile"; 1 -> "Note"; 30023 -> "Article"; 9802 -> "Highlight"; 1337 -> "Code"; 20 -> "Picture"; 21, 22 -> "Video"; 7 -> "Reaction"; 6 -> "Repost"; 9735 -> "Zap"; 10000 -> "Mute list"; 10001 -> "Pinned notes"; 10003 -> "Bookmarks"; 39089 -> "Follow pack"; else -> "Kind $kind" }
+private fun kindLabel(kind: Int) = when (kind) { 0 -> "Profile"; 1 -> "Note"; 30023 -> "Article"; 9802 -> "Highlight"; 1337 -> "Code"; 20 -> "Picture"; 21, 22 -> "Video"; 7 -> "Reaction"; 6 -> "Repost"; 1617 -> "Patch"; 1621 -> "Issue"; 1984 -> "Report"; 9735 -> "Zap"; 10000 -> "Mute list"; 10001 -> "Pinned notes"; 10003 -> "Bookmarks"; 39089 -> "Follow pack"; else -> "Kind $kind" }
 private fun dateLabel(time: Long) = runCatching { DateTimeFormatter.ofPattern("MMM d, yyyy · HH:mm").withZone(ZoneId.systemDefault()).format(Instant.ofEpochSecond(time)) }.getOrDefault("")
 private fun displayContent(event: Nip01Event, profile: Profile?) = if (event.kind == 0) profile?.about ?: event.content else event.content
 private fun eventUrl(event: Nip01Event) = "https://ants.sh/e/${Nip19.noteEncode(event.id)}"
@@ -385,7 +385,9 @@ private fun kindIcon(kind: Int): ImageVector = when (kind) {
     9802 -> Icons.Outlined.BorderColor
     30023 -> Icons.Outlined.Article
     0 -> Icons.Outlined.PersonOutline
-    1337 -> Icons.Outlined.Code
+    1337, 1617 -> Icons.Outlined.Code
+    1621 -> Icons.Outlined.BugReport
+    1984 -> Icons.Outlined.Flag
     20 -> Icons.Outlined.Image
     21, 22 -> Icons.Outlined.Videocam
     7 -> Icons.Outlined.FavoriteBorder
@@ -436,7 +438,7 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
                 Icon(Icons.Outlined.Dns, "Nostr event", Modifier.size(14.dp), tint = muted)
             }
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (event.kind !in listOf(9802, 30023)) event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                if (event.kind !in listOf(9802, 30023, 1621, 1984)) event.tagValue("title")?.takeIf { it.isNotBlank() }?.let { Text(it, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis) }
                 if (event.kind == 7) ReactionContent(event)
                 else if (event.kind == 9802) HighlightContent(event, profiles, compact = true, onNavigate = onNavigate)
                 else EventContent(event, profile, profiles, compact = true, onNavigate = onNavigate)
@@ -493,7 +495,7 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
             }
         }
         if (!raw) ThreadContext(event, onNavigate)
-        if (raw || event.kind != 30023) event.tagValue("title")?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
+        if (raw || event.kind !in setOf(30023, 1621, 1984)) event.tagValue("title")?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
         CompositionLocalProvider(LocalArticleScroll provides scrollState) {
         SelectionContainer {
             when {

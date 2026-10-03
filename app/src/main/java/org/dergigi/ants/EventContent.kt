@@ -64,6 +64,8 @@ internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<St
     if (event.kind == 6) { RepostContent(event, onNavigate); return }
     if (event.kind in listKinds) { ListContent(event, profiles, compact, onNavigate); return }
     ResolveMentionProfiles(event)
+    if (event.kind in setOf(1617, 1621)) { DevelopmentContent(event, compact, onNavigate); return }
+    if (event.kind == 1984) { ReportContent(event, profiles, compact, onNavigate); return }
     if (event.kind == 30023) { ArticleContent(event, compact, onNavigate); return }
     val ancestors = LocalQuoteAncestors.current + event.id
     val embedQuotes = ancestors.size <= 2
