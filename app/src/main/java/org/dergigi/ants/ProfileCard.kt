@@ -102,9 +102,9 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
                     ActionIcon(Icons.Outlined.MoreHoriz, "Profile searches and actions", { menuOpen = true })
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }, modifier = Modifier.heightIn(max = 420.dp)) {
                         fun navigate(query: String) { menuOpen = false; onNavigate(query) }
-                        DropdownMenuItem(text = { Text("by:$npub", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        DropdownMenuItem(text = { Text("Posts") },
                             leadingIcon = { Icon(Icons.Outlined.Notes, null) }, onClick = { navigate("by:$npub") })
-                        DropdownMenuItem(text = { Text("mentions:$npub", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        DropdownMenuItem(text = { Text("Mentions") },
                             leadingIcon = { Icon(Icons.Outlined.AlternateEmail, null) }, onClick = { navigate("mentions:$npub") })
                         profileKindSearches.forEach { query ->
                             DropdownMenuItem(text = { Text(query) }, onClick = { navigate("$query by:$npub") })
