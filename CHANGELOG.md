@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Hide the toolbar and search controls when scrolling down through results; reveal them immediately when scrolling upward. Keep controls visible during query editing and reset visibility for each search.
+
 - Show up to two lines of collapsed query translations. Align the translation chevron and stop/refresh controls to the same 48 dp row in collapsed and expanded states, keeping refresh in the stop button’s position when a search finishes.
 
 ## [0.19.0] - 2026-10-03

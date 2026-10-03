@@ -12,6 +12,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -40,6 +41,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -158,6 +163,22 @@ fun AntsApp(model: SearchModel) {
     }
     val suggestionListState = remember(state.query) { LazyListState() }
     val listState = remember(state.pageId) { LazyListState(state.scrollIndex, state.scrollOffset) }
+    var controlsHidden by remember(state.pageId) { mutableStateOf(false) }
+    val canHideControls by rememberUpdatedState(canRefresh && !searchFocused && selected == null)
+    val hideSearchControls = controlsHidden && canHideControls
+    LaunchedEffect(canHideControls) { if (!canHideControls) controlsHidden = false }
+    val searchControlsScroll = remember(listState) { object : NestedScrollConnection {
+        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+            // React to the reader's direction, not incoming results, anchoring,
+            // keyboard repositioning, or the header's own size animation.
+            if (source == NestedScrollSource.UserInput && canHideControls) {
+                if (available.y > 0f) controlsHidden = false
+                else if (available.y < 0f && listState.canScrollForward) controlsHidden = true
+            }
+            return Offset.Zero
+        }
+    } }
+
     LaunchedEffect(listState) {
         val pageId = state.pageId
         snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
@@ -215,7 +236,8 @@ fun AntsApp(model: SearchModel) {
             }
         } else {
         Scaffold(topBar = {
-            if (state.searched) TopAppBar(navigationIcon = {
+            if (state.searched) AnimatedVisibility(visible = !hideSearchControls) {
+            TopAppBar(navigationIcon = {
                 if (state.backDepth > 0) IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Previous search") }
             }, title = { if (state.backDepth == 0) Row(Modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClickLabel = "Go to home", onClick = { home() }).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 AntLogo(loggedIn = state.pubkey != null)
@@ -226,9 +248,12 @@ fun AntsApp(model: SearchModel) {
                 IconButton(onClick = { dialog = "relays" }) { Icon(Icons.Outlined.Settings, "Relay settings") }
                 AccountMenu(state.pubkey, state.profiles[state.pubkey], onSearch = { search(it) })
             })
+            }
         }) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).imePadding()) {
             Column(Modifier.fillMaxSize(), verticalArrangement = if (centeredHome) Arrangement.Center else Arrangement.Top) {
+                AnimatedVisibility(visible = !hideSearchControls) {
+                Column {
                 OutlinedTextField(value = state.query, onValueChange = model::edit,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).onFocusChanged { searchFocused = it.isFocused },
                     placeholder = { Text(placeholder.query, fontSize = 15.sp, fontFamily = FontFamily.Monospace, maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -267,8 +292,10 @@ fun AntsApp(model: SearchModel) {
                         if (!state.loading && !showTranslation) IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
                     }
                 }
+                }
+                }
                 if (!centeredHome) {
-                Box(Modifier.weight(1f).pullToRefresh(
+                Box(Modifier.weight(1f).nestedScroll(searchControlsScroll).pullToRefresh(
                     state = pullState,
                     isRefreshing = refreshingFromPull,
                     enabled = canRefresh && !state.loading,
