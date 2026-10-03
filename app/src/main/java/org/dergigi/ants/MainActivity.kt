@@ -252,6 +252,8 @@ fun AntsApp(model: SearchModel) {
                                     Icon(Icons.Outlined.Stop, "Stop search", Modifier.size(12.dp), tint = muted)
                                 }
                             }
+                        } else if (state.searched && (state.command == null || state.command == "tutorial")) {
+                            IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
                         }
                     }
                 }
@@ -262,7 +264,7 @@ fun AntsApp(model: SearchModel) {
                         if (state.newerResultIds.isNotEmpty()) {
                             ActionIcon(Icons.Outlined.VerticalAlignTop, "${state.newerResultIds.size} new results · jump to newest", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
                         }
-                        if (!state.loading) IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
+                        if (!state.loading && !showTranslation) IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
                     }
                 }
                 if (!centeredHome) {

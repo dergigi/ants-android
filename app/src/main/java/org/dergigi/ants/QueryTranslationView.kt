@@ -25,25 +25,27 @@ internal fun QueryTranslationView(translation: String, pageId: Long, modifier: M
     var expanded by rememberSaveable(pageId) { mutableStateOf(false) }
     var overflows by remember(pageId) { mutableStateOf(false) }
     val muted = Color(0xFF9CA3AF)
-    Row(modifier.heightIn(min = 32.dp).clickable(enabled = expanded || overflows, role = Role.Button,
+    Row(modifier.heightIn(min = 48.dp).clickable(enabled = expanded || overflows, role = Role.Button,
         onClickLabel = if (expanded) "Collapse query translation" else "Expand query translation",
-        onClick = { expanded = !expanded }).padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
-        Text("=", color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp)
+        onClick = { expanded = !expanded }), verticalAlignment = Alignment.Top) {
+        Box(Modifier.height(48.dp), contentAlignment = Alignment.Center) {
+            Text("=", color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp)
+        }
         Spacer(Modifier.width(8.dp))
         if (expanded) {
-            SelectionContainer(Modifier.weight(1f).heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
+            SelectionContainer(Modifier.weight(1f).padding(vertical = 15.5.dp).heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
                 Text(translation, color = muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp)
             }
         } else {
-            Text(translation.replace('\n', ' '), Modifier.weight(1f), color = muted, fontFamily = FontFamily.Monospace,
+            Text(translation.replace('\n', ' '), Modifier.weight(1f).padding(vertical = 15.5.dp), color = muted, fontFamily = FontFamily.Monospace,
                 fontSize = 12.sp, lineHeight = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 onTextLayout = { overflows = it.hasVisualOverflow })
         }
         Spacer(Modifier.width(6.dp))
         // Reserve the affordance width so measuring overflow does not change the text width.
-        Box(Modifier.size(18.dp)) {
+        Box(Modifier.width(24.dp).height(48.dp), contentAlignment = Alignment.Center) {
             if (expanded || overflows) Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                null, Modifier.fillMaxSize(), tint = muted)
+                null, Modifier.size(18.dp), tint = muted)
         }
     }
 }
