@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-10-03
+
 ### Changed
 
 - Use the same keyword-only search shortcut list in account and profile menus, matching the web app’s `is:` aliases and ordering. Scope searches to the selected profile or `@me`, use `mentions:` for mention searches and `/logout` for sign-out, and disable kinds without native renderers.
@@ -317,7 +319,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.20.1...HEAD
+[0.20.1]: https://github.com/dergigi/ants-android/compare/v0.20.0...v0.20.1
 [0.20.0]: https://github.com/dergigi/ants-android/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/dergigi/ants-android/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/dergigi/ants-android/compare/v0.17.0...v0.18.0
