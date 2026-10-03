@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-03
+
 ### Changed
 
 - Combine the loading spinner and stop button into one control beside the query translation, removing the empty results row while awaiting results. Keep stop available while editing a running query.
@@ -291,7 +293,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Signed APK release and Zapstore publishing using the Boris publishing setup.
 
-[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/dergigi/ants-android/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/dergigi/ants-android/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/dergigi/ants-android/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/dergigi/ants-android/compare/v0.15.1...v0.16.0
 [0.15.1]: https://github.com/dergigi/ants-android/compare/v0.15.0...v0.15.1
