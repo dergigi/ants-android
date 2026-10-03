@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Make timestamps in result cards and event details open a search for the event’s `nostr:note` identifier.
+
 ## [0.15.1] - 2026-10-02
 
 ### Fixed

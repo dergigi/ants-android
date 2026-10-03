@@ -405,7 +405,10 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
                     Spacer(Modifier.width(7.dp))
                     Text(profile?.name ?: Nip19.npubEncode(event.pubkey).let { it.take(10) + "…" }, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Text(relativeTime(event.createdAt), color = muted, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp))
+                Text(relativeTime(event.createdAt), color = muted, fontSize = 11.sp,
+                    modifier = Modifier.clickable(role = Role.Button, onClickLabel = "Search for this note") {
+                        onNavigate("nostr:${Nip19.noteEncode(event.id)}")
+                    }.heightIn(min = 48.dp).wrapContentHeight().padding(horizontal = 8.dp))
                 Row(Modifier.width(192.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                 ActionIcon(Icons.Outlined.ContentCopy, "Copy event ID", { clipboard.setText(AnnotatedString("nostr:${Nip19.noteEncode(event.id)}")) })
                 ActionIcon(Icons.Outlined.PhoneAndroid, "Open in app", { openInNostrApp(context, event) })
@@ -438,7 +441,13 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
     Column(modifier.fillMaxWidth().verticalScroll(scrollState).padding(horizontal = 20.dp).padding(bottom = 36.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Avatar(profile, event.pubkey, onAuthor); Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f).clickable(onClick = onAuthor)) { Text(profile?.name ?: Nip19.npubEncode(event.pubkey).take(24) + "…", fontWeight = FontWeight.Bold); Text("${kindLabel(event.kind)} · ${dateLabel(event.createdAt)}", color = muted, style = MaterialTheme.typography.bodySmall) }
+            Column(Modifier.weight(1f)) {
+                Text(profile?.name ?: Nip19.npubEncode(event.pubkey).take(24) + "…", Modifier.clickable(onClick = onAuthor), fontWeight = FontWeight.Bold)
+                Text("${kindLabel(event.kind)} · ${dateLabel(event.createdAt)}",
+                    Modifier.clickable(role = Role.Button, onClickLabel = "Search for this note") {
+                        onNavigate("nostr:${Nip19.noteEncode(event.id)}")
+                    }.heightIn(min = 48.dp).wrapContentHeight(), color = muted, style = MaterialTheme.typography.bodySmall)
+            }
         }
         if (!raw) ThreadContext(event, onNavigate)
         if (raw || event.kind != 30023) event.tagValue("title")?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
