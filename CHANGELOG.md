@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Make result-card kind icons search their corresponding `is:` keyword (or numeric kind for comments), with accessible touch targets and query tooltips. Reply/reaction header icons search by kind while the rest of the header still loads the parent.
+
 - Show an author’s feed beneath their profile card when a completed profile search has exactly one match. Keep the latest profile card first, load up to 500 events across supported kinds, and retain stop, refresh, and back-navigation behavior.
 
 ## [0.21.0] - 2026-10-03

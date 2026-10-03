@@ -57,8 +57,8 @@ internal fun ThreadContext(event: Nip01Event, onNavigate: (String) -> Unit) {
             ) {
                 if (nextId !in requested) requested = requested + nextId
                 if (target == null) thread.load(nextId)
-            }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(if (oldest.kind == 7) Icons.Outlined.FavoriteBorder else Icons.AutoMirrored.Outlined.Reply, relation, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+            }.padding(end = 14.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                KindSearchIcon(oldest.kind, if (oldest.kind == 7) Icons.Outlined.FavoriteBorder else Icons.AutoMirrored.Outlined.Reply, MaterialTheme.colorScheme.primary, onNavigate)
                 Text(when {
                     loading -> "Loading earlier note…"
                     failed -> "$relation · Unavailable — tap to retry"

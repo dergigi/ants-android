@@ -450,8 +450,8 @@ private fun EventCard(event: Nip01Event, profile: Profile?, profiles: Map<String
     Surface(onClick = onOpen, shape = RoundedCornerShape(8.dp), color = card, border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
         Column(Modifier.fillMaxWidth()) {
             ThreadContext(event, onNavigate)
-            if (parentEventId(event) == null) Row(Modifier.fillMaxWidth().background(Color(0xFF353535)).padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(kindIcon(event.kind), kindLabel(event.kind), Modifier.size(16.dp), tint = muted)
+            if (parentEventId(event) == null) Row(Modifier.fillMaxWidth().background(Color(0xFF353535)).padding(end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                KindSearchIcon(event.kind, kindIcon(event.kind), muted, onNavigate)
                 Spacer(Modifier.weight(1f))
                 Icon(Icons.Outlined.Dns, "Nostr event", Modifier.size(14.dp), tint = muted)
             }
