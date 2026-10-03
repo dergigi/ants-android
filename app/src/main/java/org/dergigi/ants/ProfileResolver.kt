@@ -22,10 +22,18 @@ internal class ProfileResolver(
     private val sign: suspend (Nip01Event) -> Nip01Event?,
     private val outbox: OutboxRouter? = null,
 ) {
-    private data class Cached(val time: Long, val events: List<Nip01Event>)
-    private val cache = ConcurrentHashMap<String, Cached>()
+    private fun eventWeight(events: List<Nip01Event>): Long = events.sumOf { event ->
+        event.content.length.toLong() + event.tags.sumOf { tag -> tag.sumOf { it.length.toLong() } } + 256L
+    }
+    private val searchCache = ProfileLookupCache<List<Nip01Event>>(50,
+        lifetime = { if (it.isEmpty()) 30_000L else 300_000L }, weight = ::eventWeight)
+    private val vertexCache = ProfileLookupCache<List<Nip01Event>?>(50,
+        lifetime = { if (it.isNullOrEmpty()) 30_000L else 300_000L }, weight = { eventWeight(it.orEmpty()) })
+    private val metadataCache = ProfileLookupCache<List<Nip01Event>>(100,
+        lifetime = { if (it.isEmpty()) 30_000L else 300_000L }, weight = ::eventWeight)
+    private val resolvedCache = ProfileLookupCache<String>(200)
     private val verified = ConcurrentHashMap<String, Pair<Long, String?>>()
-    fun clear() { cache.clear(); verified.clear() }
+    fun clear() { searchCache.clear(); vertexCache.clear(); metadataCache.clear(); resolvedCache.clear(); verified.clear() }
     private suspend fun <T> optional(block: suspend () -> T): T? = try { block() }
         catch (e: CancellationException) { throw e } catch (_: Exception) { null }
 
@@ -73,10 +81,19 @@ internal class ProfileResolver(
     }
     private fun metadata(events: List<Nip01Event>) = events.filter { it.kind == 0 && it.isRenderable() }
         .sortedByDescending { it.createdAt }.distinctBy { it.pubkey }
-    private suspend fun profiles(keys: List<String>) = metadata(collect(listOf(JSONObject()
-        .put("kinds", JSONArray().put(0)).put("authors", JSONArray(keys)).put("limit", keys.size)), listOf("wss://purplepag.es") + generalRelays))
+    private suspend fun profiles(keys: List<String>): List<Nip01Event> {
+        val normalized = keys.distinct().sorted()
+        if (normalized.isEmpty()) return emptyList()
+        return metadataCache.get(normalized.joinToString(",")) {
+            metadata(collect(listOf(JSONObject().put("kinds", JSONArray().put(0))
+                .put("authors", JSONArray(normalized)).put("limit", normalized.size)), listOf("wss://purplepag.es") + generalRelays))
+        }
+    }
 
-    private suspend fun vertex(query: String, identity: String): List<Nip01Event>? {
+    private suspend fun vertex(query: String, identity: String): List<Nip01Event>? =
+        vertexCache.get("$identity:${query.trim().lowercase()}") { fetchVertex(query, identity) }
+
+    private suspend fun fetchVertex(query: String, identity: String): List<Nip01Event>? {
         if (query.length <= 3) return null
         val unsigned = Nip01Event.complete(identity, Instant.now().epochSecond, 5315, listOf(
             listOf("param", "search", query), listOf("param", "sort", "personalizedPagerank"),
@@ -99,17 +116,13 @@ internal class ProfileResolver(
     }
     suspend fun search(query: String, identity: String?, urls: List<String>): List<Nip01Event> {
         val term = query.trim()
-        Nip19.normalizePubkey(term.removePrefix("nostr:"))?.let { return profiles(listOf(it)) }
-        if ('@' in term || '.' in term && !term.contains(' ')) {
-            nip05(term)?.let { return profiles(listOf(it)) }
+        val key = "$identity:${urls.distinct().sorted().joinToString()}:${term.lowercase()}"
+        return searchCache.get(key) {
+            val direct = Nip19.normalizePubkey(term.removePrefix("nostr:"))
+            val address = if (direct == null && ('@' in term || '.' in term && !term.contains(' '))) nip05(term) else null
+            if (direct != null || address != null) profiles(listOf(checkNotNull(direct ?: address)))
+            else (if (identity != null) vertex(term, identity) else null) ?: fallback(term, identity, urls)
         }
-        val key = "$identity:${urls.joinToString()}:${term.lowercase()}"
-        cache[key]?.takeIf { System.currentTimeMillis() - it.time < 300_000 }?.let { return it.events }
-        val result = if (identity != null) vertex(term, identity) else null
-        val ranked = result ?: fallback(term, identity, urls)
-        if (cache.size >= 50) cache.clear()
-        cache[key] = Cached(System.currentTimeMillis(), ranked)
-        return ranked
     }
     private suspend fun fallback(term: String, identity: String?, urls: List<String>): List<Nip01Event> = coroutineScope {
         val candidates = metadata(collect(listOf(JSONObject().put("kinds", JSONArray().put(0)).put("search", term).put("limit", 200)),
@@ -153,7 +166,12 @@ internal class ProfileResolver(
         candidates.sortedWith(compareByDescending<Nip01Event> { score(it) }.thenByDescending { it.pubkey in followed }
             .thenBy { profileFields(it).let { f -> f.display.ifBlank { f.name }.lowercase() } })
     }
-    suspend fun resolve(raw: String, identity: String?, urls: List<String>): String {
+    suspend fun resolve(raw: String, identity: String?, urls: List<String>): String =
+        resolvedCache.get("$identity:${urls.distinct().sorted().joinToString()}:${raw.trim().lowercase()}") {
+            resolveUncached(raw, identity, urls)
+        }
+
+    private suspend fun resolveUncached(raw: String, identity: String?, urls: List<String>): String {
         val value = raw.removePrefix("nostr:").removePrefix("@")
         Nip19.normalizePubkey(value)?.let { return it }
         if ('@' in value || '.' in value) return nip05(value) ?: error("Couldn't resolve $raw.")
