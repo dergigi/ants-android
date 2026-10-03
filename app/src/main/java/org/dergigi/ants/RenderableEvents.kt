@@ -40,5 +40,9 @@ internal fun SearchBranch.forRenderedResults(): SearchBranch? {
     val kinds = if (requested == null) renderedKinds.toList()
         else (0 until requested.length()).map { requested.getInt(it) }.filter { it in renderedKinds }
     if (kinds.isEmpty()) return null
-    return copy(filter = JSONObject(filter.toString()).put("kinds", JSONArray(kinds)), renderedOnly = true)
+    val renderedFilter = JSONObject(filter.toString()).put("kinds", JSONArray(kinds))
+    // Structured relay queries can fill the result budget directly. Text-search
+    // relays retain their smaller candidate limit; exact lookups need no expansion.
+    if (!filter.has("search") && !filter.has("ids") && !filter.has("#d")) renderedFilter.put("limit", 500)
+    return copy(filter = renderedFilter, renderedOnly = true)
 }

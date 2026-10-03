@@ -1,6 +1,7 @@
 package org.dergigi.ants
 
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -43,7 +44,7 @@ class RelaySearch {
                         when (message.optString(0)) {
                             "EVENT" -> if (message.optString(1) == "ants" && seen.size < 500) {
                                 val event = Nip01Event.parse(message.getJSONObject(2)) ?: return
-                                if (event.id !in seen && branches.any { it.accepts(event) } && event.verify() && seen.add(event.id)) trySend(RelayUpdate.Event(event, url))
+                                if (event.id !in seen && branches.any { it.accepts(event) } && event.verify() && seen.add(event.id)) trySendBlocking(RelayUpdate.Event(event, url))
                             }
                             "EOSE" -> if (message.optString(1) == "ants") { webSocket.send("[\"CLOSE\",\"ants\"]"); finish(url, "Complete") }
                             "CLOSED" -> if (message.optString(1) == "ants") finish(url, message.optString(2).take(120).ifBlank { "Closed" })

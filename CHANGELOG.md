@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Request up to 500 candidates per relay for non-text queries such as author, kind, and hashtag filters, and prevent fast relay result bursts from being silently dropped by a full delivery channel.
+
 - Keep incoming results visible and included in the result count after scrolling, rather than hiding the rest of the search behind the jump-to-newest button. Preserve reading position with stable note keys and pause top anchoring only on a user drag, not keyboard-driven scrolling.
 
 ## [0.18.0] - 2026-10-03
