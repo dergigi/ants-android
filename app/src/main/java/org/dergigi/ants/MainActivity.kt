@@ -54,6 +54,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -167,15 +169,28 @@ fun AntsApp(model: SearchModel) {
     val canHideControls by rememberUpdatedState(canRefresh && !searchFocused && selected == null)
     val hideSearchControls = controlsHidden && canHideControls
     LaunchedEffect(canHideControls) { if (!canHideControls) controlsHidden = false }
-    val searchControlsScroll = remember(listState) { object : NestedScrollConnection {
+    val controlsScrollThreshold = with(LocalDensity.current) { 48.dp.toPx() }
+    val searchControlsScroll = remember(listState, canHideControls, controlsScrollThreshold) { object : NestedScrollConnection {
+        private var distance = 0f
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-            // React to the reader's direction, not incoming results, anchoring,
-            // keyboard repositioning, or the header's own size animation.
+            // Accumulate deliberate movement toward the next state. Small
+            // reversals subtract distance rather than toggling the header.
             if (source == NestedScrollSource.UserInput && canHideControls) {
-                if (available.y > 0f) controlsHidden = false
-                else if (available.y < 0f && listState.canScrollForward) controlsHidden = true
+                val movement = if (controlsHidden) available.y else -available.y
+                if (controlsHidden || listState.canScrollForward) {
+                    distance = (distance + movement).coerceAtLeast(0f)
+                    if (distance >= controlsScrollThreshold) {
+                        controlsHidden = !controlsHidden
+                        distance = 0f
+                    }
+                } else distance = 0f
             }
             return Offset.Zero
+        }
+        override suspend fun onPreFling(available: Velocity): Velocity {
+            // Separate drags must not accumulate tiny accidental reversals.
+            distance = 0f
+            return Velocity.Zero
         }
     } }
 

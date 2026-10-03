@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Require 48 dp of deliberate scroll movement before hiding or restoring the search controls. Small direction reversals and separate drags no longer make the header flicker.
+
 ### Added
 
 - Render zap receipts and nutzaps with published amounts, sender/recipient profiles, comments, mint links, and embedded targets. Validate included zap requests before attributing their sender; identify amounts as unverified rather than claiming payment settlement. Enable both search shortcuts.
