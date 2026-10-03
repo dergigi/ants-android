@@ -28,6 +28,7 @@ import kotlinx.coroutines.CancellationException
 internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, onNavigate: (String) -> Unit, onOpen: () -> Unit) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
+    var menuOpen by remember(event.pubkey) { mutableStateOf(false) }
     val npub = remember(event.pubkey) { Nip19.npubEncode(event.pubkey) }
     val fields = remember(event.id) { profileFields(event) }
     val metadata = remember(event.id) { runCatching { JSONObject(event.content) }.getOrDefault(JSONObject()) }
@@ -89,7 +90,6 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
                     }
                     Text(domain.ifBlank { fields.nip05 }, Modifier.weight(1f).clickable(onClick = author), color = identityColor,
                         style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    if (domain.isNotBlank()) ProfileStatusIcon(Icons.Outlined.Group, "Search profiles on $domain", identityColor) { onNavigate("p:$domain") }
                 } else Spacer(Modifier.weight(1f))
                 lightning?.let { address ->
                     ProfileStatusIcon(Icons.Outlined.Bolt, "$lightningStatus: $address. Search this address", lightningColor) {
@@ -97,14 +97,29 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
                         onNavigate("kind:0 \"$term\" OR kind:1 \"$term\"")
                     }
                 }
-                website?.let { url -> ProfileStatusIcon(Icons.Outlined.Home, "Open $url", MaterialTheme.colorScheme.onSurfaceVariant) { openUrl(context, url) } }
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                ActionIcon(Icons.Outlined.Notes, "Search posts", { onNavigate("by:$npub") })
-                ActionIcon(Icons.Outlined.AlternateEmail, "Search mentions", { onNavigate("mentions:$npub") })
                 ActionIcon(Icons.Outlined.PhoneAndroid, "Open profile in app", { openInNostrApp(context, event) })
-                ActionIcon(Icons.AutoMirrored.Outlined.OpenInNew, "Open profile in browser", { openUrl(context, "https://njump.to/$npub") })
-                ActionIcon(Icons.Outlined.MoreHoriz, "Profile event details", onOpen)
+                Box {
+                    ActionIcon(Icons.Outlined.MoreHoriz, "Profile searches and actions", { menuOpen = true })
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }, modifier = Modifier.heightIn(max = 420.dp)) {
+                        fun navigate(query: String) { menuOpen = false; onNavigate(query) }
+                        DropdownMenuItem(text = { Text("by:$npub", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            leadingIcon = { Icon(Icons.Outlined.Notes, null) }, onClick = { navigate("by:$npub") })
+                        DropdownMenuItem(text = { Text("mentions:$npub", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            leadingIcon = { Icon(Icons.Outlined.AlternateEmail, null) }, onClick = { navigate("mentions:$npub") })
+                        profileKindSearches.forEach { query ->
+                            DropdownMenuItem(text = { Text(query) }, onClick = { navigate("$query by:$npub") })
+                        }
+                        HorizontalDivider()
+                        if (domain.isNotBlank()) DropdownMenuItem(text = { Text("p:$domain") },
+                            leadingIcon = { Icon(Icons.Outlined.Group, null, tint = identityColor) }, onClick = { navigate("p:$domain") })
+                        website?.let { url -> DropdownMenuItem(text = { Text("Website") }, leadingIcon = { Icon(Icons.Outlined.Home, null) },
+                            onClick = { menuOpen = false; openUrl(context, url) }) }
+                        DropdownMenuItem(text = { Text("Open in browser") }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.OpenInNew, null) },
+                            onClick = { menuOpen = false; openUrl(context, "https://njump.to/$npub") })
+                        DropdownMenuItem(text = { Text("Event details") }, leadingIcon = { Icon(Icons.Outlined.DataObject, null) },
+                            onClick = { menuOpen = false; onOpen() })
+                    }
+                }
             }
         }
     }
@@ -117,4 +132,12 @@ private fun ProfileStatusIcon(icon: ImageVector, label: String, tint: Color, onC
         tooltip = { PlainTooltip { Text(label) } }, state = rememberTooltipState()) {
         IconButton(onClick = onClick) { Icon(icon, label, tint = tint) }
     }
+}
+
+// One shortcut per supported kind set; aliases such as note/tweet need no duplicate rows.
+private val profileKindSearches = buildList {
+    val supported = kindAliases.entries.filter { (_, kinds) -> kinds.all { it in renderedKinds } }.distinctBy { it.value.toSet() }
+    addAll(supported.map { "is:${it.key}" })
+    val covered = supported.flatMap { it.value }.toSet()
+    addAll((renderedKinds - covered).sorted().map { "kind:$it" })
 }

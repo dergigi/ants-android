@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Collapse profile card footers to one row. Move author/mention searches, all supported content-kind searches, domain search, website, browser, and event details into a three-dot overflow menu; keep identity and Lightning indicators and the native-app shortcut visible.
+
 ## [0.16.0] - 2026-10-03
 
 ### Added
