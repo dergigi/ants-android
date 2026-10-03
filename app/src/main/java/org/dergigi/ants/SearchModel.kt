@@ -36,6 +36,7 @@ data class SearchState(
 class SearchModel(app: Application) : AndroidViewModel(app) {
     private val preferences = app.getSharedPreferences("ants", 0)
     private val relay = RelaySearch()
+    private val outbox = OutboxRouter(relay)
     private val mutable = MutableStateFlow(SearchState(pubkey = preferences.getString("pubkey", null)?.let(Nip19::normalizePubkey), history = load("history"), relays = load("relays").ifEmpty { defaultSearchRelays }))
     val state = mutable.asStateFlow()
     private var searchJob: Job? = null
@@ -99,7 +100,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             if (pendingSignature?.id == request.id && state.value.pubkey == request.event.pubkey) waiter.complete(result)
         }
     }
-    private val profileResolver = ProfileResolver(relay, ::signProfileRequest)
+    private val profileResolver = ProfileResolver(relay, ::signProfileRequest, outbox)
     private var nextPageId = 0L
     private val backStack = ArrayDeque<SearchState>()
 
@@ -117,7 +118,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         accountProfileJob = viewModelScope.launch {
             try {
                 val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray().put(key)).put("limit", 1)
-                relay.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000)
+                outbox.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000)
                     .flowOn(Dispatchers.IO).collect { update ->
                         if (state.value.pubkey == key && update is RelayUpdate.Event) updateProfile(update.event)
                     }
@@ -246,7 +247,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     updateProfiles(profiles)
                     mutable.update { it.copy(events = latestProfileEvents(it.events + profiles), rankedProfiles = ordinaryBranches.isEmpty()) }
                 }
-                if (ordinaryBranches.isNotEmpty()) relay.search(ordinaryBranches, urls).batched().flowOn(Dispatchers.IO).collect { updates ->
+                if (ordinaryBranches.isNotEmpty()) outbox.search(ordinaryBranches, state.value.relays).batched().flowOn(Dispatchers.IO).collect { updates ->
                     if (current != generation) return@collect
                     receiveSearchUpdates(updates, current, profileOnly)
                 }
@@ -260,7 +261,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                         .put("authors", JSONArray().put(singleProfile.pubkey))
                         .put("kinds", JSONArray(renderedKinds.filter { it != 0 }))
                         .put("limit", 500), renderedOnly = true)
-                    relay.search(listOf(feed), (state.value.relays + generalRelays).distinct())
+                    outbox.search(listOf(feed), (state.value.relays + generalRelays).distinct())
                         .batched().flowOn(Dispatchers.IO).collect { updates ->
                             receiveSearchUpdates(updates, current)
                         }
@@ -271,7 +272,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 if (targetIds.isNotEmpty()) {
                     mutable.update { it.copy(loadingReactionTargets = true) }
                     val filter = JSONObject().put("ids", JSONArray(targetIds)).put("limit", targetIds.size)
-                    relay.search(listOf(SearchBranch(filter, renderedOnly = true)), (state.value.relays + generalRelays).distinct(), 7000).flowOn(Dispatchers.IO).collect { update ->
+                    outbox.search(listOf(SearchBranch(filter, renderedOnly = true)), (state.value.relays + generalRelays).distinct(), 7000).flowOn(Dispatchers.IO).collect { update ->
                         if (current == generation && update is RelayUpdate.Event) mutable.update { it.copy(reactionTargets = it.reactionTargets + (update.event.id to update.event)) }
                     }
                     if (current != generation) return@launch
@@ -286,7 +287,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 if (current != generation) return@launch
                 if (authors.isNotEmpty()) {
                     val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
-                    relay.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000).batched().flowOn(Dispatchers.IO).collect { updates ->
+                    outbox.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000).batched().flowOn(Dispatchers.IO).collect { updates ->
                         if (current == generation) updateProfiles(updates.filterIsInstance<RelayUpdate.Event>().map { it.event })
                     }
                 }
@@ -333,14 +334,14 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             "help", "examples", "kinds", "history" -> Unit
             "login" -> requestLogin()
             "logout" -> {
-                profileResolver.clear(); ProfileIndicatorLookup.clear()
+                profileResolver.clear(); outbox.clear(); ProfileIndicatorLookup.clear()
                 loginAttempt = null
                 accountProfileJob?.cancel()
                 preferences.edit().remove("pubkey").remove("signerPackage").apply()
                 mutable.update { it.copy(pubkey = null, signerRequest = null, commandMessage = "Logged out.") }
             }
             "clear" -> {
-                profileResolver.clear(); ProfileIndicatorLookup.clear()
+                profileResolver.clear(); outbox.clear(); ProfileIndicatorLookup.clear()
                 backStack.clear()
                 mutable.update { it.copy(backDepth = 0, profiles = emptyMap(), commandBusy = true, commandMessage = "Clearing cache…") }
                 try {
@@ -383,7 +384,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             mutable.update { it.copy(signerRequest = null, commandBusy = false, commandMessage = error ?: "The signer returned an invalid account. Please try again.") }
             return
         }
-        profileResolver.clear(); ProfileIndicatorLookup.clear()
+        profileResolver.clear(); outbox.clear(); ProfileIndicatorLookup.clear()
         preferences.edit().putString("pubkey", key).putString("signerPackage", validPackage).apply()
         mutable.update { it.copy(pubkey = key, signerRequest = null, commandBusy = false, commandMessage = "Connected.") }
         refreshAccountProfile()
@@ -404,7 +405,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     val authors = pendingMentions.take(30)
                     pendingMentions.removeAll(authors.toSet())
                     val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
-                    relay.search(listOf(SearchBranch(filter)), (listOf("wss://purplepag.es") + generalRelays).distinct(), 7000)
+                    outbox.search(listOf(SearchBranch(filter)), (listOf("wss://purplepag.es") + generalRelays).distinct(), 7000)
                         .batched().flowOn(Dispatchers.IO).collect { updates ->
                             if (current == generation) updateProfiles(updates.filterIsInstance<RelayUpdate.Event>().map { it.event })
                         }
@@ -437,8 +438,8 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                             val uri = Uri.parse(url)
                             uri.scheme == "wss" && !uri.host.isNullOrBlank() && uri.userInfo == null && uri.fragment == null
                         }.getOrDefault(false) }.take(2)
-                        val branch = SearchBranch(reference.filter).forRenderedResults()
-                        if (branch != null) relay.search(listOf(branch), (hints + state.value.relays + generalRelays).distinct(), 7000)
+                        val branch = SearchBranch(reference.filter, relayHints = hints, outboxAuthors = reference.authors).forRenderedResults()
+                        if (branch != null) outbox.search(listOf(branch), state.value.relays, 7000)
                             .flowOn(Dispatchers.IO).collect { update ->
                                 if (update is RelayUpdate.Event && (found == null || update.event.createdAt > found!!.createdAt)) found = update.event
                             }
@@ -448,7 +449,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     mutable.update { it.copy(quotes = it.quotes + (key to event)) }
                     val authors = withContext(Dispatchers.Default) { (listOfNotNull(event.pubkey, highlightAuthor(event)) + linkedProfileKeys(event)).distinct().take(20) }
                     val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
-                    relay.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 5000)
+                    outbox.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 5000)
                         .batched().flowOn(Dispatchers.IO).collect { updates ->
                             if (current == generation) updateProfiles(updates.filterIsInstance<RelayUpdate.Event>().map { it.event })
                         }
@@ -477,7 +478,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         parentJobs[id] = viewModelScope.launch {
             try {
                 val filter = JSONObject().put("ids", JSONArray().put(id)).put("limit", 1)
-                relay.search(listOf(SearchBranch(filter, renderedOnly = true)), (state.value.relays + generalRelays).distinct(), 8000)
+                outbox.search(listOf(SearchBranch(filter, renderedOnly = true)), (state.value.relays + generalRelays).distinct(), 8000)
                     .flowOn(Dispatchers.IO).collect { update ->
                         if (current == generation && update is RelayUpdate.Event) mutable.update {
                             it.copy(reactionTargets = it.reactionTargets + (id to update.event))
@@ -487,7 +488,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 val authors = withContext(Dispatchers.Default) { parent?.let { (listOfNotNull(it.pubkey, highlightAuthor(it)) + linkedProfileKeys(it)).distinct().filter { key -> key !in state.value.profiles } }.orEmpty() }
                 if (current == generation && authors.isNotEmpty()) {
                     val profileFilter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
-                    relay.search(listOf(SearchBranch(profileFilter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000)
+                    outbox.search(listOf(SearchBranch(profileFilter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 7000)
                         .flowOn(Dispatchers.IO).collect { if (current == generation && it is RelayUpdate.Event) updateProfile(it.event) }
                 }
             } catch (e: CancellationException) { throw e }

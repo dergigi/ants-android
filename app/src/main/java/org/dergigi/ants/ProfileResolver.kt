@@ -20,6 +20,7 @@ import kotlin.coroutines.resumeWithException
 internal class ProfileResolver(
     private val relay: RelaySearch,
     private val sign: suspend (Nip01Event) -> Nip01Event?,
+    private val outbox: OutboxRouter? = null,
 ) {
     private data class Cached(val time: Long, val events: List<Nip01Event>)
     private val cache = ConcurrentHashMap<String, Cached>()
@@ -64,7 +65,8 @@ internal class ProfileResolver(
     private suspend fun collect(filters: List<JSONObject>, urls: List<String>, timeout: Long = 7000): List<Nip01Event> {
         val events = mutableListOf<Nip01Event>()
         if (filters.isEmpty()) return events
-        relay.search(filters.map { SearchBranch(it) }, urls.distinct(), timeout).collect {
+        val branches = filters.map { SearchBranch(it) }
+        (outbox?.search(branches, urls.distinct(), timeout) ?: relay.search(branches, urls.distinct(), timeout)).collect {
             if (it is RelayUpdate.Event) events.add(it.event)
         }
         return events

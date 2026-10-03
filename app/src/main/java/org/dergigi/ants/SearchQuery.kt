@@ -59,10 +59,13 @@ class SearchQuery(private val currentPubkey: String? = null, private val resolve
         val direct = query.removePrefix("nostr:")
         when {
             direct.startsWith("note1") -> return SearchBranch(f.put("ids", JSONArray().put(Nip19.noteDecode(direct))))
-            direct.startsWith("nevent1") -> return SearchBranch(f.put("ids", JSONArray().put(Nip19.neventDecode(direct).eventId)))
+            direct.startsWith("nevent1") -> {
+                val pointer = Nip19.neventDecode(direct)
+                return SearchBranch(f.put("ids", JSONArray().put(pointer.eventId)), relayHints = pointer.relays, outboxAuthors = listOfNotNull(pointer.author))
+            }
             direct.startsWith("naddr1") -> {
                 val p = Nip19.naddrDecode(direct)
-                return SearchBranch(f.put("authors", JSONArray().put(p.pubkey)).put("kinds", JSONArray().put(p.kind)).put("#d", JSONArray().put(p.identifier)))
+                return SearchBranch(f.put("authors", JSONArray().put(p.pubkey)).put("kinds", JSONArray().put(p.kind)).put("#d", JSONArray().put(p.identifier)), relayHints = p.relays)
             }
             !direct.contains(' ') && (direct.startsWith("npub1") || direct.startsWith("nprofile1")) -> return SearchBranch(f.put("kinds", JSONArray().put(0)).put("search", Nip19.npubEncode(resolve(direct))))
             direct.matches(Regex("[0-9a-fA-F]{64}")) -> return SearchBranch(f.put("ids", JSONArray().put(direct.lowercase())))

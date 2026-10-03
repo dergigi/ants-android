@@ -3,7 +3,7 @@ package org.dergigi.ants
 import org.json.JSONArray
 import org.json.JSONObject
 
-internal data class QuoteReference(val key: String, val query: String, val filter: JSONObject, val relays: List<String>) {
+internal data class QuoteReference(val key: String, val query: String, val filter: JSONObject, val relays: List<String>, val authors: List<String> = emptyList()) {
     fun matches(event: Nip01Event): Boolean = SearchBranch(filter).accepts(event)
 }
 
@@ -16,7 +16,7 @@ internal fun quoteReference(query: String): QuoteReference? = runCatching {
         }
         value.startsWith("nevent1", true) -> {
             val pointer = Nip19.neventDecode(value)
-            QuoteReference(pointer.eventId, value, JSONObject().put("ids", JSONArray().put(pointer.eventId)).put("limit", 1), pointer.relays)
+            QuoteReference(pointer.eventId, value, JSONObject().put("ids", JSONArray().put(pointer.eventId)).put("limit", 1), pointer.relays, listOfNotNull(pointer.author))
         }
         value.startsWith("naddr1", true) -> {
             val pointer = Nip19.naddrDecode(value)
@@ -37,7 +37,7 @@ internal fun quoteReferences(event: Nip01Event): List<QuoteReference> {
     }
     // A nevent and a q tag referring to the same event produce one embed.
     return (inline + tagged).groupBy { it.key }.values.take(8).map { references ->
-        references.first().copy(relays = references.flatMap { it.relays }.distinct())
+        references.first().copy(relays = references.flatMap { it.relays }.distinct(), authors = references.flatMap { it.authors }.distinct())
     }
 }
 
