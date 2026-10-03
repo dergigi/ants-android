@@ -11,7 +11,7 @@ internal class ProfileLookupCache<T>(
     private val capacity: Int,
     private val lifetime: (T) -> Long = { 300_000L },
     private val weight: (T) -> Long = { 1L },
-    private val maxWeight: Long = 8_000_000L,
+    private val maxWeight: Long = 2L * 1024 * 1024,
 ) {
     private data class Entry<T>(val value: T, val expires: Long, val weight: Long)
     private val entries = ConcurrentHashMap<String, Entry<T>>()

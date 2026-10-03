@@ -349,6 +349,9 @@ fun AntsApp(model: SearchModel) {
                     if (state.searched && state.statuses.isNotEmpty()) item {
                         TextButton(onClick = { dialog = "relays" }) { Text("${state.statuses.values.count { it == "Complete" }} / ${state.statuses.size} relays completed · relay details") }
                     }
+                    if (RESULT_MEMORY_LIMIT in state.statuses.values) item {
+                        Text("Result memory limit reached. Narrow your search to load more.", color = muted)
+                    }
                     if (state.events.count { state.profileFeedAuthor == null || it.kind != 0 } >= 500) item { Text("Showing the first 500 matches. Narrow your search with since: / until:.", color = muted) }
                     }
                 }

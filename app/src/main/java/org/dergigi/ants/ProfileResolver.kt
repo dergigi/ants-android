@@ -23,7 +23,7 @@ internal class ProfileResolver(
     private val outbox: OutboxRouter? = null,
 ) {
     private fun eventWeight(events: List<Nip01Event>): Long = events.sumOf { event ->
-        event.content.length.toLong() + event.tags.sumOf { tag -> tag.sumOf { it.length.toLong() } } + 256L
+        event.retainedBytes
     }
     private val searchCache = ProfileLookupCache<List<Nip01Event>>(50,
         lifetime = { if (it.isEmpty()) 30_000L else 300_000L }, weight = ::eventWeight)

@@ -15,6 +15,11 @@ data class Nip01Event(
     val content: String,
     val sig: String,
 ) {
+    // UTF-16 upper bound plus conservative String/list/reference overhead.
+    internal val retainedBytes: Long by lazy {
+        1024L + content.length * 2L + tags.sumOf { row -> 64L + row.sumOf { 56L + it.length * 2L } }
+    }
+
     fun toJsonString(): String {
         return JSONObject()
             .put("id", id)

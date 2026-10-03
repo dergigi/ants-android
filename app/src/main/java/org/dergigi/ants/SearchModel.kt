@@ -168,10 +168,11 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             profiles = emptyMap(), history = emptyList(), relays = emptyList(),
         ))
         // Bound retained results: history is a session convenience, not a disk cache.
-        fun retainedChars() = backStack.sumOf { page -> (page.events + page.reactionTargets.values + page.quotes.values).sumOf { event ->
-            event.content.length.toLong() + event.tags.sumOf { row -> row.sumOf { it.length.toLong() } }
-        } }
-        while (backStack.size > 20 || (backStack.size > 1 && retainedChars() > 8_000_000)) backStack.removeFirst()
+        fun retainedBytes() = backStack.sumOf { page ->
+            (page.events + page.reactionTargets.values + page.quotes.values + listOfNotNull(page.detail))
+                .distinctBy { it.id }.sumOf { it.retainedBytes }
+        }
+        while (backStack.size > 10 || (backStack.isNotEmpty() && retainedBytes() > HISTORY_MEMORY_BUDGET)) backStack.removeFirst()
     }
     private fun load(key: String): List<String> = runCatching {
         val a = JSONArray(preferences.getString(key, "[]")); (0 until a.length()).map { a.getString(it) }
@@ -245,7 +246,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     val profiles = withContext(Dispatchers.IO) { profileResolver.search(branch.filter.getString("search"), identity, urls).filter(branch::accepts) }
                     if (current != generation) return@launch
                     updateProfiles(profiles)
-                    mutable.update { it.copy(events = latestProfileEvents(it.events + profiles), rankedProfiles = ordinaryBranches.isEmpty()) }
+                    mutable.update { it.copy(events = boundedEvents(latestProfileEvents(it.events + profiles)), rankedProfiles = ordinaryBranches.isEmpty()) }
                 }
                 if (ordinaryBranches.isNotEmpty()) outbox.search(ordinaryBranches, state.value.relays).batched().flowOn(Dispatchers.IO).collect { updates ->
                     if (current != generation) return@collect
@@ -273,7 +274,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     mutable.update { it.copy(loadingReactionTargets = true) }
                     val filter = JSONObject().put("ids", JSONArray(targetIds)).put("limit", targetIds.size)
                     outbox.search(listOf(SearchBranch(filter, renderedOnly = true)), (state.value.relays + generalRelays).distinct(), 7000).flowOn(Dispatchers.IO).collect { update ->
-                        if (current == generation && update is RelayUpdate.Event) mutable.update { it.copy(reactionTargets = it.reactionTargets + (update.event.id to update.event)) }
+                        if (current == generation && update is RelayUpdate.Event) mutable.update { it.copy(reactionTargets = retainContextEvent(it.reactionTargets, update.event.id, update.event)) }
                     }
                     if (current != generation) return@launch
                     mutable.update { it.copy(loadingReactionTargets = false) }
@@ -319,9 +320,10 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                         profileOnly -> latestProfileEvents(candidates).sortedByDescending { it.createdAt }.take(500)
                         else -> candidates.sortedByDescending { it.createdAt }.take(500)
                     }
-                    val retained = merged.map { it.id }.toHashSet()
+                    val bounded = boundedEvents(merged, count = if (previous.profileFeedAuthor == null) 500 else 501)
+                    val retained = bounded.map { it.id }.toHashSet()
                     // Stable keys preserve reading position as new items arrive.
-                    previous.copy(events = if (profileOnly) merged else orderedResults(merged, previous.newestFirst, previous.profileFeedAuthor), newerResultIds = if (previous.followingNewest) emptySet()
+                    previous.copy(events = if (profileOnly) bounded else orderedResults(bounded, previous.newestFirst, previous.profileFeedAuthor), newerResultIds = if (previous.followingNewest) emptySet()
                         else (previous.newerResultIds + events.map { it.id }.filterNot(shown::contains)).intersect(retained),
                         statuses = previous.statuses + statuses)
                 }
@@ -446,7 +448,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     }
                     if (current != generation) return@withPermit
                     val event = found ?: return@withPermit
-                    mutable.update { it.copy(quotes = it.quotes + (key to event)) }
+                    mutable.update { it.copy(quotes = retainContextEvent(it.quotes, key, event)) }
                     val authors = withContext(Dispatchers.Default) { (listOfNotNull(event.pubkey, highlightAuthor(event)) + linkedProfileKeys(event)).distinct().take(20) }
                     val filter = JSONObject().put("kinds", JSONArray().put(0)).put("authors", JSONArray(authors)).put("limit", authors.size)
                     outbox.search(listOf(SearchBranch(filter)), listOf("wss://purplepag.es", "wss://relay.damus.io"), 5000)
@@ -470,7 +472,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         if (!id.matches(Regex("[0-9a-f]{64}")) || id in parentJobs || id in state.value.reactionTargets) return
         val cached = state.value.events.firstOrNull { it.id == id }
         if (cached != null) {
-            mutable.update { it.copy(reactionTargets = it.reactionTargets + (id to cached)) }
+            mutable.update { it.copy(reactionTargets = retainContextEvent(it.reactionTargets, id, cached)) }
             return
         }
         val current = generation
@@ -481,7 +483,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 outbox.search(listOf(SearchBranch(filter, renderedOnly = true)), (state.value.relays + generalRelays).distinct(), 8000)
                     .flowOn(Dispatchers.IO).collect { update ->
                         if (current == generation && update is RelayUpdate.Event) mutable.update {
-                            it.copy(reactionTargets = it.reactionTargets + (id to update.event))
+                            it.copy(reactionTargets = retainContextEvent(it.reactionTargets, id, update.event))
                         }
                     }
                 val parent = state.value.reactionTargets[id]
@@ -511,7 +513,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             val profiles = events.mapNotNull { event -> runCatching {
                 val json = JSONObject(event.content)
                 val fields = profileFields(event)
-                event.pubkey to Profile(fields.display.ifBlank { fields.name }.ifBlank { event.pubkey.take(12) }, json.optString("about"), json.optString("picture").takeIf { it.startsWith("https://") }, event.createdAt)
+                event.pubkey to Profile(fields.display.ifBlank { fields.name }.ifBlank { event.pubkey.take(12) }.take(256), json.optString("about").take(4000), json.optString("picture").takeIf { it.startsWith("https://") && it.length <= 2048 }, event.createdAt)
             }.getOrNull() }
             mutable.update { state ->
                 if (state.pageId != pageId) state else {

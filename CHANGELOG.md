@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Bound relay result queues, retained search payloads, thread/quote context, back navigation, and profile caches by estimated bytes as well as counts. Reduce buffered relay events and cap cached profile text to limit heap growth during large searches.
+
 ## [0.23.1] - 2026-10-03
 
 ### Fixed

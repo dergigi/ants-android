@@ -3,6 +3,7 @@ package org.dergigi.ants
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import okhttp3.*
@@ -26,6 +27,8 @@ class RelaySearch {
         val pending = ConcurrentHashMap.newKeySet<String>().apply { addAll(routes.keys) }
         val seen = ConcurrentHashMap.newKeySet<String>()
         val sockets = mutableListOf<WebSocket>()
+        val admission = Any()
+        var retainedBytes = 0L
         fun finish(url: String, status: String) {
             trySend(RelayUpdate.Status(url, status))
             pending.remove(url)
@@ -47,7 +50,20 @@ class RelaySearch {
                         when (message.optString(0)) {
                             "EVENT" -> if (message.optString(1) == "ants" && seen.size < 500) {
                                 val event = Nip01Event.parse(message.getJSONObject(2)) ?: return
-                                if (event.id !in seen && branches.any { it.accepts(event) } && event.verify() && seen.add(event.id)) trySendBlocking(RelayUpdate.Event(event, url))
+                                if (event.id !in seen && branches.any { it.accepts(event) } && event.verify()) {
+                                    val admitted = synchronized(admission) {
+                                        when {
+                                            event.id in seen || seen.size >= 500 -> 0
+                                            retainedBytes + event.retainedBytes > RESULT_MEMORY_BUDGET -> -1
+                                            else -> { seen.add(event.id); retainedBytes += event.retainedBytes; 1 }
+                                        }
+                                    }
+                                    if (admitted > 0) trySendBlocking(RelayUpdate.Event(event, url))
+                                    else if (admitted < 0) {
+                                        webSocket.send("[\"CLOSE\",\"ants\"]")
+                                        finish(url, RESULT_MEMORY_LIMIT)
+                                    }
+                                }
                             }
                             "EOSE" -> if (message.optString(1) == "ants") { webSocket.send("[\"CLOSE\",\"ants\"]"); finish(url, "Complete") }
                             "CLOSED" -> if (message.optString(1) == "ants") finish(url, message.optString(2).take(120).ifBlank { "Closed" })
@@ -63,5 +79,5 @@ class RelaySearch {
         val timeout = launch { delay(duration); pending.toList().forEach { finish(it, "Timed out") }; close() }
         if (routes.isEmpty()) close()
         awaitClose { timeout.cancel(); sockets.forEach { it.cancel() } }
-    }
+    }.buffer(8)
 }
