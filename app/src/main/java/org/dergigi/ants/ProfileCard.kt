@@ -83,6 +83,10 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
                     if (fields.nip05.isBlank()) openUrl(context, "https://github.com/nostr-protocol/nips/blob/master/05.md") else author()
                 }
                 if (fields.nip05.isNotBlank()) {
+                    if (indicators.verified == true && rootIdentity) {
+                        Icon(Icons.Outlined.Badge, null, Modifier.size(16.dp), tint = identityColor)
+                        Spacer(Modifier.width(4.dp))
+                    }
                     Text(domain.ifBlank { fields.nip05 }, Modifier.weight(1f).clickable(onClick = author), color = identityColor,
                         style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (domain.isNotBlank()) ProfileStatusIcon(Icons.Outlined.Group, "Search profiles on $domain", identityColor) { onNavigate("p:$domain") }

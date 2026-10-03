@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Match the web profile indicators: verified NIP-05 identities in green, mismatches in red, missing identities in yellow, and root-domain double checks. Add domain-search, Lightning, and website shortcuts with long-press labels. Lightning bolts indicate sent zaps (yellow), sent nutzaps (purple), or both (green), using bounded background lookups cached in memory.
+
 ### Changed
 
 - Make timestamps in result cards and event details open a search for the event’s `nostr:note` identifier.
