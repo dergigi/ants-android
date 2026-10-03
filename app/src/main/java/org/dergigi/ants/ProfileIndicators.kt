@@ -12,7 +12,7 @@ internal data class ProfileIndicators(val verified: Boolean? = null, val sentZap
 /** Visible-card lookups only, bounded and cached in memory. Metadata claims are not verification. */
 internal object ProfileIndicatorLookup {
     private val relay = RelaySearch()
-    private val resolver = ProfileResolver(relay) { null }
+    private val resolver = ProfileResolver(relay, sign = { null })
     private val slots = Semaphore(3)
     private data class Cached(val at: Long, val indicators: ProfileIndicators)
     private val cache = ConcurrentHashMap<String, Cached>()
