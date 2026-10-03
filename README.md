@@ -7,6 +7,7 @@ A native Android search and discovery app for Nostr, based on [ants](https://git
 ## MVP
 
 - Text search across configurable NIP-50 relays, with deduplicated, signature-verified results. Only supported native content types are shown; encrypted/protocol events, raw JSON payloads (except intentional code snippets), and empty media cards are excluded.
+- Single-profile searches show the profile card above its author feed, newest first across supported kinds, with up to 500 events. Multi-profile searches remain profile lists.
 - Native cards for reposts, Git patches/issues, reports, zap receipts/nutzaps, public mute/pin/bookmark lists, and follow packs. List entries link to notes/profiles; encrypted entries remain hidden. Payment cards display published amounts without claiming independent payment verification.
 - Hashtags, author and mention filters, NIP-05 resolution, kinds, date ranges, simple OR queries, and image/video filters.
 - Direct lookup of `npub`, `nprofile`, `note`, `nevent`, `naddr`, and event hex IDs.

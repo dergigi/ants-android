@@ -209,7 +209,7 @@ fun AntsApp(model: SearchModel) {
     // measure, so arriving results cannot silently push the top out of view.
     var pinnedHead by remember(state.pageId) { mutableStateOf<String?>(null) }
     SideEffect {
-        val head = state.events.firstOrNull()?.id
+        val head = state.events.firstOrNull { state.profileFeedAuthor == null || it.kind != 0 }?.id
         if (state.searched && state.followingNewest && head != pinnedHead && !listState.isScrollInProgress) {
             listState.requestScrollToItem(0)
             pinnedHead = head
@@ -300,7 +300,10 @@ fun AntsApp(model: SearchModel) {
                 if (!suggestingCommands && state.searched && (state.command == null || state.command == "tutorial") &&
                     (!state.loading || state.events.isNotEmpty() || state.newerResultIds.isNotEmpty())) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("${state.events.size} results · ${if (state.rankedProfiles) "best matches" else "newest first"}", Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
+                        val feedCount = state.events.count { it.kind != 0 }
+                        val resultSummary = if (state.profileFeedAuthor != null) "$feedCount events · newest first"
+                            else "${state.events.size} results · ${if (state.rankedProfiles) "best matches" else "newest first"}"
+                        Text(resultSummary, Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
                         if (state.newerResultIds.isNotEmpty()) {
                             ActionIcon(Icons.Outlined.VerticalAlignTop, "${state.newerResultIds.size} new results · jump to newest", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
                         }
@@ -342,7 +345,7 @@ fun AntsApp(model: SearchModel) {
                     if (state.searched && state.statuses.isNotEmpty()) item {
                         TextButton(onClick = { dialog = "relays" }) { Text("${state.statuses.values.count { it == "Complete" }} / ${state.statuses.size} relays completed · relay details") }
                     }
-                    if (state.events.size >= 500) item { Text("Showing the first 500 matches. Narrow your search with since: / until:.", color = muted) }
+                    if (state.events.count { state.profileFeedAuthor == null || it.kind != 0 } >= 500) item { Text("Showing the first 500 matches. Narrow your search with since: / until:.", color = muted) }
                     }
                 }
                 if (canRefresh) PullToRefreshDefaults.Indicator(state = pullState, isRefreshing = refreshingFromPull, modifier = Modifier.align(Alignment.TopCenter))
