@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Render zap receipts and nutzaps with published amounts, sender/recipient profiles, comments, mint links, and embedded targets. Validate included zap requests before attributing their sender; identify amounts as unverified rather than claiming payment settlement. Enable both search shortcuts.
+
 - Render Git patches with colored diffs, issues with Markdown, and reports with their reasons and clickable targets. Paginate long patches and enable patch, issue, and report searches.
 
 - Render reposts as embedded original notes, validating included note signatures and loading missing originals from relays with retry and bounded nesting.
