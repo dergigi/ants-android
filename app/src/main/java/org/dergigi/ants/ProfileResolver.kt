@@ -130,6 +130,11 @@ internal class ProfileResolver(
         val candidates = metadata(collect(listOf(JSONObject().put("kinds", JSONArray().put(0)).put("search", term).put("limit", 200)),
             urls + listOf("wss://purplepag.es", "wss://relay.vertexlab.io"))).take(200)
         if (candidates.isEmpty()) return@coroutineScope emptyList()
+        val matchScores = candidates.associate { it.pubkey to profileMatchScore(term, it) }
+        // Relays commonly return newest metadata first. Spend the bounded
+        // verification budget on relevant matches, not recently edited accounts.
+        val probes = candidates.sortedWith(compareByDescending<Nip01Event> { matchScores[it.pubkey] ?: 0 }
+            .thenByDescending { authorMatchScore(term, it) }.thenBy { it.pubkey }).take(50)
         val friends = async {
             if (identity == null) emptySet() else collect(listOf(JSONObject().put("kinds", JSONArray().put(3)).put("authors", JSONArray().put(identity)).put("limit", 1)), generalRelays, 5000)
                 .maxByOrNull { it.createdAt }?.tags?.filter { it.size > 1 && it[0] == "p" }?.map { it[1] }?.toSet().orEmpty()
@@ -138,14 +143,14 @@ internal class ProfileResolver(
         val verification = launch {
             withTimeoutOrNull(8000) {
                 val slots = Semaphore(8)
-                candidates.take(50).map { event -> async { slots.withPermit {
+                probes.map { event -> async { slots.withPermit {
                     val n5 = profileFields(event).nip05
-                    if (n5.isNotBlank()) checks[event.pubkey] = nip05(n5) == event.pubkey
+                    if (n5.isNotBlank()) nip05(n5)?.let { resolved -> checks[event.pubkey] = resolved == event.pubkey }
                 } } }.awaitAll()
             }
         }
         val zaps = async {
-            val filters = candidates.take(50).flatMap { event -> listOf(
+            val filters = probes.flatMap { event -> listOf(
                 JSONObject().put("kinds", JSONArray().put(9321)).put("authors", JSONArray().put(event.pubkey)).put("limit", 1),
                 JSONObject().put("kinds", JSONArray().put(9735)).put("#P", JSONArray().put(event.pubkey)).put("limit", 1),
             ) }
@@ -163,7 +168,7 @@ internal class ProfileResolver(
                 false -> -150
                 null -> 0
             }
-            return profileMatchScore(term, event) + verificationScore + (if (event.pubkey in nuts) 150 else if (event.pubkey in senders) 40 else 0) + if (event.pubkey in followed) 50 else 0
+            return (matchScores[event.pubkey] ?: 0) + verificationScore + (if (event.pubkey in nuts) 150 else if (event.pubkey in senders) 40 else 0) + if (event.pubkey in followed) 50 else 0
         }
         candidates.sortedWith(compareByDescending<Nip01Event> { score(it) }.thenByDescending { it.pubkey in followed }
             .thenBy { profileFields(it).let { f -> f.display.ifBlank { f.name }.lowercase() } })

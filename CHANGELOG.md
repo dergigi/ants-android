@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Prioritize relevant name matches for fallback profile verification and activity checks instead of metadata recency. Treat unavailable NIP-05 lookups as unknown rather than identity mismatches.
+
 - Preserve successful Vertex rankings when outbox discovery and profile downloads take longer than the Vertex request timeout. Give profile hydration its own relay budgets and keep Vertex order.
 
 ## [0.23.0] - 2026-10-03
