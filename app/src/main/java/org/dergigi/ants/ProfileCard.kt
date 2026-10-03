@@ -51,13 +51,18 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
     val rootIdentity = normalizedNip05(fields.nip05).startsWith("_@")
     val author = { onNavigate("p:$npub") }
     val shownProfile = profile ?: Profile(fields.display.ifBlank { fields.name }.ifBlank { npub.take(12) + "…" }, fields.about, http(field("picture", "image")), event.createdAt)
+    val openGallery = LocalOpenGallery.current
+    val picture = http(shownProfile.picture)
+    val galleryImages = remember(picture, banner) { listOfNotNull(picture, banner).distinct() }
+    fun openImage(url: String) { openGallery(galleryImages, galleryImages.indexOf(url)) }
     ResolveMentionProfiles(event)
     Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF2D2D2D), border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
         Column(Modifier.fillMaxWidth()) {
-            banner?.let { AsyncImage(it, null, Modifier.fillMaxWidth().height(112.dp), contentScale = ContentScale.Crop) }
+            banner?.let { url -> AsyncImage(url, "Profile banner", Modifier.fillMaxWidth().height(112.dp)
+                .clickable(onClickLabel = "Open banner in gallery") { openImage(url) }, contentScale = ContentScale.Crop) }
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(shownProfile, event.pubkey, author, size = 48)
+                    Avatar(shownProfile, event.pubkey, { if (picture != null) openImage(picture) else author() }, size = 48)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f).clickable(onClick = author)) {
                         Text(shownProfile.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
