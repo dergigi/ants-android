@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Integrate the shared ANTLR 4.13.2 query grammar into Android search and preview, with nested groups, AND precedence, scoped fields, escaped quotes, shared aliases, and bounded branch expansion.
+- Preserve branch-local filters, intersect repeated authors/kinds, and reject malformed queries, contradictory dates, unknown modifiers, and unsupported required tag combinations.
+
 ## [0.23.2] - 2026-10-03
 
 ### Fixed

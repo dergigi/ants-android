@@ -1,5 +1,6 @@
 package org.dergigi.ants
 
+import org.json.JSONObject
 import java.time.Instant
 import java.time.ZoneOffset
 
@@ -16,9 +17,9 @@ internal fun SearchBranch.queryTranslation(): String {
     }
     return buildList {
         values("ids").forEach { add("nostr:${Nip19.noteEncode(it)}") }
-        kinds.forEach { add("kind:$it") }
-        authors.forEach { add("by:${Nip19.npubEncode(it)}") }
-        values("#p").forEach { add("mentions:${Nip19.npubEncode(it)}") }
+        if (kinds.isNotEmpty()) add("kind:${kinds.joinToString(",")}")
+        if (authors.isNotEmpty()) add("by:${authors.joinToString(",", transform = Nip19::npubEncode)}")
+        values("#p").takeIf { it.isNotEmpty() }?.let { add("mentions:${it.joinToString(",", transform = Nip19::npubEncode)}") }
         values("#t").forEach { add("#$it") }
         for (name in listOf("since", "until")) if (filter.has(name)) {
             add("$name:${translatedDate(filter.getLong(name), name)}")
@@ -32,25 +33,21 @@ internal fun SearchBranch.queryTranslation(): String {
 /** Immediate local expansion while network-dependent names are still resolving. */
 internal fun queryPreview(input: String, identity: String?, now: Instant, resolved: Map<String, String> = emptyMap()): String {
     if (input.startsWith('/')) return input
-    return Regex("\"[^\"]*\"|\\S+").findAll(input.take(2000)).joinToString(" ") { match ->
-        val token = match.value
-        val prefix = token.substringBefore(':').lowercase()
-        val value = token.substringAfter(':', "")
-        when {
-            token.equals("OR", true) -> "\nOR"
-            prefix == "is" -> kindAliases[value.lowercase()]?.joinToString(" ") { "kind:$it" } ?: token
-            prefix in listOf("by", "from", "mentions") -> {
+    return runCatching {
+        queryLeaves(input).joinToString("\nOR ") { leaves ->
+            val plan = compileQueryBranch(leaves, now)
+            val filters = SearchBranch(plan.filter).queryTranslation()
+            fun person(value: String): String {
                 val key = resolved[value] ?: (if (value.equals("@me", true)) identity else Nip19.normalizePubkey(value))
-                "${if (prefix == "from") "by" else prefix}:${key?.let(Nip19::npubEncode) ?: value}"
+                return key?.let(Nip19::npubEncode) ?: JSONObject.quote(value)
             }
-            prefix in listOf("since", "until") -> runCatching {
-                "$prefix:${translatedDate(searchDateTimestamp(value, prefix, now), prefix)}"
-            }.getOrDefault(token)
-            prefix == "site" -> "site:${when (value) { "yt" -> "youtube.com"; "gh" -> "github.com"; else -> value }}"
-            prefix == "p" -> "kind:0 $value"
-            else -> token
+            fun clause(field: String, values: List<String>) = if (values.size == 1) "$field:${person(values.single())}"
+                else "$field:(" + values.joinToString(" OR ") { person(it) } + ")"
+            (listOf(filters) + plan.authors.map { clause("by", it) } + listOfNotNull(plan.mentions?.let { clause("mentions", it) }))
+                .filter(String::isNotBlank).joinToString(" ")
         }
-    }.replace(" \nOR", "\nOR")
+    }.getOrElse { input }
+
 }
 
 private fun translatedDate(timestamp: Long, name: String): String {
