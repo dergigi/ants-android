@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,39 +29,34 @@ internal fun ProfileIndicators.lightningColor(neutral: Color): Color = when {
 internal fun LightningExplanation(address: String, indicators: ProfileIndicators, checking: Boolean, onNavigate: (String) -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val status = when {
-        checking -> "Looking for public zap and nutzap activity…"
-        indicators.sentZap && indicators.sentNutzap -> "Found public activity for both zaps and nutzaps sent by this profile."
-        indicators.sentZap -> "Found public zap activity for this profile. No sent nutzap activity was found in this check."
-        indicators.sentNutzap -> "Found public nutzap activity for this profile. No sent zap activity was found in this check."
-        else -> "No sent zap or nutzap activity was found in this check. Events may be private, missing from the queried relays, or unavailable."
+        checking -> "Checking activity…"
+        indicators.sentZap && indicators.sentNutzap -> "Sent zaps and nutzaps found."
+        indicators.sentZap -> "Sent zaps found."
+        indicators.sentNutzap -> "Sent nutzaps found."
+        else -> "No outgoing activity found."
     }
     AlertDialog(onDismissRequest = onDismiss,
         title = { Text("Lightning & nutzaps") },
         text = {
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                ProfileAddressField(if (address.startsWith("lnurl", ignoreCase = true)) "LNURL" else "Lightning address", address)
-                TextButton(onClick = {
+                ProfileAddressField(if (address.startsWith("lnurl", ignoreCase = true)) "LNURL" else "Lightning", address) {
                     val term = JSONObject.quote(address)
-                    onDismiss()
-                    onNavigate("kind:0 $term OR kind:1 $term")
-                }) { Text("Search this address") }
+                    onDismiss(); onNavigate("kind:0 $term OR kind:1 $term")
+                }
                 Text(status)
-                Text("Icon colors", style = MaterialTheme.typography.titleSmall)
-                ActivityLegendRow(zapActivityColor, "Yellow — sent zap activity found")
-                ActivityLegendRow(nutzapActivityColor, "Purple — sent nutzap activity found")
-                ActivityLegendRow(combinedZapActivityColor, "Green — both types found")
-                ActivityLegendRow(MaterialTheme.colorScheme.onSurfaceVariant, "Gray — address published; activity pending or not found")
-                Text("What are they?", style = MaterialTheme.typography.titleSmall)
-                Text("Zaps are monetary transactions using Bitcoin’s Lightning Network, with receipts on Nostr. Nutzaps are monetary transactions using Cashu ecash tokens issued by a mint. Either can be a tip, a purchase, a donation, or another kind of payment. Cashu tokens depend on the mint honoring them.")
-                Text("What was checked", style = MaterialTheme.typography.titleSmall)
-                Text("We look for public zap receipts (kind 9735) naming this profile as sender, and nutzap events (kind 9321) signed by this profile. Checks use ${generalRelays.joinToString { it.removePrefix("wss://") }} and may use cached results.",
-                    style = MaterialTheme.typography.bodySmall)
-                Text("The colors indicate observed sending activity, not a balance, identity verification, or proof of payment. This check does not test whether the published address can receive payments.", style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = { openUrl(context, "https://github.com/nostr-protocol/nips/blob/master/57.md") }) { Text("Learn more about Lightning zaps") }
-                TextButton(onClick = { openUrl(context, "https://github.com/nostr-protocol/nips/blob/master/61.md") }) { Text("Learn more about Cashu nutzaps") }
+                ActivityLegendRow(zapActivityColor, "Zaps")
+                ActivityLegendRow(nutzapActivityColor, "Nutzaps")
+                ActivityLegendRow(combinedZapActivityColor, "Both")
+                ActivityLegendRow(MaterialTheme.colorScheme.onSurfaceVariant, "Pending / not found")
+                Text("Zaps: monetary transactions over Lightning.\nNutzaps: monetary transactions using Cashu ecash.")
+                Text("Checked: outgoing zap receipts and nutzaps on public relays. Payments and address availability are unchecked.", style = MaterialTheme.typography.bodySmall)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { ActionIcon(Icons.Outlined.Close, "Close", onDismiss) },
+        dismissButton = { Row {
+            ActionIcon(Icons.Outlined.Bolt, "About Lightning zaps", { openUrl(context, "https://github.com/nostr-protocol/nips/blob/master/57.md") })
+            ActionIcon(Icons.Outlined.Toll, "About Cashu nutzaps", { openUrl(context, "https://github.com/nostr-protocol/nips/blob/master/61.md") })
+        } },
     )
 }
 

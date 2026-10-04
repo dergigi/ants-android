@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Shorten both profile popovers to concise status and icon legends. Use icon-only search, copy, documentation, and close actions with tooltips and accessibility labels.
+
 ## [0.25.3] - 2026-10-04
 
 ### Fixed
