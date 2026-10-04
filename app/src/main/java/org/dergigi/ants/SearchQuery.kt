@@ -1,5 +1,10 @@
 package org.dergigi.ants
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
@@ -53,19 +58,29 @@ class SearchQuery(private val currentPubkey: String? = null,
         }
         // Validate every branch before starting any network-dependent identity lookup.
         val plans = queryLeaves(input).map { compileQueryBranch(it, now) }
-        val resolved = mutableMapOf<String, List<String>>()
-        var contacts: Set<String> = emptySet()
-        suspend fun keys(value: String): List<String> {
-            val token = if (value.equals("@contacts", true)) "@contacts" else value
-            return resolved[token] ?: (if (token == "@contacts") {
-                require(currentPubkey != null) { "Use /login before searching with @contacts." }
-                resolveContacts().mapNotNull(Nip19::normalizePubkey).distinct().also {
-                    require(it.isNotEmpty()) { "Your public follow list has no contacts to search." }
-                    require(it.size <= MAX_SEARCH_CONTACTS) { "Your follow list exceeds the $MAX_SEARCH_CONTACTS-contact search limit." }
-                    contacts = it.toSet()
-                }
-            } else listOf(resolve(value))).also { resolved[token] = it }
+        fun token(value: String) = value.trim().lowercase()
+        val tokens = plans.flatMap { it.authors.flatten() + it.mentions.orEmpty() }.map(::token).distinct()
+        if (tokens.any { it == "@me" || it == "@contacts" }) {
+            require(currentPubkey != null) { "Use /login before searching with @me or @contacts." }
         }
+        // Resolve independent identities together, once per token, before mutating filters.
+        // coroutineScope cancels siblings on failure or when the search is stopped.
+        val resolved = coroutineScope {
+            val slots = Semaphore(4)
+            tokens.map { value -> async {
+                slots.withPermit {
+                    val keys = if (value == "@contacts") {
+                        resolveContacts().mapNotNull(Nip19::normalizePubkey).distinct().also {
+                            require(it.isNotEmpty()) { "Your public follow list has no contacts to search." }
+                            require(it.size <= MAX_SEARCH_CONTACTS) { "Your follow list exceeds the $MAX_SEARCH_CONTACTS-contact search limit." }
+                        }
+                    } else listOf(resolve(value))
+                    value to keys
+                }
+            } }.awaitAll().toMap()
+        }
+        val contacts = resolved["@contacts"].orEmpty().toSet()
+        fun keys(value: String): List<String> = resolved.getValue(token(value))
         return plans.map { plan ->
             var authors: Set<String>? = null
             for (clause in plan.authors) {

@@ -8,6 +8,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.json.JSONArray
@@ -52,7 +54,12 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     private var pendingSignature: EventSignRequest? = null
     private var activeSigningId: String? = null
 
-    private suspend fun signProfileRequest(event: Nip01Event): Nip01Event? {
+    private val profileSigningMutex = Mutex()
+    // Only signature acquisition is serialized; Vertex HTTP requests can overlap.
+    private suspend fun signProfileRequest(event: Nip01Event): Nip01Event? =
+        profileSigningMutex.withLock { signProfileRequestSerial(event) }
+
+    private suspend fun signProfileRequestSerial(event: Nip01Event): Nip01Event? {
         val packageName = preferences.getString("signerPackage", null) ?: return null
         if (state.value.pubkey != event.pubkey) return null
         // Use previously granted signer permission without opening another app.
@@ -220,10 +227,10 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 val parsed = withContext(Dispatchers.IO) {
                     SearchQuery(identity, resolveContacts = { profileResolver.contacts(identity, state.value.relays) }) { name ->
                         profileResolver.resolve(name, identity, state.value.relays).also { key ->
-                            resolved[name] = key
                             withContext(Dispatchers.Main.immediate) {
-                                if (current == generation && command == null) mutable.update {
-                                    it.copy(translation = queryPreview(input, identity, queryTime, resolved))
+                                if (current == generation && command == null) {
+                                    resolved[name] = key
+                                    mutable.update { it.copy(translation = queryPreview(input, identity, queryTime, resolved)) }
                                 }
                             }
                         }

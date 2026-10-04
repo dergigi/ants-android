@@ -46,7 +46,7 @@ internal fun queryPreview(input: String, identity: String?, now: Instant, resolv
             val filters = SearchBranch(plan.filter).queryTranslation()
             fun person(value: String): String {
                 if (value.equals("@contacts", true)) return "@contacts"
-                val key = resolved[value] ?: (if (value.equals("@me", true)) identity else Nip19.normalizePubkey(value))
+                val key = resolved[value] ?: resolved[value.trim().lowercase()] ?: (if (value.equals("@me", true)) identity else Nip19.normalizePubkey(value))
                 return key?.let(Nip19::npubEncode) ?: JSONObject.quote(value)
             }
             fun clause(field: String, values: List<String>) = if (values.size == 1) "$field:${person(values.single())}"
