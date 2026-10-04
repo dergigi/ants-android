@@ -148,3 +148,4 @@ internal val searchExamples = listOf(
     "by:(dergigi OR fiatjaf) kind:(1 OR 30023)",
     "by:(@me OR @contacts) kind:(1 OR 30023)",
 ).map { query -> SearchExample(query, needsLogin = Regex("(?i)@(me|contacts)\\b").containsMatchIn(query)) }
+    .sortedBy { it.query.length }
