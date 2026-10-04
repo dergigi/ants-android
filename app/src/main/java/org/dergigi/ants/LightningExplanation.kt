@@ -2,7 +2,6 @@ package org.dergigi.ants
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bolt
@@ -40,7 +39,7 @@ internal fun LightningExplanation(address: String, indicators: ProfileIndicators
         title = { Text("Lightning & nutzaps") },
         text = {
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SelectionContainer { Text("Published Lightning address / LNURL\n$address") }
+                ProfileAddressField(if (address.startsWith("lnurl", ignoreCase = true)) "LNURL" else "Lightning address", address)
                 TextButton(onClick = {
                     val term = JSONObject.quote(address)
                     onDismiss()

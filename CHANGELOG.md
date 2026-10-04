@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Add a complete NIP-05 icon/color legend, shared with profile-card indicators, and prominent NIP-05/Lightning address fields with dedicated clipboard-copy buttons in both popovers.
+
 - Describe zaps and nutzaps as monetary transactions, with tips, purchases, and donations as possible uses.
 
 ## [0.25.2] - 2026-10-04

@@ -48,8 +48,8 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
             catch (_: Exception) { ProfileIndicators() }
         checkingIndicators = false
     }
-    val green = Color(0xFF4ADE80)
-    val identityColor = when { fields.nip05.isBlank() -> Color(0xFFFACC15); indicators.verified == true -> green; indicators.verified == false -> Color(0xFFF87171); else -> MaterialTheme.colorScheme.onSurfaceVariant }
+    val identityBadge = nip05Badge(fields.nip05, indicators.verified)
+    val identityColor = identityBadge.tint ?: MaterialTheme.colorScheme.onSurfaceVariant
     val lightningColor = indicators.lightningColor(MaterialTheme.colorScheme.onSurfaceVariant)
     val lightningStatus = when { checkingIndicators -> "Checking zap activity"; indicators.sentZap && indicators.sentNutzap -> "Zap and nutzap activity found"; indicators.sentZap -> "Zap activity found"; indicators.sentNutzap -> "Nutzap activity found"; else -> "Lightning address; no activity found" }
     val domain = normalizedNip05(fields.nip05).substringAfter('@', "")
@@ -91,12 +91,7 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
                     indicators.verified == false -> "NIP-05 does not match this profile: ${fields.nip05}"
                     else -> "NIP-05 not verified: ${fields.nip05}"
                 }
-                ProfileStatusIcon(when {
-                    fields.nip05.isBlank() -> Icons.Outlined.ErrorOutline
-                    indicators.verified == false -> Icons.Outlined.HighlightOff
-                    indicators.verified == true && rootIdentity -> Icons.Outlined.DoneAll
-                    else -> Icons.Outlined.Badge
-                }, identityStatus, identityColor) {
+                ProfileStatusIcon(identityBadge.icon, "$identityStatus. Explain identity check", identityColor) {
                     identityInfoOpen = true
                 }
                 if (fields.nip05.isNotBlank()) {
