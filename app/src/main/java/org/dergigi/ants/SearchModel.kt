@@ -540,7 +540,10 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
-    override fun onCleared() { relay.http.dispatcher.cancelAll(); relay.http.connectionPool.evictAll() }
+    override fun onCleared() {
+        super.onCleared()
+        NetworkCleanup.close(relay.http)
+    }
 }
 
 fun incomingQuery(value: String): String {
