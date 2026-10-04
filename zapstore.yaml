@@ -6,7 +6,7 @@ summary: Advanced Nostr text search, native on Android
 description: |
   ants is an opinionated search interface for Nostr, native on Android, with its own query language. Search notes and profiles without an account.
 
-  Combine text with filters for authors, dates, hashtags, and event kinds. Use AND, OR, and nested groups to express queries like (bitcoin OR lightning) by:dergigi since:2w.
+  Combine text with filters for authors, dates, hashtags, and event kinds. Use AND, OR, and nested groups to express queries like `(bitcoin OR lightning) by:dergigi since:2w`.
 
   The query language uses an ANTLR parser and shares its grammar with ants on the web.
 tags:
