@@ -15,10 +15,15 @@ private val profileSearchAliases = listOf(
 internal fun ProfileSearchMenu(author: String, onSearch: (String) -> Unit) {
     profileSearchAliases.forEach { alias ->
         val keyword = "is:$alias"
-        DropdownMenuItem(text = { Text(keyword) }, enabled = kindAliases.getValue(alias).all { it in renderedKinds },
+        DropdownMenuItem(text = { Text(keyword) },
             onClick = { onSearch("$keyword by:$author") })
     }
     // Mentions target the profile, rather than events authored by it.
     DropdownMenuItem(text = { Text("mentions:") }, onClick = { onSearch("mentions:$author") })
+    DropdownMenuItem(text = { Text("kind:3") }, onClick = { onSearch("kind:3 by:$author") })
+    if (author == "@me") {
+        DropdownMenuItem(text = { Text("by:@contacts") }, onClick = { onSearch("by:@contacts") })
+        DropdownMenuItem(text = { Text("mentions:@contacts") }, onClick = { onSearch("mentions:@contacts") })
+    }
     DropdownMenuItem(text = { Text("kind:1111") }, onClick = { onSearch("kind:1111 by:$author") })
 }

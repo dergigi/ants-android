@@ -8,9 +8,10 @@ A native Android search and discovery app for Nostr, based on [ants](https://git
 
 - Vertex results, direct profile lookups, and resolved names are cached in memory for five minutes; empty results expire after 30 seconds. Identical concurrent lookups share work. `/clear` and account changes reset discovery caches.
 - Structured queries use NIP-65 author write relays and mention read relays, with secure pointer hints and fallback relays. Relay lists stay in a bounded memory cache (10 minutes; missing lists retry after 1 minute) and `/clear` clears them.
-- Text search across configurable NIP-50 relays, with deduplicated, signature-verified results. Only supported native content types are shown; encrypted/protocol events, raw JSON payloads (except intentional code snippets), and empty media cards are excluded.
+- Text search across configurable NIP-50 relays, with deduplicated, signature-verified results. Broad queries show native readable kinds. Explicit numeric kinds and direct event lookups include other event types through a bounded content-and-tags view; encrypted payloads are labeled. All web kind shortcuts are supported.
 - Single-profile searches show the profile card above its author feed, newest first across supported kinds, with up to 500 events. Multi-profile searches remain profile lists.
-- Native cards for reposts, Git patches/issues, reports, zap receipts/nutzaps, public mute/pin/bookmark lists, and follow packs. List entries link to notes/profiles; encrypted entries remain hidden. Payment cards display published amounts without claiming independent payment verification.
+- File attachments expose open links, MIME type, size, and published hash, including PDFs and other non-media files. Image metadata supports file URLs and imeta tags.
+- Native cards for public follow lists, reposts, Git patches/issues, reports, zap receipts/nutzaps, public mute/pin/bookmark lists, and follow packs. List entries link to notes/profiles; encrypted entries remain hidden. Payment cards display published amounts without claiming independent payment verification.
 - Hashtags, author and mention filters, NIP-05 resolution, kinds, date ranges, nested AND/OR queries and scoped fields, and image/video filters.
 - Direct lookup of `npub`, `nprofile`, `note`, `nevent`, `naddr`, and event hex IDs.
 - Custom emoji images in reactions and note text, including animated GIF and SVG assets, with shortcode fallback on loading failure.
@@ -24,7 +25,7 @@ A native Android search and discovery app for Nostr, based on [ants](https://git
 - Type `/` in the search box to browse all commands, narrow by prefix, and tap to execute.
 - All web slash commands: `/help`, `/examples`, `/kinds`, `/login`, `/logout`, `/clear`, and `/tutorial`, with tappable help examples and kind shortcuts.
 - Top-right account avatar on every screen, with a native profile panel, own posts, mentions, public-key copying, and logout. Account profile metadata loads on startup and login.
-- Optional external Android signer connection (such as Amber) for `by:@me` and `mentions:@me`. No secret-key entry or import.
+- Optional external Android signer connection (such as Amber) for `by:@me`, `mentions:@me`, `by:@contacts`, and `mentions:@contacts`. Contact searches use the latest verified public follow list, cache it for five minutes, and support up to 5,000 contacts; missing or empty lists fail explicitly. No secret-key entry or import.
 - Recent search history.
 - Receive shared text, `nostr:` links, and `ants.sh` links.
 - Relay status, cancellation, retry, pull-to-refresh, and editable search relays.

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Expose contacts in account search menus and complexity-sorted examples; document full numeric-kind searches and generic event viewing in help and `/kinds`.
+
 - Precompute branch filter membership sets so large contact searches do not rebuild key lists for every incoming event.
 
 - Support every explicit numeric event kind and direct event/address lookup with a bounded generic event view, while retaining specialized native renderers and readable defaults. Add follow-list cards, NIP-94 file links and metadata, and image URLs from file/imeta tags.

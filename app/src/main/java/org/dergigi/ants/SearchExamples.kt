@@ -33,6 +33,8 @@ internal val searchExamples = listOf(
     "p:RSS",
     "by:@me",
     "mentions:@me",
+    "by:@contacts",
+    "mentions:@contacts",
     "has:image",
     "has:video",
     "is:image",
@@ -59,6 +61,9 @@ internal val searchExamples = listOf(
     "by:dergigi.com",
     "is:file",
     "by:npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc",
+
+    "kind:3",
+    "kind:10002",
 
     // Combined filters and text
     "GM by:dergigi",
@@ -102,6 +107,7 @@ internal val searchExamples = listOf(
     "is:code by:hzrd149",
     "is:highlight by:dergigi",
     "is:longform by:dergigi",
+    "is:article by:@contacts",
     "GM fiat by:fiatjaf",
     "stay humble by:odell",
     "GM by:dergigi since:12h",
@@ -139,4 +145,5 @@ internal val searchExamples = listOf(
     "since:2w (bitcoin OR nostr)",
     "(by:dergigi kind:1) OR (by:fiatjaf kind:30023)",
     "by:(dergigi OR fiatjaf) kind:(1 OR 30023)",
-).map { query -> SearchExample(query, needsLogin = query.contains(":@me")) }
+    "by:(@me OR @contacts) kind:(1 OR 30023)",
+).map { query -> SearchExample(query, needsLogin = Regex("(?i)@(me|contacts)\\b").containsMatchIn(query)) }

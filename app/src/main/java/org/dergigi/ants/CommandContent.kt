@@ -43,7 +43,7 @@ internal fun HelpContent(onSearch: (String) -> Unit) {
                     color = terminalText, fontSize = 13.sp)
                 CommandRow("(bitcoin OR lightning) by:dergigi", onSearch)
                 CommandRow("by:(dergigi OR fiatjaf) kind:(1 OR 30023)", onSearch)
-                Text("Use p: for profiles, site: for domains, and /kinds for shortcuts. NOT and @contacts are unsupported. Searches allow 16 nested groups and 32 expanded branches.",
+                Text("Use p: for profiles, site: for domains, and /kinds for shortcuts. Use by:@contacts or mentions:@contacts for your public follows after /login. Any kind:0–65535 can be searched; NOT is unsupported. Searches allow 16 nested groups and 32 expanded branches.",
                     color = terminalText, fontSize = 13.sp)
                 Text("v${BuildConfig.VERSION_NAME} ${BuildConfig.GIT_COMMIT.take(7)}",
                     Modifier.fillMaxWidth().clickable(role = Role.Button, onClickLabel = "Open GitHub release") {
@@ -69,8 +69,13 @@ internal fun LazyListScope.commandItems(state: SearchState, onSearch: (String) -
             }
         }
         "kinds" -> {
-            val kinds = kindAliases.entries.filter { entry -> entry.value.all { it in renderedKinds } }
+            val kinds = kindAliases.entries.toList()
             terminalItems(kinds.size, { "kind-${kinds[it].key}" }) { CommandRow("is:${kinds[it].key}", onSearch) }
+            item { CommandTerminal {
+                Text("All event kinds (0–65535) can be searched with kind:. Other kinds use a content-and-tags view.")
+                CommandRow("kind:3", onSearch)
+                CommandRow("kind:10002", onSearch)
+            } }
         }
         "login" -> item { CommandTerminal { LoginContent(state, onConnect, onSearch) } }
         "logout", "clear" -> item { CommandTerminal {
