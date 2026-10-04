@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Update the Zapstore description to explain the opinionated search interface, its query language, and the shared ANTLR grammar, with the query example formatted as inline code.
+- Update the Zapstore description to explain the opinionated search interface, its query language, and the shared ANTLR grammar, with `(GM OR 🫂) by:dergigi since:2w` as an inline code example.
 
 ## [0.25.4] - 2026-10-04
 
