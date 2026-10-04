@@ -41,22 +41,28 @@ class RelaySearch {
             }
         }
         routes.forEach { (url, branches) ->
+            val subscriptions = branches.mapIndexed { index, branch -> "ants-$index" to branch }.toMap()
+            val active = ConcurrentHashMap.newKeySet<String>().apply { addAll(subscriptions.keys) }
+            fun completeSubscription(id: String, status: String) {
+                if (active.remove(id) && active.isEmpty()) finish(url, status)
+            }
             trySend(RelayUpdate.Status(url, "Connecting"))
             sockets += http.newWebSocket(Request.Builder().url(url).build(), object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     trySend(RelayUpdate.Status(url, "Searching"))
-                    val req = JSONArray().put("REQ").put("ants")
-                    branches.forEach { req.put(it.filter) }
-                    webSocket.send(req.toString())
+                    subscriptions.forEach { (id, branch) ->
+                        webSocket.send(JSONArray().put("REQ").put(id).put(branch.filter).toString())
+                    }
                 }
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     if (url !in pending || text.length > 1_000_000) return
                     runCatching {
                         val message = JSONArray(text)
                         when (message.optString(0)) {
-                            "EVENT" -> if (message.optString(1) == "ants" && seen.size < 500) {
+                            "EVENT" -> if (message.optString(1) in active && seen.size < 500) {
+                                val branch = subscriptions[message.optString(1)] ?: return
                                 val event = Nip01Event.parse(message.getJSONObject(2)) ?: return
-                                if (event.id !in seen && branches.any { it.accepts(event) } && event.verify()) {
+                                if (event.id !in seen && branch.accepts(event) && event.verify()) {
                                     val admitted = synchronized(admission) {
                                         when {
                                             event.id in seen || seen.size >= 500 -> 0
@@ -66,13 +72,17 @@ class RelaySearch {
                                     }
                                     if (admitted > 0) trySendBlocking(RelayUpdate.Event(event, url))
                                     else if (admitted < 0) {
-                                        webSocket.send("[\"CLOSE\",\"ants\"]")
+                                        active.forEach { webSocket.send(JSONArray().put("CLOSE").put(it).toString()) }
                                         finish(url, RESULT_MEMORY_LIMIT)
                                     }
                                 }
                             }
-                            "EOSE" -> if (message.optString(1) == "ants") { webSocket.send("[\"CLOSE\",\"ants\"]"); finish(url, "Complete") }
-                            "CLOSED" -> if (message.optString(1) == "ants") finish(url, message.optString(2).take(120).ifBlank { "Closed" })
+                            "EOSE" -> if (message.optString(1) in active) {
+                                val id = message.getString(1)
+                                webSocket.send(JSONArray().put("CLOSE").put(id).toString())
+                                completeSubscription(id, "Complete")
+                            }
+                            "CLOSED" -> completeSubscription(message.optString(1), message.optString(2).take(120).ifBlank { "Closed" })
                             "AUTH" -> finish(url, "Login required")
                             "NOTICE" -> trySend(RelayUpdate.Status(url, message.optString(1).take(120)))
                         }

@@ -248,7 +248,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     updateProfiles(profiles)
                     mutable.update { it.copy(events = boundedEvents(latestProfileEvents(it.events + profiles)), rankedProfiles = ordinaryBranches.isEmpty()) }
                 }
-                if (ordinaryBranches.isNotEmpty()) outbox.search(ordinaryBranches, state.value.relays).batched().flowOn(Dispatchers.IO).collect { updates ->
+                if (ordinaryBranches.isNotEmpty()) outbox.searchPlan(ordinaryBranches, state.value.relays).batched().flowOn(Dispatchers.IO).collect { updates ->
                     if (current != generation) return@collect
                     receiveSearchUpdates(updates, current, profileOnly)
                 }

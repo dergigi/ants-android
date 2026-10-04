@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Isolate relay subscriptions by branch, validate returned events against their originating filters, and bound planned relay searches to four concurrent branches with a 30-second deadline.
+
 - Integrate the shared ANTLR 4.13.2 query grammar into Android search and preview, with nested groups, AND precedence, scoped fields, escaped quotes, shared aliases, and bounded branch expansion.
 - Preserve branch-local filters, intersect repeated authors/kinds, and reject malformed queries, contradictory dates, unknown modifiers, and unsupported required tag combinations.
 

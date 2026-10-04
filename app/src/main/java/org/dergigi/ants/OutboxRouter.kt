@@ -3,6 +3,11 @@ package org.dergigi.ants
 import android.os.SystemClock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -42,6 +47,27 @@ internal class OutboxRouter(private val relay: RelaySearch) {
 
     fun search(branches: List<SearchBranch>, searchRelays: List<String>, duration: Long = 14000) = flow {
         emitAll(relay.searchRoutes(routes(branches, searchRelays), duration))
+    }.flowOn(Dispatchers.IO)
+
+    /** Plan routes once, then isolate each text branch's relay response and local filters. */
+    fun searchPlan(branches: List<SearchBranch>, searchRelays: List<String>) = channelFlow {
+        val completed = withTimeoutOrNull(30_000) {
+            val plannedRoutes = routes(branches, searchRelays)
+            val slots = Semaphore(4)
+            kotlinx.coroutines.coroutineScope {
+                branches.forEachIndexed { index, branch -> launch {
+                    slots.withPermit {
+                        val branchRoutes = plannedRoutes.filterValues { branch in it }.mapValues { listOf(branch) }
+                        relay.searchRoutes(branchRoutes, 8000).collect { update ->
+                            send(if (update is RelayUpdate.Status && branches.size > 1)
+                                update.copy(relay = "${update.relay} [${index + 1}]") else update)
+                        }
+                    }
+                } }
+            }
+            true
+        }
+        if (completed == null) send(RelayUpdate.Status("Search", "Search deadline reached; showing partial results"))
     }.flowOn(Dispatchers.IO)
 
     private fun keys(branch: SearchBranch, field: String): List<String> = branch.filter.optJSONArray(field)?.let { array ->
