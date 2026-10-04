@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.3] - 2026-10-04
+
 ### Changed
 
 - Describe zaps and nutzaps as monetary transactions, with tips, purchases, and donations as possible uses.
