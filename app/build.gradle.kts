@@ -102,6 +102,8 @@ android {
         xmlReport = true
     }
 
+    sourceSets.getByName("test").resources.srcDir(rootProject.file("grammar/fixtures"))
+
     packaging {
         resources {
             excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
@@ -116,6 +118,8 @@ androidComponents {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
     implementation("org.antlr:antlr4-runtime:4.13.2")
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)

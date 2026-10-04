@@ -93,6 +93,10 @@ internal fun queryLeaves(input: String): List<List<QueryNode>> {
             fun remap(tree: QueryNode): QueryNode = tree.copy(position = n.position, children = tree.children.map(::remap))
             return expand(remap(parseQueryTree(alias)), depth + 1)
         }
+        // Keep Android's existing /kinds shortcuts alongside the shared aliases.
+        if (n.field == "is") kindAliases[n.value.lowercase()]?.let { kinds ->
+            return n.copy(field = "kind", value = kinds.joinToString(","), quoted = false)
+        }
         if (n.field == "site") return n.copy(field = "", quoted = false)
         if (n.field !in listOf("by", "from", "mentions", "kind", "since", "until", "p", "a", "license", "domain", "language", "sentiment", "nsfw", "include")) n.fail("Unknown modifier '${n.field}:'")
         return n

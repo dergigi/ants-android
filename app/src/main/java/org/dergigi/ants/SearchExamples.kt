@@ -3,9 +3,12 @@ package org.dergigi.ants
 internal data class SearchExample(val query: String, val needsLogin: Boolean)
 
 // Existing Android examples plus supported examples from web ants/src/lib/examples.ts.
-// Grouped web queries use equivalent complete OR branches; unsupported modifiers
-// and event kinds stay out until Android can search and render them.
+// Include grouped expressions supported by the shared ANTLR grammar.
 internal val searchExamples = listOf(
+    "(bitcoin OR lightning) by:dergigi",
+    "by:(dergigi OR fiatjaf) kind:(1 OR 30023)",
+    "(by:dergigi kind:1) OR (by:fiatjaf kind:30023)",
+    "since:2w (bitcoin OR nostr)",
     "vibe coding",
     "bitcoin OR lightning",
     "\"proof of work\"",

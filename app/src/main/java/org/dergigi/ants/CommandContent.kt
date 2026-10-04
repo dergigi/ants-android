@@ -38,6 +38,13 @@ internal fun HelpContent(onSearch: (String) -> Unit) {
                         Text(command.description, Modifier.weight(1f), color = terminalText, fontFamily = FontFamily.Monospace, fontSize = 13.sp)
                     }
                 }
+                Text("Search syntax", color = terminalText, fontFamily = FontFamily.Monospace)
+                Text("Group with parentheses. AND and spaces bind before OR. Quote literal phrases; use \\\" for a quote inside a phrase. Repeated authors and kinds intersect; use OR for alternatives.",
+                    color = terminalText, fontSize = 13.sp)
+                CommandRow("(bitcoin OR lightning) by:dergigi", onSearch)
+                CommandRow("by:(dergigi OR fiatjaf) kind:(1 OR 30023)", onSearch)
+                Text("Use p: for profiles, site: for domains, and /kinds for shortcuts. NOT and @contacts are unsupported. Searches allow 16 nested groups and 32 expanded branches.",
+                    color = terminalText, fontSize = 13.sp)
                 Text("v${BuildConfig.VERSION_NAME} ${BuildConfig.GIT_COMMIT.take(7)}",
                     Modifier.fillMaxWidth().clickable(role = Role.Button, onClickLabel = "Open GitHub release") {
                         openUrl(context, "https://github.com/dergigi/ants-android/releases/tag/v${BuildConfig.VERSION_NAME}")

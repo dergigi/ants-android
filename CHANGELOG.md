@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Document grouped search syntax in help and examples, and add portable fixture checks for future JVM validation (not run under the device-only validation policy). Preserve Android’s existing note/notes kind shortcuts.
+
 - Isolate relay subscriptions by branch, validate returned events against their originating filters, and bound planned relay searches to four concurrent branches with a 30-second deadline.
 
 - Integrate the shared ANTLR 4.13.2 query grammar into Android search and preview, with nested groups, AND precedence, scoped fields, escaped quotes, shared aliases, and bounded branch expansion.
