@@ -69,10 +69,10 @@ private data class PreparedContent(
 @Composable
 internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
     if (event.kind == 1063) { FileContent(event, profiles, compact, onNavigate); return }
+    if (event.kind in listKinds) { ListContent(event, profiles, compact, onNavigate); return }
     if (!event.isRenderable()) { GenericEventContent(event, profiles, compact, onNavigate); return }
     if (event.kind in setOf(9321, 9735)) { PaymentContent(event, profiles, compact, onNavigate); return }
     if (event.kind == 6) { RepostContent(event, onNavigate); return }
-    if (event.kind in listKinds) { ListContent(event, profiles, compact, onNavigate); return }
     ResolveMentionProfiles(event)
     if (event.kind in setOf(1617, 1621)) { DevelopmentContent(event, compact, onNavigate); return }
     if (event.kind == 1984) { ReportContent(event, profiles, compact, onNavigate); return }

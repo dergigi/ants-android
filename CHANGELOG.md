@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep private-only list events in their encrypted-list renderer and use bounded, efficient contact lookup and preview membership checks.
+
 ### Added
 
 - Expose contacts in account search menus and complexity-sorted examples; document full numeric-kind searches and generic event viewing in help and `/kinds`.

@@ -16,7 +16,7 @@ internal fun SearchBranch.queryTranslation(): String {
         return "nostr:" + Nip19.naddrEncode(NaddrPointer(identifiers.single(), authors.single(), kinds.single().toInt()))
     }
     fun people(keys: List<String>): String {
-        if (contactKeys.isNotEmpty() && keys.containsAll(contactKeys)) {
+        if (contactKeys.isNotEmpty() && keys.toHashSet().containsAll(contactKeys)) {
             return (listOf("@contacts") + keys.filterNot { it in contactKeys }.map(Nip19::npubEncode)).joinToString(",")
         }
         return keys.take(20).joinToString(",", transform = Nip19::npubEncode) +
