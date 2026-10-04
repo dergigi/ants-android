@@ -232,7 +232,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 if (current != generation) return@launch
                 mutable.update { it.copy(translation = if (command != null) input else parsed.joinToString("\nOR ") { branch -> branch.queryTranslation() }) }
                 val branches = parsed.mapNotNull { it.forRenderedResults() }
-                require(branches.isNotEmpty()) { "This event type has no native display yet. Use /kinds to browse supported content." }
+                require(branches.isNotEmpty()) { "No valid event kinds to search. Use kind:0 through kind:65535." }
                 if (current != generation) return@launch
                 val history = (listOf(input) + state.value.history.filter { it != input }).take(20)
                 persist("history", history); mutable.update { it.copy(history = history) }
@@ -260,7 +260,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                     mutable.update { it.copy(profileFeedAuthor = singleProfile.pubkey, rankedProfiles = false, statuses = emptyMap()) }
                     val feed = SearchBranch(JSONObject()
                         .put("authors", JSONArray().put(singleProfile.pubkey))
-                        .put("kinds", JSONArray(renderedKinds.filter { it != 0 }))
+                        .put("kinds", JSONArray(defaultSearchKinds.filter { it != 0 }))
                         .put("limit", 500), renderedOnly = true)
                     outbox.search(listOf(feed), (state.value.relays + generalRelays).distinct())
                         .batched().flowOn(Dispatchers.IO).collect { updates ->

@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-internal val listKinds = setOf(10000, 10001, 10003, 39089)
+internal val listKinds = setOf(3, 10000, 10001, 10003, 39089)
 internal data class ListEntry(val type: String, val value: String, val query: String)
 
 internal fun publicListEntries(event: Nip01Event): List<ListEntry> = event.tags.mapNotNull { tag ->
@@ -23,7 +23,7 @@ internal fun publicListEntries(event: Nip01Event): List<ListEntry> = event.tags.
         10000 -> setOf("p", "e", "t", "word")
         10001 -> setOf("e")
         10003 -> setOf("e", "a")
-        39089 -> setOf("p")
+        3, 39089 -> setOf("p")
         else -> emptySet()
     }
     if (type !in allowed) return@mapNotNull null
@@ -38,10 +38,7 @@ internal fun publicListEntries(event: Nip01Event): List<ListEntry> = event.tags.
 /** A reference is navigation, never raw JSON or an automatically expanded list. */
 @Composable
 internal fun EventReferenceRow(entry: ListEntry, profiles: Map<String, Profile>, onNavigate: (String) -> Unit) {
-    val destination = remember(entry.query) {
-        val kind = runCatching { Nip19.naddrDecode(entry.query).kind }.getOrNull()
-        if (kind != null && kind !in renderedKinds) "https://njump.to/${entry.query}" else entry.query
-    }
+    val destination = entry.query
     val pubkey = if (entry.type == "p") Nip19.normalizePubkey(entry.value) else null
     val name = pubkey?.let { profiles[it]?.name }
     val label = name ?: when (entry.type) {
@@ -78,13 +75,13 @@ internal fun ListContent(event: Nip01Event, profiles: Map<String, Profile>, comp
                 EventContent(event.copy(kind = 1, content = description, tags = event.tags.filter { it.firstOrNull() == "image" }), null, profiles, compact, onNavigate)
             }
         }
-        Text("${all.size} ${if (event.kind == 39089) "profiles" else "public entries"}", style = MaterialTheme.typography.labelMedium,
+        Text("${all.size} ${if (event.kind in setOf(3, 39089)) "profiles" else "public entries"}", style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         all.take(visibleCount).forEach { entry -> key(entry.query) { EventReferenceRow(entry, profiles, onNavigate) } }
         if (all.size > visibleCount) TextButton(onClick = {
             if (compact) open(event) else visibleCount += 30
         }) { Text("+${all.size - visibleCount}") }
-        if (event.kind != 39089 && event.content.isNotBlank()) {
+        if (event.kind in setOf(10000, 10001, 10003) && event.content.isNotBlank()) {
             Icon(Icons.Outlined.Lock, "Private entries are encrypted", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

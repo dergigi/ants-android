@@ -37,10 +37,17 @@ internal fun webLinks(text: String): List<WebLink> = Regex("https?://[^\\s<>\"]+
 
 internal fun eventImages(event: Nip01Event, compact: Boolean): List<String> {
     val declared = event.tags.filter { it.firstOrNull() == "image" }.mapNotNull { it.getOrNull(1) }
+    fun imageUrl(url: String) = Uri.parse(url).path.orEmpty().substringAfterLast('.').lowercase() in setOf("jpg", "jpeg", "png", "webp", "avif", "gif", "svg")
+    val metadata = event.tags.filter { it.firstOrNull() == "imeta" }.mapNotNull { tag ->
+        val url = tag.drop(1).firstOrNull { it.startsWith("url ") }?.substringAfter(' ') ?: return@mapNotNull null
+        url.takeIf { tag.any { field -> field.startsWith("m image/") } || imageUrl(url) }
+    }
+    val files = event.tags.filter { it.firstOrNull() == "url" }.mapNotNull { it.getOrNull(1) }
+        .filter { event.tagValue("m")?.startsWith("image/") == true || imageUrl(it) }
     val inline = webLinks(event.content).map { it.text }.filter {
         Uri.parse(it).path.orEmpty().substringAfterLast('.').lowercase() in setOf("jpg", "jpeg", "png", "webp", "avif", "gif")
     }
-    return (declared + inline).filter { Uri.parse(it).scheme == "https" }.distinct().take(if (compact) 4 else 100)
+    return (declared + metadata + files + inline).filter { Uri.parse(it).scheme == "https" }.distinct().take(if (compact) 4 else 100)
 }
 
 internal fun withoutRenderedImages(content: String, images: List<String>): String {
@@ -61,6 +68,8 @@ private data class PreparedContent(
 
 @Composable
 internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
+    if (event.kind == 1063) { FileContent(event, profiles, compact, onNavigate); return }
+    if (!event.isRenderable()) { GenericEventContent(event, profiles, compact, onNavigate); return }
     if (event.kind in setOf(9321, 9735)) { PaymentContent(event, profiles, compact, onNavigate); return }
     if (event.kind == 6) { RepostContent(event, onNavigate); return }
     if (event.kind in listKinds) { ListContent(event, profiles, compact, onNavigate); return }

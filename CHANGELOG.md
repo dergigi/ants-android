@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Precompute branch filter membership sets so large contact searches do not rebuild key lists for every incoming event.
+
+- Support every explicit numeric event kind and direct event/address lookup with a bounded generic event view, while retaining specialized native renderers and readable defaults. Add follow-list cards, NIP-94 file links and metadata, and image URLs from file/imeta tags.
+
 - Resolve `by:@contacts`, `from:@contacts`, and `mentions:@contacts` from the signed-in account's latest verified public follow list, including grouped alternatives and intersections. Cache by account and relay settings, clear with account changes or `/clear`, and reject missing/empty lists without broadening the search.
 
 ## [0.24.1] - 2026-10-04

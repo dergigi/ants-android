@@ -401,7 +401,7 @@ private fun MessageCard(title: String, message: String) {
     } }
 }
 
-private fun kindLabel(kind: Int) = when (kind) { 0 -> "Profile"; 1 -> "Note"; 30023 -> "Article"; 9802 -> "Highlight"; 1337 -> "Code"; 20 -> "Picture"; 21, 22 -> "Video"; 7 -> "Reaction"; 6 -> "Repost"; 1617 -> "Patch"; 1621 -> "Issue"; 1984 -> "Report"; 9321 -> "Nutzap"; 9735 -> "Zap receipt"; 10000 -> "Mute list"; 10001 -> "Pinned notes"; 10003 -> "Bookmarks"; 39089 -> "Follow pack"; else -> "Kind $kind" }
+private fun kindLabel(kind: Int) = when (kind) { 0 -> "Profile"; 1 -> "Note"; 3 -> "Contacts"; 1063 -> "File"; 30023 -> "Article"; 9802 -> "Highlight"; 1337 -> "Code"; 20 -> "Picture"; 21, 22 -> "Video"; 7 -> "Reaction"; 6 -> "Repost"; 1617 -> "Patch"; 1621 -> "Issue"; 1984 -> "Report"; 9321 -> "Nutzap"; 9735 -> "Zap receipt"; 10000 -> "Mute list"; 10001 -> "Pinned notes"; 10003 -> "Bookmarks"; 39089 -> "Follow pack"; else -> "Kind $kind" }
 private fun dateLabel(time: Long) = runCatching { DateTimeFormatter.ofPattern("MMM d, yyyy · HH:mm").withZone(ZoneId.systemDefault()).format(Instant.ofEpochSecond(time)) }.getOrDefault("")
 private fun displayContent(event: Nip01Event, profile: Profile?) = if (event.kind == 0) profile?.about ?: event.content else event.content
 private fun eventUrl(event: Nip01Event) = "https://ants.sh/e/${Nip19.noteEncode(event.id)}"
@@ -420,7 +420,8 @@ private fun kindIcon(kind: Int): ImageVector = when (kind) {
     10000 -> Icons.Outlined.VolumeOff
     10001 -> Icons.Outlined.PushPin
     10003 -> Icons.Outlined.Bookmarks
-    39089 -> Icons.Outlined.Group
+    3, 39089 -> Icons.Outlined.Group
+    1063 -> Icons.Outlined.AttachFile
     9321, 9735 -> Icons.Outlined.Bolt
     else -> Icons.Outlined.ChatBubbleOutline
 }

@@ -8,9 +8,15 @@ val imagePattern = Regex("https://[^\\s<>\"]+\\.(?:png|jpe?g|gif|webp|avif)(?:\\
 
 data class SearchBranch(val filter: JSONObject, val media: String? = null, val site: String? = null, val renderedOnly: Boolean = false,
     val relayHints: List<String> = emptyList(), val outboxAuthors: List<String> = emptyList(), val contactKeys: Set<String> = emptySet()) {
+    // Contacts can add thousands of keys. Build membership sets once per branch.
+    private val filterValues: Map<String, Set<String>> by lazy {
+        filter.keys().asSequence().mapNotNull { key ->
+            filter.optJSONArray(key)?.let { array -> key to (0 until array.length()).map { array.get(it).toString() }.toSet() }
+        }.toMap()
+    }
     fun accepts(event: Nip01Event): Boolean {
         if (renderedOnly && !event.isRenderable()) return false
-        fun values(key: String): List<String> = filter.optJSONArray(key)?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty()
+        fun values(key: String): Set<String> = filterValues[key].orEmpty()
         if (values("ids").isNotEmpty() && event.id !in values("ids")) return false
         if (values("authors").isNotEmpty() && event.pubkey !in values("authors")) return false
         if (values("kinds").isNotEmpty() && event.kind.toString() !in values("kinds")) return false
