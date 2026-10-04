@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-10-04
+
 ### Fixed
 
 - Bound the merged branch delivery queue, mark active relay statuses as timed out when the search deadline expires, and count group nodes toward the syntax-tree limit.
