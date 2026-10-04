@@ -53,7 +53,7 @@ internal fun LightningExplanation(address: String, indicators: ProfileIndicators
                 ActivityLegendRow(combinedZapActivityColor, "Green — both types found")
                 ActivityLegendRow(MaterialTheme.colorScheme.onSurfaceVariant, "Gray — address published; activity pending or not found")
                 Text("What are they?", style = MaterialTheme.typography.titleSmall)
-                Text("Zaps are tips using Bitcoin’s Lightning Network, with public receipts on Nostr. Nutzaps are tips sent as Cashu ecash tokens, issued by a mint. Their value depends on the mint honoring them.")
+                Text("Zaps are monetary transactions using Bitcoin’s Lightning Network, with receipts on Nostr. Nutzaps are monetary transactions using Cashu ecash tokens issued by a mint. Either can be a tip, a purchase, a donation, or another kind of payment. Cashu tokens depend on the mint honoring them.")
                 Text("What was checked", style = MaterialTheme.typography.titleSmall)
                 Text("We look for public zap receipts (kind 9735) naming this profile as sender, and nutzap events (kind 9321) signed by this profile. Checks use ${generalRelays.joinToString { it.removePrefix("wss://") }} and may use cached results.",
                     style = MaterialTheme.typography.bodySmall)
