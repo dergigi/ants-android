@@ -30,6 +30,7 @@ internal val searchExamples = listOf(
     "by:fiatjaf",
     "by:@dergigi.com",
     "p:fiatjaf",
+    "p:ants.sh",
     "p:RSS",
     "by:@me",
     "mentions:@me",

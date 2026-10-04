@@ -31,6 +31,10 @@ internal fun CommandRow(query: String, onSearch: (String) -> Unit) {
 internal fun HelpContent(onSearch: (String) -> Unit) {
     val context = LocalContext.current
     CommandTerminal {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("ants", Modifier.weight(1f), color = terminalText, fontFamily = FontFamily.Monospace)
+                    ActionIcon(Icons.Outlined.AccountCircle, "Open ants profile", { onSearch("p:ants.sh") })
+                }
                 slashCommands.forEach { command ->
                     Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(role = Role.Button) { onSearch(command.name) }.padding(vertical = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
