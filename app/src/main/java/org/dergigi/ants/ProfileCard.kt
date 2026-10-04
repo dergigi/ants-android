@@ -38,19 +38,20 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
     val banner = http(field("banner", "cover", "header"))
     val website = field("website", "url")?.let { http(it) ?: if (':' !in it && '.' in it) "https://$it" else null }
     val lightning = field("lud16", "lud06")
-    var checkingIdentity by remember(event.pubkey, fields.nip05, lightning != null) { mutableStateOf(true) }
+    var lightningInfoOpen by remember(event.pubkey, lightning) { mutableStateOf(false) }
+    var checkingIndicators by remember(event.pubkey, fields.nip05, lightning != null) { mutableStateOf(true) }
     val indicators by produceState(ProfileIndicators(), event.pubkey, fields.nip05, lightning != null) {
         value = ProfileIndicators()
-        checkingIdentity = true
+        checkingIndicators = true
         value = try { ProfileIndicatorLookup.load(event.pubkey, fields.nip05, lightning != null) }
             catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { ProfileIndicators() }
-        checkingIdentity = false
+        checkingIndicators = false
     }
     val green = Color(0xFF4ADE80)
     val identityColor = when { fields.nip05.isBlank() -> Color(0xFFFACC15); indicators.verified == true -> green; indicators.verified == false -> Color(0xFFF87171); else -> MaterialTheme.colorScheme.onSurfaceVariant }
-    val lightningColor = when { indicators.sentZap && indicators.sentNutzap -> green; indicators.sentZap -> Color(0xFFFEF08A); indicators.sentNutzap -> Color(0xFFC084FC); else -> MaterialTheme.colorScheme.onSurfaceVariant }
-    val lightningStatus = when { indicators.sentZap && indicators.sentNutzap -> "Sent zaps and nutzaps"; indicators.sentZap -> "Sent zaps"; indicators.sentNutzap -> "Sent nutzaps"; else -> "Lightning address" }
+    val lightningColor = indicators.lightningColor(MaterialTheme.colorScheme.onSurfaceVariant)
+    val lightningStatus = when { checkingIndicators -> "Checking zap activity"; indicators.sentZap && indicators.sentNutzap -> "Zap and nutzap activity found"; indicators.sentZap -> "Zap activity found"; indicators.sentNutzap -> "Nutzap activity found"; else -> "Lightning address; no activity found" }
     val domain = normalizedNip05(fields.nip05).substringAfter('@', "")
     val rootIdentity = normalizedNip05(fields.nip05).startsWith("_@")
     val author = { onNavigate("p:$npub") }
@@ -60,8 +61,11 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
     val galleryImages = remember(picture, banner) { listOfNotNull(picture, banner).distinct() }
     fun openImage(url: String) { openGallery(galleryImages, galleryImages.indexOf(url)) }
     ResolveMentionProfiles(event)
-    if (identityInfoOpen) Nip05Explanation(fields.nip05, event.pubkey, indicators.verified, checkingIdentity) {
+    if (identityInfoOpen) Nip05Explanation(fields.nip05, event.pubkey, indicators.verified, checkingIndicators, onNavigate) {
         identityInfoOpen = false
+    }
+    if (lightningInfoOpen && lightning != null) LightningExplanation(lightning, indicators, checkingIndicators, onNavigate) {
+        lightningInfoOpen = false
     }
     Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF2D2D2D), border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
         Column(Modifier.fillMaxWidth()) {
@@ -104,9 +108,8 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
                         style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 } else Spacer(Modifier.weight(1f))
                 lightning?.let { address ->
-                    ProfileStatusIcon(Icons.Outlined.Bolt, "$lightningStatus: $address. Search this address", lightningColor) {
-                        val term = address.replace('"', ' ').trim()
-                        onNavigate("kind:0 \"$term\" OR kind:1 \"$term\"")
+                    ProfileStatusIcon(Icons.Outlined.Bolt, "$lightningStatus: $address. Explain indicator", lightningColor) {
+                        lightningInfoOpen = true
                     }
                 }
                 ActionIcon(Icons.Outlined.PhoneAndroid, "Open profile in app", { openInNostrApp(context, event) })

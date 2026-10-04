@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import org.json.JSONObject
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
@@ -22,7 +23,7 @@ internal fun nip05LookupUrl(value: String): HttpUrl {
 }
 
 @Composable
-internal fun Nip05Explanation(address: String, pubkey: String, verified: Boolean?, checking: Boolean, onDismiss: () -> Unit) {
+internal fun Nip05Explanation(address: String, pubkey: String, verified: Boolean?, checking: Boolean, onNavigate: (String) -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val missing = address.isBlank()
     val title = when {
@@ -44,8 +45,10 @@ internal fun Nip05Explanation(address: String, pubkey: String, verified: Boolean
         text = {
             Column(Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(explanation)
+                TextButton(onClick = { onDismiss(); onNavigate("p:${Nip19.npubEncode(pubkey)}") }) { Text("Search this profile") }
                 if (!missing) {
                     SelectionContainer { Text("Claimed address\n$address") }
+                    TextButton(onClick = { onDismiss(); onNavigate("p:${JSONObject.quote(address)}") }) { Text("Search claimed identity") }
                     val endpoint = runCatching { nip05LookupUrl(address).toString() }.getOrNull()
                     if (endpoint != null) {
                         SelectionContainer { Text("Lookup endpoint\n$endpoint", style = MaterialTheme.typography.bodySmall) }

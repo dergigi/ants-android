@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Tapping the Lightning icon explains its yellow/purple/green/gray activity colors, the published address, the relay checks, and Lightning zaps versus Cashu nutzaps, with links to learn more. Keep one-tap profile, claimed-identity, and address searches inside the explanations, rather than starting them directly from the icons.
+
 - Tapping a profile’s NIP-05 status opens an explanation of missing, checking, matching, mismatching, or unavailable identity checks. Show the claimed address, lookup endpoint, and profile key, with a separate “Learn more about NIP-05” link.
 
 ## [0.25.1] - 2026-10-04
