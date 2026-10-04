@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Reorder Zapstore screenshots to show search results and query examples before reading, the gallery, help, and the loading preview.
+
 ## [0.25.6] - 2026-10-04
 
 ### Added

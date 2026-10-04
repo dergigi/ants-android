@@ -19,14 +19,14 @@ website: https://ants.sh
 icon: ./zapstore-icon.png
 images:
   - ./screenshots/grouped-search.png
+  - ./screenshots/author-search.png
+  - ./screenshots/hashtag-search.png
   - ./screenshots/gif-search.png
+  - ./screenshots/examples.png
+  - ./screenshots/advanced-examples.png
   - ./screenshots/article.png
   - ./screenshots/image-gallery.png
-  - ./screenshots/author-search.png
   - ./screenshots/help.png
-  - ./screenshots/examples.png
-  - ./screenshots/hashtag-search.png
   - ./screenshots/query-preview.png
-  - ./screenshots/advanced-examples.png
 metadata_sources:
   - github
