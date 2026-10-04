@@ -41,6 +41,9 @@ internal fun parseQueryTree(input: String): QueryNode {
     lateinit var expression: (AntsQueryParser.ExpressionContext, String?) -> QueryNode
     fun primary(p: AntsQueryParser.PrimaryContext, scope: String?): QueryNode {
         val pos = p.start.startIndex
+        if (p is AntsQueryParser.GroupContext || p is AntsQueryParser.ScopedFieldContext) {
+            require(++nodes <= 256) { "Use at most 256 query nodes." }
+        }
         return when (p) {
             is AntsQueryParser.ScopedFieldContext -> {
                 require(scope == null) { "Fields cannot be nested inside a scoped field (character ${pos + 1})." }

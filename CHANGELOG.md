@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Bound the merged branch delivery queue, mark active relay statuses as timed out when the search deadline expires, and count group nodes toward the syntax-tree limit.
+
 ### Added
 
 - Document grouped search syntax in help and examples, and add portable fixture checks for future JVM validation (not run under the device-only validation policy). Preserve Android’s existing note/notes kind shortcuts.

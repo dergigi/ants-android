@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.flow.emitAll
@@ -51,6 +52,7 @@ internal class OutboxRouter(private val relay: RelaySearch) {
 
     /** Plan routes once, then isolate each text branch's relay response and local filters. */
     fun searchPlan(branches: List<SearchBranch>, searchRelays: List<String>) = channelFlow {
+        val statuses = ConcurrentHashMap<String, String>()
         val completed = withTimeoutOrNull(30_000) {
             val plannedRoutes = routes(branches, searchRelays)
             val slots = Semaphore(4)
@@ -59,16 +61,23 @@ internal class OutboxRouter(private val relay: RelaySearch) {
                     slots.withPermit {
                         val branchRoutes = plannedRoutes.filterValues { branch in it }.mapValues { listOf(branch) }
                         relay.searchRoutes(branchRoutes, 8000).collect { update ->
-                            send(if (update is RelayUpdate.Status && branches.size > 1)
-                                update.copy(relay = "${update.relay} [${index + 1}]") else update)
+                            val scoped = if (update is RelayUpdate.Status && branches.size > 1)
+                                update.copy(relay = "${update.relay} [${index + 1}]") else update
+                            if (scoped is RelayUpdate.Status) statuses[scoped.relay] = scoped.text
+                            send(scoped)
                         }
                     }
                 } }
             }
             true
         }
-        if (completed == null) send(RelayUpdate.Status("Search", "Search deadline reached; showing partial results"))
-    }.flowOn(Dispatchers.IO)
+        if (completed == null) {
+            statuses.filterValues { it == "Connecting" || it == "Searching" }.keys.forEach {
+                send(RelayUpdate.Status(it, "Timed out"))
+            }
+            send(RelayUpdate.Status("Search", "Search deadline reached; showing partial results"))
+        }
+    }.buffer(8).flowOn(Dispatchers.IO)
 
     private fun keys(branch: SearchBranch, field: String): List<String> = branch.filter.optJSONArray(field)?.let { array ->
         (0 until array.length()).mapNotNull { Nip19.normalizePubkey(array.optString(it)) }
