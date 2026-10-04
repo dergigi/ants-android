@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Show an amber loading spinner while resolving authors, contacts, or profile searches, with a “Looking up profiles” tooltip and accessibility state. Switch back to the event-search color afterward and clear the stage on stop or failure.
+
 - Resolve up to four distinct author/mention lookups concurrently across query branches, sharing repeated names and contacts while preserving filter scope and branch order. Preview updates follow each completed lookup; signer requests remain queued, and cancellation or lookup failure cancels sibling work.
 
 ## [0.25.0] - 2026-10-04

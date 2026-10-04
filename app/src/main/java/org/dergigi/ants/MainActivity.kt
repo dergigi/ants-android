@@ -58,6 +58,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
@@ -286,10 +288,15 @@ fun AntsApp(model: SearchModel) {
                             QueryTranslationView(state.translation, state.pageId, Modifier.weight(1f))
                         } else Spacer(Modifier.weight(1f))
                         if (state.loading) {
-                            IconButton(onClick = model::stop) {
-                                Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator(Modifier.fillMaxSize(), strokeWidth = 2.dp, color = muted)
-                                    Icon(Icons.Outlined.Stop, "Stop search", Modifier.size(12.dp), tint = muted)
+                            val progressColor = if (state.resolvingProfiles) Color(0xFFFBBF24) else muted
+                            val progressLabel = if (state.resolvingProfiles) "Looking up profiles" else "Searching events"
+                            TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                                tooltip = { PlainTooltip { Text(progressLabel) } }, state = rememberTooltipState()) {
+                                IconButton(onClick = model::stop, modifier = Modifier.semantics { stateDescription = progressLabel }) {
+                                    Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                                        CircularProgressIndicator(Modifier.fillMaxSize(), strokeWidth = 2.dp, color = progressColor)
+                                        Icon(Icons.Outlined.Stop, "Stop search", Modifier.size(12.dp), tint = progressColor)
+                                    }
                                 }
                             }
                         } else if (state.searched && (state.command == null || state.command == "tutorial")) {
@@ -355,7 +362,7 @@ fun AntsApp(model: SearchModel) {
                     if (state.events.count { state.profileFeedAuthor == null || it.kind != 0 } >= 500) item { Text("Showing the first 500 matches. Narrow your search with since: / until:.", color = muted) }
                     }
                 }
-                if (canRefresh) PullToRefreshDefaults.Indicator(state = pullState, isRefreshing = refreshingFromPull, modifier = Modifier.align(Alignment.TopCenter))
+                if (canRefresh) PullToRefreshDefaults.Indicator(state = pullState, isRefreshing = refreshingFromPull, color = if (state.resolvingProfiles) Color(0xFFFBBF24) else muted, modifier = Modifier.align(Alignment.TopCenter))
                 }
                 }
             }
