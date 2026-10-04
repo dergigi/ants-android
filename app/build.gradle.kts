@@ -116,6 +116,7 @@ androidComponents {
 }
 
 dependencies {
+    implementation("org.antlr:antlr4-runtime:4.13.2")
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
     implementation(libs.androidx.core.ktx)
