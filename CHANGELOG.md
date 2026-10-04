@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Order search examples from simple text and single filters through combined filters, OR alternatives, and grouped expressions.
+
 ## [0.24.0] - 2026-10-04
 
 ### Fixed
