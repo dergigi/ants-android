@@ -31,9 +31,11 @@ internal class ProfileResolver(
         lifetime = { if (it.isNullOrEmpty()) 30_000L else 300_000L }, weight = { eventWeight(it.orEmpty()) })
     private val metadataCache = ProfileLookupCache<List<Nip01Event>>(100,
         lifetime = { if (it.isEmpty()) 30_000L else 300_000L }, weight = ::eventWeight)
+    private val contactsCache = ProfileLookupCache<List<String>>(8,
+        lifetime = { if (it.isEmpty()) 30_000L else 300_000L }, weight = { it.size * 192L })
     private val resolvedCache = ProfileLookupCache<String>(200)
     private val verified = ConcurrentHashMap<String, Pair<Long, String?>>()
-    fun clear() { searchCache.clear(); vertexCache.clear(); metadataCache.clear(); resolvedCache.clear(); verified.clear() }
+    fun clear() { searchCache.clear(); vertexCache.clear(); metadataCache.clear(); resolvedCache.clear(); contactsCache.clear(); verified.clear() }
     private suspend fun <T> optional(block: suspend () -> T): T? = try { block() }
         catch (e: CancellationException) { throw e } catch (_: Exception) { null }
 
@@ -79,6 +81,18 @@ internal class ProfileResolver(
         }
         return events
     }
+    suspend fun contacts(identity: String?, urls: List<String>): List<String> {
+        val owner = identity ?: error("Use /login before searching with @contacts.")
+        return contactsCache.get("$owner:${urls.distinct().sorted().joinToString()}") {
+            val filter = JSONObject().put("kinds", JSONArray().put(3)).put("authors", JSONArray().put(owner)).put("limit", 1)
+            val latest = latestContactList(collect(listOf(filter), urls + generalRelays, 7000), owner)
+                ?: error("Couldn't load your public follow list. Check your relays and retry.")
+            contactPubkeys(latest).also {
+                require(it.size <= MAX_SEARCH_CONTACTS) { "Your follow list exceeds the $MAX_SEARCH_CONTACTS-contact search limit." }
+            }
+        }
+    }
+
     private fun metadata(events: List<Nip01Event>) = events.filter { it.kind == 0 && it.isRenderable() }
         .sortedByDescending { it.createdAt }.distinctBy { it.pubkey }
     private suspend fun profiles(keys: List<String>): List<Nip01Event> {

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Resolve `by:@contacts`, `from:@contacts`, and `mentions:@contacts` from the signed-in account's latest verified public follow list, including grouped alternatives and intersections. Cache by account and relay settings, clear with account changes or `/clear`, and reject missing/empty lists without broadening the search.
+
 ## [0.24.1] - 2026-10-04
 
 ### Changed

@@ -7,7 +7,7 @@ import java.time.Instant
 val imagePattern = Regex("https://[^\\s<>\"]+\\.(?:png|jpe?g|gif|webp|avif)(?:\\?[^\\s<>\"]*)?", RegexOption.IGNORE_CASE)
 
 data class SearchBranch(val filter: JSONObject, val media: String? = null, val site: String? = null, val renderedOnly: Boolean = false,
-    val relayHints: List<String> = emptyList(), val outboxAuthors: List<String> = emptyList()) {
+    val relayHints: List<String> = emptyList(), val outboxAuthors: List<String> = emptyList(), val contactKeys: Set<String> = emptySet()) {
     fun accepts(event: Nip01Event): Boolean {
         if (renderedOnly && !event.isRenderable()) return false
         fun values(key: String): List<String> = filter.optJSONArray(key)?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty()
@@ -24,7 +24,9 @@ data class SearchBranch(val filter: JSONObject, val media: String? = null, val s
     }
 }
 
-class SearchQuery(private val currentPubkey: String? = null, private val resolveProfile: suspend (String) -> String) {
+class SearchQuery(private val currentPubkey: String? = null,
+    private val resolveContacts: suspend () -> List<String> = { error("Contact resolution is unavailable.") },
+    private val resolveProfile: suspend (String) -> String) {
     suspend fun parse(input: String, now: Instant = Instant.now()): List<SearchBranch> {
         val direct = input.trim().removePrefix("nostr:")
         require(direct.isNotBlank()) { "Enter a search first." }
@@ -45,24 +47,34 @@ class SearchQuery(private val currentPubkey: String? = null, private val resolve
         }
         // Validate every branch before starting any network-dependent identity lookup.
         val plans = queryLeaves(input).map { compileQueryBranch(it, now) }
-        val resolved = mutableMapOf<String, String>()
-        suspend fun key(value: String): String = resolved[value] ?: resolve(value).also { resolved[value] = it }
+        val resolved = mutableMapOf<String, List<String>>()
+        var contacts: Set<String> = emptySet()
+        suspend fun keys(value: String): List<String> {
+            val token = if (value.equals("@contacts", true)) "@contacts" else value
+            return resolved[token] ?: (if (token == "@contacts") {
+                require(currentPubkey != null) { "Use /login before searching with @contacts." }
+                resolveContacts().mapNotNull(Nip19::normalizePubkey).distinct().also {
+                    require(it.isNotEmpty()) { "Your public follow list has no contacts to search." }
+                    require(it.size <= MAX_SEARCH_CONTACTS) { "Your follow list exceeds the $MAX_SEARCH_CONTACTS-contact search limit." }
+                    contacts = it.toSet()
+                }
+            } else listOf(resolve(value))).also { resolved[token] = it }
+        }
         return plans.map { plan ->
             var authors: Set<String>? = null
             for (clause in plan.authors) {
-                val next = clause.map { key(it) }.toSet()
+                val next = clause.flatMap { keys(it) }.toSet()
                 authors = authors?.intersect(next) ?: next
                 require(authors.isNotEmpty()) { "Contradictory author filters. Use OR for alternatives." }
             }
             authors?.let { plan.filter.put("authors", JSONArray(it.toList())) }
-            plan.mentions?.let { clause -> plan.filter.put("#p", JSONArray(clause.map { key(it) }.distinct())) }
-            SearchBranch(plan.filter)
+            plan.mentions?.let { clause -> plan.filter.put("#p", JSONArray(clause.flatMap { keys(it) }.distinct())) }
+            SearchBranch(plan.filter, contactKeys = contacts)
         }
     }
 
     private suspend fun resolve(raw: String): String {
         if (raw.equals("@me", ignoreCase = true)) return currentPubkey ?: error("Use /login before searching with @me.")
-        require(!raw.equals("@contacts", true)) { "@contacts searches aren't supported on Android yet." }
         return resolveProfile(raw)
     }
 }

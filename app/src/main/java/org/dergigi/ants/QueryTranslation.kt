@@ -15,11 +15,18 @@ internal fun SearchBranch.queryTranslation(): String {
     if (identifiers.size == 1 && authors.size == 1 && kinds.size == 1) {
         return "nostr:" + Nip19.naddrEncode(NaddrPointer(identifiers.single(), authors.single(), kinds.single().toInt()))
     }
+    fun people(keys: List<String>): String {
+        if (contactKeys.isNotEmpty() && keys.containsAll(contactKeys)) {
+            return (listOf("@contacts") + keys.filterNot { it in contactKeys }.map(Nip19::npubEncode)).joinToString(",")
+        }
+        return keys.take(20).joinToString(",", transform = Nip19::npubEncode) +
+            if (keys.size > 20) " … (${keys.size} profiles)" else ""
+    }
     return buildList {
         values("ids").forEach { add("nostr:${Nip19.noteEncode(it)}") }
         if (kinds.isNotEmpty()) add("kind:${kinds.joinToString(",")}")
-        if (authors.isNotEmpty()) add("by:${authors.joinToString(",", transform = Nip19::npubEncode)}")
-        values("#p").takeIf { it.isNotEmpty() }?.let { add("mentions:${it.joinToString(",", transform = Nip19::npubEncode)}") }
+        if (authors.isNotEmpty()) add("by:${people(authors)}")
+        values("#p").takeIf { it.isNotEmpty() }?.let { add("mentions:${people(it)}") }
         values("#t").forEach { add("#$it") }
         for (name in listOf("since", "until")) if (filter.has(name)) {
             add("$name:${translatedDate(filter.getLong(name), name)}")
@@ -38,6 +45,7 @@ internal fun queryPreview(input: String, identity: String?, now: Instant, resolv
             val plan = compileQueryBranch(leaves, now)
             val filters = SearchBranch(plan.filter).queryTranslation()
             fun person(value: String): String {
+                if (value.equals("@contacts", true)) return "@contacts"
                 val key = resolved[value] ?: (if (value.equals("@me", true)) identity else Nip19.normalizePubkey(value))
                 return key?.let(Nip19::npubEncode) ?: JSONObject.quote(value)
             }

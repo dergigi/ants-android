@@ -218,7 +218,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 val identity = state.value.pubkey
                 val resolved = mutableMapOf<String, String>()
                 val parsed = withContext(Dispatchers.IO) {
-                    SearchQuery(identity) { name ->
+                    SearchQuery(identity, resolveContacts = { profileResolver.contacts(identity, state.value.relays) }) { name ->
                         profileResolver.resolve(name, identity, state.value.relays).also { key ->
                             resolved[name] = key
                             withContext(Dispatchers.Main.immediate) {
