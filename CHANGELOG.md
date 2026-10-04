@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-10-04
+
 ### Changed
 
 - Show an amber loading spinner while resolving authors, contacts, or profile searches, with a “Looking up profiles” tooltip and accessibility state. Switch back to the event-search color afterward and clear the stage on stop or failure.
