@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `wss://search.brainstorm.world` to the default search relays. Saved custom relay lists can include it through Restore defaults.
 - Add `p:ants.sh` to search examples and an ants profile shortcut at the top of Help, with a tooltip and accessibility label.
 - Add ten Zapstore screenshots with the Android status bar cropped out.
 

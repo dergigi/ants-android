@@ -13,7 +13,7 @@ import org.json.JSONArray
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
-val defaultSearchRelays = listOf("wss://search.nos.today", "wss://relay.ditto.pub", "wss://antiprimal.net", "wss://nostr.me/relay", "wss://relay.crostr.com")
+val defaultSearchRelays = listOf("wss://search.nos.today", "wss://relay.ditto.pub", "wss://antiprimal.net", "wss://nostr.me/relay", "wss://relay.crostr.com", "wss://search.brainstorm.world")
 val generalRelays = listOf("wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net")
 sealed interface RelayUpdate {
     data class Event(val event: Nip01Event, val relay: String) : RelayUpdate
