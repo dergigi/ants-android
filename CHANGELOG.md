@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `(GM OR 🫂) by:dergigi since:2w` to the search examples.
+
 ### Changed
 
 - Update the Zapstore description to explain the opinionated search interface, its query language, and the shared ANTLR grammar, with `(GM OR 🫂) by:dergigi since:2w` as an inline code example.
