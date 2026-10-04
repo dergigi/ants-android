@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.2] - 2026-10-04
+
 ### Changed
 
 - Tapping the Lightning icon explains its yellow/purple/green/gray activity colors, the published address, the relay checks, and Lightning zaps versus Cashu nutzaps, with links to learn more. Keep one-tap profile, claimed-identity, and address searches inside the explanations, rather than starting them directly from the icons.
