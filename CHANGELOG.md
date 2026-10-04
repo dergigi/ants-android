@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.25.5] - 2026-10-04
+
 ### Added
 
 - Add `(GM OR 🫂) by:dergigi since:2w` to the search examples.
