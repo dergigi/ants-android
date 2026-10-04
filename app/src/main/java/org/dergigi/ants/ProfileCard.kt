@@ -31,17 +31,21 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
     var menuOpen by remember(event.pubkey) { mutableStateOf(false) }
     val npub = remember(event.pubkey) { Nip19.npubEncode(event.pubkey) }
     val fields = remember(event.id) { profileFields(event) }
+    var identityInfoOpen by remember(event.pubkey, fields.nip05) { mutableStateOf(false) }
     val metadata = remember(event.id) { runCatching { JSONObject(event.content) }.getOrDefault(JSONObject()) }
     fun field(vararg names: String) = names.firstNotNullOfOrNull { (metadata.opt(it) as? String)?.trim()?.takeIf(String::isNotBlank) }
     fun http(value: String?) = value?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
     val banner = http(field("banner", "cover", "header"))
     val website = field("website", "url")?.let { http(it) ?: if (':' !in it && '.' in it) "https://$it" else null }
     val lightning = field("lud16", "lud06")
+    var checkingIdentity by remember(event.pubkey, fields.nip05, lightning != null) { mutableStateOf(true) }
     val indicators by produceState(ProfileIndicators(), event.pubkey, fields.nip05, lightning != null) {
         value = ProfileIndicators()
+        checkingIdentity = true
         value = try { ProfileIndicatorLookup.load(event.pubkey, fields.nip05, lightning != null) }
             catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { ProfileIndicators() }
+        checkingIdentity = false
     }
     val green = Color(0xFF4ADE80)
     val identityColor = when { fields.nip05.isBlank() -> Color(0xFFFACC15); indicators.verified == true -> green; indicators.verified == false -> Color(0xFFF87171); else -> MaterialTheme.colorScheme.onSurfaceVariant }
@@ -56,6 +60,9 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
     val galleryImages = remember(picture, banner) { listOfNotNull(picture, banner).distinct() }
     fun openImage(url: String) { openGallery(galleryImages, galleryImages.indexOf(url)) }
     ResolveMentionProfiles(event)
+    if (identityInfoOpen) Nip05Explanation(fields.nip05, event.pubkey, indicators.verified, checkingIdentity) {
+        identityInfoOpen = false
+    }
     Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF2D2D2D), border = BorderStroke(1.dp, Color(0xFF3D3D3D))) {
         Column(Modifier.fillMaxWidth()) {
             banner?.let { url -> AsyncImage(url, "Profile banner", Modifier.fillMaxWidth().height(112.dp)
@@ -86,7 +93,7 @@ internal fun ProfileCard(event: Nip01Event, profile: Profile?, profiles: Map<Str
                     indicators.verified == true && rootIdentity -> Icons.Outlined.DoneAll
                     else -> Icons.Outlined.Badge
                 }, identityStatus, identityColor) {
-                    if (fields.nip05.isBlank()) openUrl(context, "https://github.com/nostr-protocol/nips/blob/master/05.md") else author()
+                    identityInfoOpen = true
                 }
                 if (fields.nip05.isNotBlank()) {
                     if (indicators.verified == true && rootIdentity) {

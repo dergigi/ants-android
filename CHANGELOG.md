@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Tapping a profile’s NIP-05 status opens an explanation of missing, checking, matching, mismatching, or unavailable identity checks. Show the claimed address, lookup endpoint, and profile key, with a separate “Learn more about NIP-05” link.
+
 ## [0.25.1] - 2026-10-04
 
 ### Changed

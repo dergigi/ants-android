@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import okhttp3.*
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
@@ -62,9 +61,8 @@ internal class ProfileResolver(
         val address = normalizedNip05(value)
         verified[address]?.takeIf { System.currentTimeMillis() - it.first < 300_000 }?.let { return it.second }
         val key = withTimeoutOrNull(3000) { optional {
-            val name = address.substringBefore('@'); val domain = address.substringAfter('@')
-            require(name.isNotBlank() && '.' in domain && domain.none { it in "/:@?#" })
-            val url = "https://$domain/.well-known/nostr.json".toHttpUrl().newBuilder().addQueryParameter("name", name).build()
+            val name = address.substringBefore('@')
+            val url = nip05LookupUrl(address)
             val json = JSONObject(request(Request.Builder().url(url).build()))
             Nip19.normalizePubkey(json.getJSONObject("names").optString(name))
         } }
