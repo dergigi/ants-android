@@ -70,7 +70,7 @@ internal fun parseQueryTree(input: String): QueryNode {
     return expression(parser.query().expression(), null)
 }
 
-private val queryAliases: Map<String, String> by lazy {
+internal val queryAliases: Map<String, String> by lazy {
     checkNotNull(QueryNode::class.java.getResourceAsStream("/query-replacements.txt")).bufferedReader().useLines { lines ->
         lines.filter { !it.startsWith('#') && "=>" in it }.map { it.substringBefore("=>").trim().lowercase() to it.substringAfter("=>").trim() }
             .filter { it.first.substringAfter(':').isNotBlank() && it.second.isNotBlank() }.toMap()

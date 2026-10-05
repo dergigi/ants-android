@@ -1,0 +1,52 @@
+package org.dergigi.ants
+
+import org.junit.Assert.*
+import org.junit.Test
+
+class QuerySuggestionsTest {
+    private val choices = listOf("is:blogpost", "is:file", "is:note", "is:notes", "has:gif", "site:github")
+    private fun hints(text: String, cursor: Int = text.length) = querySuggestions(text, cursor, registered = choices)
+
+    @Test fun colonListsRegisteredKindsAndPrefixNarrowsThem() {
+        assertEquals(choices.take(4), hints("is:")?.choices)
+        assertEquals(listOf("is:blogpost"), hints("IS:bl")?.choices)
+        assertEquals(listOf("has:gif"), hints("has:")?.choices)
+    }
+
+    @Test fun registeredKindsAndSharedAliasesStayDiscoverable() {
+        assertTrue(registeredQuerySuggestions.containsAll(kindAliases.keys.map { "is:$it" }))
+        assertTrue(registeredQuerySuggestions.containsAll(listOf("has:gif", "site:github", "nip:01")))
+    }
+
+    @Test fun completesCurrentTokenAndKeepsCompoundQuery() {
+        val text = "coffee (is:bl OR is:file) by:dergigi"
+        val suggestion = checkNotNull(hints(text, text.indexOf("bl") + 2))
+        val completed = completeQuery(text, suggestion, "is:blogpost")
+        assertEquals("coffee (is:blogpost OR is:file) by:dergigi", completed.text)
+        assertEquals('O', completed.text[completed.cursor])
+    }
+
+    @Test fun editingInsideTokenReplacesItsRemainingCharacters() {
+        val text = "is:notes since:2w"
+        val completed = completeQuery(text, checkNotNull(hints(text, 5)), "is:note")
+        assertEquals("is:note since:2w", completed.text)
+        assertEquals(8, completed.cursor)
+    }
+
+    @Test fun keepsClosingParenthesisAndAddsSpaceAtEnd() {
+        val grouped = "(is:bl)"
+        assertEquals("(is:blogpost)", completeQuery(grouped, checkNotNull(hints(grouped, grouped.length - 1)), "is:blogpost").text)
+        val completed = completeQuery("is:bl", checkNotNull(hints("is:bl")), "is:blogpost")
+        assertEquals("is:blogpost ", completed.text)
+        assertEquals(completed.text.length, completed.cursor)
+        assertNull(hints(completed.text))
+    }
+
+    @Test fun ignoresQuotedTextUrlsAndSlashCommands() {
+        assertNull(hints("\"something is:bl"))
+        assertNull(hints("https://example.com/is:bl"))
+        assertNull(hints("/help is:"))
+        assertNull(hints("is:\"bl\"", 3))
+        assertNull(querySuggestions("is:blogpost", 3, 10, choices))
+    }
+}

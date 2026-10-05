@@ -63,6 +63,8 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -108,6 +110,16 @@ fun AntsApp(model: SearchModel) {
     val visibleEvents = if (filteredResults.pageId == state.pageId) filteredResults.events else emptyList()
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
     var searchFocused by remember { mutableStateOf(false) }
+    var queryEditor by remember { mutableStateOf(TextFieldValue(state.query, TextRange(state.query.length))) }
+    val editorValue = if (queryEditor.text == state.query) queryEditor else TextFieldValue(state.query, TextRange(state.query.length))
+    LaunchedEffect(state.query) {
+        if (queryEditor.text != state.query) queryEditor = TextFieldValue(state.query, TextRange(state.query.length))
+    }
+    val keywordSuggestions = remember(editorValue, searchFocused) {
+        if (searchFocused)
+            querySuggestions(editorValue.text, editorValue.selection.start, editorValue.selection.end)
+        else null
+    }
     val suggestingCommands = searchFocused && state.query.trimStart().startsWith("/")
     val centeredHome = !state.searched && !suggestingCommands && state.error == null
     val pullState = rememberPullToRefreshState()
@@ -228,7 +240,7 @@ fun AntsApp(model: SearchModel) {
     }
     fun back() { keyboard?.hide(); focus.clearFocus(); model.back() }
     BackHandler(enabled = (state.searched || state.backDepth > 0) && dialog == null && selected == null) { back() }
-    BackHandler(enabled = suggestingCommands) { keyboard?.hide(); focus.clearFocus() }
+    BackHandler(enabled = suggestingCommands || keywordSuggestions != null) { keyboard?.hide(); focus.clearFocus() }
     fun search(value: String = state.query) {
         keyboard?.hide(); focus.clearFocus()
         model.rememberScroll(state.pageId, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset)
@@ -271,10 +283,16 @@ fun AntsApp(model: SearchModel) {
             }
         }) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).imePadding()) {
-            Column(Modifier.fillMaxSize(), verticalArrangement = if (centeredHome) Arrangement.Center else Arrangement.Top) {
+            Column(Modifier.fillMaxSize().padding(
+                top = if (centeredHome && keywordSuggestions != null) 64.dp else 0.dp,
+                bottom = if (centeredHome && keywordSuggestions != null) 40.dp else 0.dp,
+            ), verticalArrangement = if (centeredHome) Arrangement.Center else Arrangement.Top) {
                 AnimatedVisibility(visible = !hideSearchControls) {
                 Column {
-                OutlinedTextField(value = state.query, onValueChange = model::edit,
+                OutlinedTextField(value = editorValue, onValueChange = {
+                    queryEditor = it
+                    if (it.text != state.query) model.edit(it.text)
+                },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).onFocusChanged { searchFocused = it.isFocused },
                     placeholder = { Text(placeholder.query, fontSize = 15.sp, fontFamily = FontFamily.Monospace, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     trailingIcon = { Row {
@@ -284,6 +302,13 @@ fun AntsApp(model: SearchModel) {
                     } },
                     singleLine = true, shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { search() }))
+                keywordSuggestions?.let { suggestions ->
+                    QuerySuggestionMenu(suggestions) { choice ->
+                        val completed = completeQuery(editorValue.text, suggestions, choice)
+                        queryEditor = TextFieldValue(completed.text, TextRange(completed.cursor))
+                        model.edit(completed.text)
+                    }
+                }
                 val showTranslation = !suggestingCommands && state.translation.isNotBlank() && state.query.trim() == state.submitted
                 if (showTranslation || state.loading) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.Top) {
