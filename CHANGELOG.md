@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add a one-tap gallery button to search Nostr for the current image filename, excluding URL query parameters and fragments. Filenames are quoted as literal search text; URLs without a filename disable the action.
 - Add TinEye and Yandex Images alongside Google Lens in the reverse image lookup popover. Only the chosen provider receives the image URL.
 
+### Changed
+
+- Make the reverse image provider picker a compact row of icons with tooltips and accessibility labels. Remove the heading, provider-name text, and explanatory copy.
+
 ## [0.26.0] - 2026-10-05
 
 ### Added
