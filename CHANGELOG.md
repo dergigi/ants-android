@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Tapping the top-left ants icon on the home screen searches for `p:ants.sh`, with an updated tooltip and accessibility label.
+
 ## [0.28.0] - 2026-10-05
 
 ### Added

@@ -383,8 +383,11 @@ fun AntsApp(model: SearchModel) {
                 }
             }
             if (centeredHome) Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { home() }) {
-                    AntLogo(loggedIn = state.pubkey != null, description = if (state.pubkey != null) "Home, signed in" else "Home, signed out")
+                TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { PlainTooltip { Text("Open ants profile") } }, state = rememberTooltipState()) {
+                    IconButton(onClick = { search("p:ants.sh") }) {
+                        AntLogo(loggedIn = state.pubkey != null, description = "Open ants profile")
+                    }
                 }
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { search("/history") }) { Icon(Icons.Outlined.History, "Search history", tint = muted) }
