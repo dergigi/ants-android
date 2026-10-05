@@ -40,7 +40,7 @@ internal class ProfileSuggestions(
         val epoch = revision
         val local = profiles.map { SuggestedProfile(it.key, it.value) }
         fun ranked(extra: List<SuggestedProfile> = emptyList()) = matchingProfiles(term,
-            extra + local + known.values, knownContacts?.takeIf { it.first == identity }?.second.orEmpty())
+            (extra + known.values + local).sortedByDescending { it.profile.timestamp }, knownContacts?.takeIf { it.first == identity }?.second.orEmpty())
         emit(ranked())
         if (term.removePrefix("@").length < 2 || term.length > 80 || term.startsWith("npub1") || term.startsWith("nprofile1")) return@flow
         delay(450)

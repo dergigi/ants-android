@@ -134,12 +134,15 @@ fun AntsApp(model: SearchModel) {
             ?.takeIf { it.field in setOf("by", "p", "mentions") && it.value.isNotBlank() && !it.value.startsWith("@") }
         else null
     }
-    val people by produceState<List<SuggestedProfile>>(emptyList(), personToken, state.pubkey, state.relays) {
-        value = emptyList()
+    val peopleKey = Triple(personToken, state.pubkey, state.relays)
+    val peopleResult by produceState(peopleKey to emptyList<SuggestedProfile>(), peopleKey) {
+        value = peopleKey to emptyList()
         personToken?.let { token ->
-            model.profileSuggestions.suggestions(token.value, state.pubkey, state.relays, state.profiles).collect { value = it }
+            model.profileSuggestions.suggestions(token.value, peopleKey.second, peopleKey.third, state.profiles)
+                .collect { value = peopleKey to it }
         }
     }
+    val people = peopleResult.takeIf { it.first == peopleKey }?.second.orEmpty()
     val dateToken = remember(editorValue, searchFocused) {
         if (searchFocused) activeQueryToken(editorValue.text, editorValue.selection.start, editorValue.selection.end)
             ?.takeIf { it.field in setOf("since", "until") }

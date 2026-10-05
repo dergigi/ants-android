@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Suggest `by:@me`, `by:@contacts`, `mentions:@me`, and `mentions:@contacts` while editing queries when logged in.
 - Autocomplete people in `by:`, `p:`, and `mentions:` fields using cached profiles and debounced relay lookups, prioritizing contacts. Show avatars and names and insert the selected public key without submitting the query.
 
+### Fixed
+
+- Clear stale person suggestions immediately when the active token, account, or search relays change.
+
 ## [0.33.0] - 2026-10-05
 
 ### Added
