@@ -140,7 +140,13 @@ fun AntsApp(model: SearchModel) {
             model.profileSuggestions.suggestions(token.value, state.pubkey, state.relays, state.profiles).collect { value = it }
         }
     }
-    val showSuggestions = keywordSuggestions != null || personToken != null && people.isNotEmpty()
+    val dateToken = remember(editorValue, searchFocused) {
+        if (searchFocused) activeQueryToken(editorValue.text, editorValue.selection.start, editorValue.selection.end)
+            ?.takeIf { it.field in setOf("since", "until") }
+        else null
+    }
+    var dateRequest by remember { mutableStateOf<DateQueryRequest?>(null) }
+    val showSuggestions = keywordSuggestions != null || dateToken != null || personToken != null && people.isNotEmpty()
     val suggestingCommands = searchFocused && state.query.trimStart().startsWith("/")
     val centeredHome = !state.searched && !suggestingCommands && state.error == null
     val pullState = rememberPullToRefreshState()
@@ -338,6 +344,16 @@ fun AntsApp(model: SearchModel) {
                         model.edit(completed.text)
                     }
                 }
+                dateToken?.let { token ->
+                    DateSuggestionMenu(token, onSelect = { choice ->
+                        val completed = completeQuery(editorValue.text, QuerySuggestions(token.start, token.end, listOf(choice)), choice)
+                        queryEditor = TextFieldValue(completed.text, TextRange(completed.cursor))
+                        model.edit(completed.text)
+                    }, onCalendar = {
+                        dateRequest = DateQueryRequest(editorValue.text, token)
+                        keyboard?.hide()
+                    })
+                }
                 val showTranslation = !suggestingCommands && state.translation.isNotBlank() && state.query.trim() == state.submitted
                 if (showTranslation || state.loading) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.Top) {
@@ -459,6 +475,18 @@ fun AntsApp(model: SearchModel) {
                     openUrl(context, "https://github.com/dergigi/ants-android/releases/tag/v${BuildConfig.VERSION_NAME}")
                 }.padding(16.dp), color = muted, style = MaterialTheme.typography.bodySmall)
             }
+        }
+        dateRequest?.let { request ->
+            QueryDatePicker(request, onSelect = { choice ->
+                if (state.query == request.text) {
+                    val token = request.token
+                    val completed = completeQuery(request.text, QuerySuggestions(token.start, token.end, listOf(choice)), choice)
+                    queryEditor = TextFieldValue(completed.text, TextRange(completed.cursor))
+                    model.edit(completed.text)
+                }
+                dateRequest = null
+                keyboard?.show()
+            }, onDismiss = { dateRequest = null; keyboard?.show() })
         }
         when (dialog) {
             "relays" -> RelayDialog(state, model, onDismiss = { dialog = null })
