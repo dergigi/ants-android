@@ -120,6 +120,9 @@ private fun LanguagePicker(counts: Map<String, Int>, selection: LanguageSelectio
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Languages", Modifier.weight(1f))
             ActionIcon(Icons.Outlined.SelectAll, "Show all languages", { onChange(LanguageSelection()) })
+            ActionIcon(Icons.Outlined.Deselect, "Select no languages", {
+                onChange(LanguageSelection(preferred = emptySet(), keepUnknown = false))
+            })
             ActionIcon(Icons.Outlined.Close, "Close languages", onDismiss)
         }
     }, text = {
