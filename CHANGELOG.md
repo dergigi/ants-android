@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add reverse image lookup from the gallery: an image-search icon opens a native popover with a Google Lens action. The current image URL is sent to Google only when that action is tapped.
+
 ### Changed
 
 - Reorder Zapstore screenshots to show search results and query examples before reading, the gallery, help, and the loading preview.
