@@ -52,26 +52,3 @@ internal fun attachmentUrl(value: String): String? = runCatching {
     val uri = java.net.URI(value)
     value.takeIf { uri.scheme in setOf("https", "http") && !uri.host.isNullOrBlank() && uri.rawUserInfo == null }
 }.getOrNull()
-
-@Composable
-internal fun FileContent(event: Nip01Event, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
-    val context = LocalContext.current
-    val urls = remember(event.id) { event.tags.asSequence().filter { it.firstOrNull() in setOf("url", "fallback") }
-        .mapNotNull { it.getOrNull(1)?.let(::attachmentUrl) }.distinct().take(10).toList() }
-    val mime = event.tagValue("m").orEmpty().take(100)
-    val size = event.tagValue("size")?.toLongOrNull()?.takeIf { it >= 0 }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (event.content.isNotBlank() || eventImages(event, true).isNotEmpty() || eventVideos(event).isNotEmpty()) {
-            EventContent(event.copy(kind = 1), null, profiles, compact, onNavigate)
-        }
-        Text(listOfNotNull(mime.takeIf(String::isNotBlank), size?.let { "$it bytes" }).joinToString(" · ").ifBlank { "File attachment" },
-            style = MaterialTheme.typography.labelMedium)
-        urls.forEachIndexed { index, url ->
-            TextButton(onClick = { openUrl(context, url) }) { Text(if (index == 0) "Open file" else "Open alternate source ${index + 1}") }
-        }
-        if (urls.isEmpty()) Text("No downloadable URL", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (!compact) event.tagValue("x")?.let { hash -> SelectionContainer {
-            Text("SHA-256: ${hash.take(64)}", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
-        } }
-    }
-}

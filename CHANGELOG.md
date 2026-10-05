@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Render GIF/image file attachments directly instead of dumping JSON metadata into search cards. Extract titles and media URLs from file tags or JSON, reuse the gallery and video player, and move file metadata and alternate sources into an icon-accessed details popover.
+
 ### Added
 
 - Add a Select no languages icon to the language picker, clearing all language selections including Unknown before choosing preferred languages.
