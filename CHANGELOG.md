@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-10-05
+
 ### Added
 
 - Render one rich link preview per visible result with Open Graph and Twitter metadata, bounded requests and cached images. Rich previews default to on and can be switched off in Settings.
