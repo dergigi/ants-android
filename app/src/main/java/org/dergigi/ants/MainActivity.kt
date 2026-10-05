@@ -124,9 +124,9 @@ fun AntsApp(model: SearchModel) {
     LaunchedEffect(state.query) {
         if (queryEditor.text != state.query) queryEditor = TextFieldValue(state.query, TextRange(state.query.length))
     }
-    val keywordSuggestions = remember(editorValue, searchFocused) {
+    val keywordSuggestions = remember(editorValue, searchFocused, state.pubkey) {
         if (searchFocused)
-            querySuggestions(editorValue.text, editorValue.selection.start, editorValue.selection.end)
+            querySuggestions(editorValue.text, editorValue.selection.start, editorValue.selection.end, loggedIn = state.pubkey != null)
         else null
     }
     val suggestingCommands = searchFocused && state.query.trimStart().startsWith("/")

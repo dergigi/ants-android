@@ -11,7 +11,7 @@ internal val registeredQuerySuggestions: List<String> by lazy {
 }
 
 internal fun querySuggestions(text: String, cursor: Int, selectionEnd: Int = cursor,
-    registered: List<String> = registeredQuerySuggestions): QuerySuggestions? {
+    registered: List<String> = registeredQuerySuggestions, loggedIn: Boolean = false): QuerySuggestions? {
     if (cursor != selectionEnd || cursor !in 0..text.length || text.length > 2000 || text.trimStart().startsWith('/')) return null
     var quoted = false
     var escaped = false
@@ -25,12 +25,13 @@ internal fun querySuggestions(text: String, cursor: Int, selectionEnd: Int = cur
     var start = cursor
     while (start > 0 && !boundary(text[start - 1])) start--
     val prefix = text.substring(start, cursor).lowercase(Locale.ROOT)
-    if (!prefix.matches(Regex("[a-z]+:[a-z0-9_-]*"))) return null
+    if (!prefix.matches(Regex("[a-z]+:@?[a-z0-9_-]*"))) return null
     var end = cursor
     while (end < text.length && !boundary(text[end])) end++
     // Never replace quoted field values or URL-like tokens.
     if (text.substring(start, end).any { it == '"' || it == '/' || it == '\\' }) return null
-    val choices = registered.filter { it.startsWith(prefix) }
+    val available = if (loggedIn) registered + listOf("by:@me", "by:@contacts") else registered
+    val choices = available.filter { it.startsWith(prefix) }
     return choices.takeIf { it.isNotEmpty() }?.let { QuerySuggestions(start, end, it) }
 }
 

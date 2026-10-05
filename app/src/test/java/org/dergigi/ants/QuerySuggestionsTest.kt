@@ -49,4 +49,25 @@ class QuerySuggestionsTest {
         assertNull(hints("is:\"bl\"", 3))
         assertNull(querySuggestions("is:blogpost", 3, 10, choices))
     }
+
+    @Test fun accountShortcutsOnlyAppearWhenLoggedIn() {
+        for (text in listOf("by:", "by:@", "by:@m", "by:@c")) {
+            assertNull(querySuggestions(text, text.length))
+        }
+        assertEquals(listOf("by:@me", "by:@contacts"), querySuggestions("by:", 3, loggedIn = true)?.choices)
+        assertEquals(listOf("by:@me", "by:@contacts"), querySuggestions("by:@", 4, loggedIn = true)?.choices)
+        assertEquals(listOf("by:@me"), querySuggestions("BY:@M", 5, loggedIn = true)?.choices)
+        assertEquals(listOf("by:@contacts"), querySuggestions("by:@c", 5, loggedIn = true)?.choices)
+    }
+
+    @Test fun accountShortcutCompletionPreservesSurroundingQuery() {
+        val text = "GM (by:@c OR by:dergigi) since:2w"
+        val suggestion = checkNotNull(querySuggestions(text, text.indexOf("@c") + 2, loggedIn = true))
+        val completed = completeQuery(text, suggestion, "by:@contacts")
+        assertEquals("GM (by:@contacts OR by:dergigi) since:2w", completed.text)
+        assertEquals('O', completed.text[completed.cursor])
+        assertNull(querySuggestions("\"by:@m", 6, loggedIn = true))
+        assertNull(querySuggestions("https://example.com/by:@m", 24, loggedIn = true))
+    }
+
 }
