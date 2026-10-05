@@ -291,8 +291,8 @@ fun AntsApp(model: SearchModel) {
                             QueryTranslationView(state.translation, state.pageId, Modifier.weight(1f))
                         } else Spacer(Modifier.weight(1f))
                         if (state.loading) {
-                            val progressColor = if (state.resolvingProfiles) Color(0xFFFBBF24) else muted
-                            val progressLabel = if (state.resolvingProfiles) "Looking up profiles" else "Searching events"
+                            val progressColor = if (state.resolvingNip05) Color(0xFFA78BFA) else if (state.resolvingProfiles) Color(0xFFFBBF24) else muted
+                            val progressLabel = if (state.resolvingNip05) "Looking up NIP-05" else if (state.resolvingProfiles) "Looking up profiles" else "Searching events"
                             TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
                                 tooltip = { PlainTooltip { Text(progressLabel) } }, state = rememberTooltipState()) {
                                 IconButton(onClick = model::stop, modifier = Modifier.semantics { stateDescription = progressLabel }) {
@@ -378,7 +378,7 @@ fun AntsApp(model: SearchModel) {
                     if (state.events.count { state.profileFeedAuthor == null || it.kind != 0 } >= 500) item { Text("Showing the first 500 matches. Narrow your search with since: / until:.", color = muted) }
                     }
                 }
-                if (canRefresh) PullToRefreshDefaults.Indicator(state = pullState, isRefreshing = refreshingFromPull, color = if (state.resolvingProfiles) Color(0xFFFBBF24) else muted, modifier = Modifier.align(Alignment.TopCenter))
+                if (canRefresh) PullToRefreshDefaults.Indicator(state = pullState, isRefreshing = refreshingFromPull, color = if (state.resolvingNip05) Color(0xFFA78BFA) else if (state.resolvingProfiles) Color(0xFFFBBF24) else muted, modifier = Modifier.align(Alignment.TopCenter))
                 }
                 }
             }

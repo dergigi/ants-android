@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Show purple progress indicators and a NIP-05 tooltip during NIP-05 requests; retain amber for other profile lookups. Track concurrent requests and clear the indicator on completion or cancellation.
+
 ### Fixed
 
 - Hide encrypted event types and long Base64 binary payloads posted as text notes by default, even below the Smart filter threshold. Add a Hide encrypted content toggle; revealed events show a compact placeholder while raw JSON remains inspectable.

@@ -13,6 +13,7 @@ import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
+import kotlin.coroutines.coroutineContext
 import kotlin.coroutines.resumeWithException
 
 /** Session-only discovery cache. No private keys or synthetic metadata events. */
@@ -60,12 +61,15 @@ internal class ProfileResolver(
     private suspend fun nip05(value: String): String? {
         val address = normalizedNip05(value)
         verified[address]?.takeIf { System.currentTimeMillis() - it.first < 300_000 }?.let { return it.second }
-        val key = withTimeoutOrNull(3000) { optional {
+        val progress = coroutineContext[Nip05LookupProgress]
+        progress?.start()
+        val key = try { withTimeoutOrNull(3000) { optional {
             val name = address.substringBefore('@')
             val url = nip05LookupUrl(address)
             val json = JSONObject(request(Request.Builder().url(url).build()))
             Nip19.normalizePubkey(json.getJSONObject("names").optString(name))
         } }
+        } finally { progress?.finish() }
         if (verified.size >= 500) verified.clear()
         verified[address] = System.currentTimeMillis() to key
         return key
