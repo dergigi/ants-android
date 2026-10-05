@@ -29,6 +29,13 @@ fun localProp(name: String): String? {
 android {
     namespace = "org.dergigi.ants"
     compileSdk = 35
+    ndkVersion = "27.2.12479018"
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
     buildToolsVersion = "35.0.0"
 
     defaultConfig {

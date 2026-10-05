@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(ants_language LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+file(GLOB FASTTEXT_SOURCES CONFIGURE_DEPENDS "fasttext/*.cc")
+add_library(ants_language SHARED language_jni.cpp ${FASTTEXT_SOURCES})
+target_include_directories(ants_language PRIVATE fasttext)
+target_compile_options(ants_language PRIVATE -O2 -ffunction-sections -fdata-sections)
+target_link_options(ants_language PRIVATE -Wl,--gc-sections -Wl,-z,max-page-size=16384)

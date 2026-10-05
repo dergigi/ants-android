@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Bundle fastText language identification for offline detection without an external service.
+
 ## [0.30.0] - 2026-10-05
 
 ### Changed

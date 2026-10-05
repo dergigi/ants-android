@@ -8,3 +8,6 @@ keystore/
 *.p12
 .DS_Store
 .idea/
+
+.cxx/
+**/.cxx/
