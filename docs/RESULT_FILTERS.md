@@ -21,7 +21,7 @@ The implementation follows the web app at commit `23dc652870926ed622a74d9c179dad
 
 Limits exclude counts strictly greater than the configured maximum. Each limit can be disabled separately. Bot, NSFW, external-link, and verified-only switches start off. Text filtering starts enabled with an empty query. Clear disables everything; reset restores these defaults.
 
-Settings last for the app session and apply when navigating between searches. Slash-command output is not filtered. Author-based filters update as profile metadata arrives; unknown profiles are retained unless verified-only is enabled. Android verifies NIP-05 claims through its resolver instead of trusting a `verified` value supplied inside profile metadata. It only starts the bounded verification requests when the verified-only filter is active.
+Language preferences persist across searches and app restarts. Other settings last for the app session and apply when navigating between searches. Slash-command output is not filtered. Author-based filters update as profile metadata arrives; unknown profiles are retained unless verified-only is enabled. Android verifies NIP-05 claims through its resolver instead of trusting a `verified` value supplied inside profile metadata. It only starts the bounded verification requests when the verified-only filter is active.
 
 The raw event set remains bounded by the existing result and memory limits. Content analysis runs off the main thread and caches counts for up to 600 event IDs. Filter changes do not fetch more results to replace hidden events. Fuzzy matches retain chronological sorting for notes; matching profiles use Fuse's score and field-length normalization.
 

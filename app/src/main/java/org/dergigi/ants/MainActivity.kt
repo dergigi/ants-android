@@ -363,6 +363,9 @@ fun AntsApp(model: SearchModel) {
                     if (state.command == null && state.events.isNotEmpty() && visibleEvents.isEmpty() && filteredResults.pageId == state.pageId) {
                         item { Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text("All results hidden", Modifier.weight(1f), color = muted)
+                            if (filteredResults.languageHidden > 0) ActionIcon(Icons.Outlined.Translate, "Show all languages", {
+                                model.resultFilters.clearLanguages()
+                            })
                             ActionIcon(Icons.Outlined.FilterAltOff, "Show all results", { model.resultFilters.update(filterSettings.copy(mode = ResultFilterMode.NEVER)) })
                         } }
                     }

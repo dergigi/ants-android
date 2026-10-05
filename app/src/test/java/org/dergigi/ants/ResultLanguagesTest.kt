@@ -35,8 +35,8 @@ class ResultLanguagesTest {
         val detected = checkNotNull(detector.analyze(event("English paragraph with enough letters.\nUncertain paragraph with enough letters.")))
         assertEquals(setOf("en"), detected.codes)
         assertTrue(detected.uncertain)
-        assertTrue(LanguageSelection(excluded = setOf("en")).accepts(detected))
-        assertFalse(LanguageSelection(excluded = setOf("en"), keepUnknown = false).accepts(detected))
+        assertTrue(LanguageSelection(preferred = setOf("de")).accepts(detected))
+        assertFalse(LanguageSelection(preferred = setOf("de"), keepUnknown = false).accepts(detected))
     }
 
     @Test fun codeAndLinksAreNotClassifiedAsProse() {
@@ -48,10 +48,17 @@ class ResultLanguagesTest {
         assertNull(ResultLanguageAnalyzer { error("Not text") }.analyze(event(kind = 0)))
     }
 
-    @Test fun choicesDoNotLeakIntoAnotherQuery() {
-        val selected = LanguageSelection("coffee", setOf("ja"), false)
-        assertEquals(selected, selected.forQuery("coffee"))
-        assertEquals(LanguageSelection("tea"), selected.forQuery("tea"))
+    @Test fun preferredLanguagesExcludeNewLanguagesAndCanBeCleared() {
+        val selected = LanguageSelection(preferred = setOf("en", "de"))
+        assertTrue(selected.accepts(EventLanguages(setOf("de"), false)))
+        assertFalse(selected.accepts(EventLanguages(setOf("es"), false)))
+        assertTrue(LanguageSelection().accepts(EventLanguages(setOf("es"), false)))
+    }
+
+    @Test fun togglingDetectedLanguagesPreservesAbsentPreferences() {
+        val selected = LanguageSelection(preferred = setOf("en", "de"))
+        assertEquals(setOf("de"), selected.toggle("en", false, setOf("en", "ja")).preferred)
+        assertEquals(setOf("en"), LanguageSelection().toggle("ja", false, setOf("en", "ja", UNKNOWN_LANGUAGE)).preferred)
     }
 
     @Test fun relayHintsKeepOriginalAndDoNotMutateIt() {

@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.*
 
 internal data class IdentityClaim(val pubkey: String, val nip05: String)
 internal data class FilteredResults(val pageId: Long = -1, val events: List<Nip01Event> = emptyList(),
-    val languageCounts: Map<String, Int> = emptyMap())
+    val languageCounts: Map<String, Int> = emptyMap(), val languageHidden: Int = 0)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class ResultFilterController(
@@ -13,8 +13,10 @@ internal class ResultFilterController(
     scope: CoroutineScope,
     private val resolver: ProfileResolver,
     private val languageAnalyzer: ResultLanguageAnalyzer,
+    initialLanguages: LanguageSelection = LanguageSelection(),
+    private val persistLanguages: (LanguageSelection) -> Unit = {},
 ) {
-    private val mutableSettings = MutableStateFlow(ContentFilterSettings())
+    private val mutableSettings = MutableStateFlow(ContentFilterSettings(languages = initialLanguages))
     val settings = mutableSettings.asStateFlow()
     private val verified = MutableStateFlow<Map<IdentityClaim, Boolean>>(emptyMap())
     private val factsCache = object : LinkedHashMap<String, ContentFacts>(600, 0.75f, true) {
@@ -36,13 +38,13 @@ internal class ResultFilterController(
                 languageAnalyzer.analyze(event)?.let { event.id to it }
             }.toMap()
             val counts = detected.values.flatMap { it.buckets }.groupingBy { it }.eachCount()
-            val mixed = counts.keys.count { it != UNKNOWN_LANGUAGE } > 1
-            val selection = settings.languages.forQuery(input.query)
+            val selection = settings.languages
+            val languageHidden = if (settings.mode == ResultFilterMode.NEVER) 0 else detected.values.count { !selection.accepts(it) }
             val readable = if (settings.mode == ResultFilterMode.NEVER) input.events else input.events.filter { event ->
                 (!settings.hideEncrypted || !event.encryptedContent) &&
-                    (!mixed || detected[event.id]?.let(selection::accepts) != false)
+                    (detected[event.id]?.let(selection::accepts) != false)
             }
-            if (!settings.enabled(input.events.size)) return@withContext FilteredResults(input.pageId, readable, counts)
+            if (!settings.enabled(input.events.size)) return@withContext FilteredResults(input.pageId, readable, counts, languageHidden)
             val emojiDisabled = settings.emojiAutoDisabled(input.query)
             val fuzzy = settings.resultFilter.trim().takeIf { settings.fuzzyEnabled && it.isNotEmpty() }?.let(::ResultFuzzyFilter)
             val matches = readable.mapNotNull { event ->
@@ -58,7 +60,7 @@ internal class ResultFilterController(
                 val notes = matches.filter { it.first.kind != 0 }.map { it.first }
                 profiles + (if (input.newestFirst) notes.sortedByDescending { it.createdAt } else notes.sortedBy { it.createdAt })
             }
-            FilteredResults(input.pageId, events, counts)
+            FilteredResults(input.pageId, events, counts, languageHidden)
         }
     }.stateIn(scope, SharingStarted.Eagerly, FilteredResults())
 
@@ -83,6 +85,10 @@ internal class ResultFilterController(
         }
     }
 
-    fun update(settings: ContentFilterSettings) { mutableSettings.value = settings }
+    fun update(settings: ContentFilterSettings) {
+        if (settings.languages != mutableSettings.value.languages) persistLanguages(settings.languages)
+        mutableSettings.value = settings
+    }
+    fun clearLanguages() { update(mutableSettings.value.copy(languages = LanguageSelection())) }
     fun clearVerification() { verified.value = emptyMap() }
 }

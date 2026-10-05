@@ -110,7 +110,17 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     }
     private val profileResolver = ProfileResolver(relay, ::signProfileRequest, outbox)
     internal val resultFilters = ResultFilterController(state, viewModelScope, profileResolver,
-        ResultLanguageAnalyzer(FastTextLanguage(app)::predict))
+        ResultLanguageAnalyzer(FastTextLanguage(app)::predict),
+        initialLanguages = LanguageSelection(
+            preferred = preferences.getStringSet("preferredLanguages", null)?.toSet(),
+            keepUnknown = preferences.getBoolean("keepUnknownLanguage", true)),
+        persistLanguages = { selection ->
+            preferences.edit().apply {
+                if (selection.preferred == null) remove("preferredLanguages")
+                else putStringSet("preferredLanguages", selection.preferred.toSet())
+                putBoolean("keepUnknownLanguage", selection.keepUnknown)
+            }.apply()
+        })
     private var nextPageId = 0L
     private val backStack = ArrayDeque<SearchState>()
 
@@ -212,14 +222,9 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         val raw = incomingQuery(query.trim()); if (raw.isBlank()) return
         if (containsSecret(raw)) { rejectSecret(); return }
         val input = if (raw.startsWith('/')) "/" + raw.drop(1).trim().lowercase() else raw
-        val languageResults = resultFilters.results.value
         val languageSettings = resultFilters.settings.value
-        val languageSelection = languageSettings.languages.forQuery(input)
-        val relayLanguages = if (input == state.value.submitted && languageResults.pageId == state.value.pageId &&
-            languageSettings.mode != ResultFilterMode.NEVER && languageSelection.excluded.isNotEmpty() &&
-            languageResults.languageCounts.keys.count { it != UNKNOWN_LANGUAGE } > 1)
-            languageResults.languageCounts.keys.filter { it != UNKNOWN_LANGUAGE && it !in languageSelection.excluded }.toSet()
-        else emptySet()
+        val relayLanguages = if (languageSettings.mode != ResultFilterMode.NEVER)
+            languageSettings.languages.preferred.orEmpty() else emptySet()
         val newestFirst = if (input == state.value.submitted) state.value.newestFirst else true
         val command = if (input.startsWith('/')) input.drop(1) else null
         stop()

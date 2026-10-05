@@ -25,7 +25,7 @@ internal fun ResultFilterButton(settings: ContentFilterSettings, query: String, 
     var expanded by remember { mutableStateOf(false) }
     var languagesOpen by remember(query) { mutableStateOf(false) }
     val mixedLanguages = languageCounts.keys.count { it != UNKNOWN_LANGUAGE } > 1
-    val selection = settings.languages.forQuery(query)
+    val selection = settings.languages
     if (languagesOpen && mixedLanguages) LanguagePicker(languageCounts, selection,
         enabled = settings.mode != ResultFilterMode.NEVER,
         onChange = { onChange(settings.copy(languages = it)) },
@@ -33,11 +33,14 @@ internal fun ResultFilterButton(settings: ContentFilterSettings, query: String, 
         onDismiss = { languagesOpen = false })
     Box {
         ActionIcon(Icons.Outlined.FilterAlt, "Filter results · $visible / $total", { expanded = true }, selected = settings.enabled(total) || settings.mode != ResultFilterMode.NEVER &&
-            (settings.hideEncrypted || mixedLanguages && (selection.excluded.isNotEmpty() || !selection.keepUnknown)))
+            (settings.hideEncrypted || selection.active))
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.heightIn(max = 560.dp)) {
             Column(Modifier.width(300.dp).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("$visible / $total", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                    if (selection.active) ActionIcon(Icons.Outlined.Translate, "Show all languages", {
+                        onChange(settings.copy(languages = LanguageSelection()))
+                    })
                     ActionIcon(Icons.Outlined.RestartAlt, "Restore default filters", { onChange(ContentFilterSettings()) })
                     ActionIcon(Icons.Outlined.FilterAltOff, "Clear all filters", { onChange(ContentFilterSettings.cleared()) })
                     ActionIcon(Icons.Outlined.Close, "Close filters", { expanded = false })
@@ -61,7 +64,7 @@ internal fun ResultFilterButton(settings: ContentFilterSettings, query: String, 
                 if (mixedLanguages) TextButton(onClick = { languagesOpen = true }) {
                     Icon(Icons.Outlined.Translate, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Languages · ${languageCounts.keys.count { it != UNKNOWN_LANGUAGE && it !in selection.excluded }} / ${languageCounts.keys.count { it != UNKNOWN_LANGUAGE }}")
+                    Text("Languages")
                 }
                 FilterToggle("Valid NIP-05", settings.verifiedOnly, enabled) { onChange(settings.copy(verifiedOnly = it)) }
                 val emojiDisabled = settings.emojiAutoDisabled(query)
@@ -116,22 +119,22 @@ private fun LanguagePicker(counts: Map<String, Int>, selection: LanguageSelectio
     AlertDialog(onDismissRequest = onDismiss, title = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Languages", Modifier.weight(1f))
-            ActionIcon(Icons.Outlined.SelectAll, "Show all languages", { onChange(selection.copy(excluded = emptySet(), keepUnknown = true)) })
+            ActionIcon(Icons.Outlined.SelectAll, "Show all languages", { onChange(LanguageSelection()) })
             ActionIcon(Icons.Outlined.Close, "Close languages", onDismiss)
         }
     }, text = {
         Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
             counts.keys.filter { it != UNKNOWN_LANGUAGE }.sortedBy(::languageName).forEach { code ->
-                FilterToggle("${languageName(code)} · ${counts[code]}", code !in selection.excluded, enabled) { checked ->
-                    onChange(selection.copy(excluded = if (checked) selection.excluded - code else selection.excluded + code))
+                FilterToggle(languageName(code), selection.includes(code), enabled) { checked ->
+                    onChange(selection.toggle(code, checked, counts.keys))
                 }
             }
-            if (UNKNOWN_LANGUAGE in counts) FilterToggle("Unknown · ${counts[UNKNOWN_LANGUAGE]}", selection.keepUnknown, enabled) {
+            if (UNKNOWN_LANGUAGE in counts) FilterToggle("Unknown", selection.keepUnknown, enabled) {
                 onChange(selection.copy(keepUnknown = it))
             }
         }
     }, confirmButton = {
-        if (enabled && selection.excluded.isNotEmpty() && counts.keys.any { it != UNKNOWN_LANGUAGE && it !in selection.excluded })
+        if (enabled && selection.active && counts.keys.any { it != UNKNOWN_LANGUAGE && selection.includes(it) })
             ActionIcon(Icons.Outlined.Search, "Search selected languages", onSearch)
     })
 }
