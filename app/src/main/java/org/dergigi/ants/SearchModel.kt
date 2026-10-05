@@ -187,11 +187,11 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         val a = JSONArray(preferences.getString(key, "[]")); (0 until a.length()).map { a.getString(it) }
     }.getOrDefault(emptyList())
     private fun persist(key: String, values: List<String>) { preferences.edit().putString(key, JSONArray(values).toString()).apply() }
-    private fun containsSecret(value: String) = Regex("(?i)\\b(?:nsec1|ncryptsec1)[a-z0-9]*").containsMatchIn(value)
+    private fun containsSecret(value: String) = containsPrivateNostrKey(value)
     private fun rejectSecret() { mutable.update { it.copy(query = "", error = "Private keys aren't accepted. Use /login with an external signer.") } }
     fun edit(value: String) {
         if (containsSecret(value)) { rejectSecret(); return }
-        mutable.update { it.copy(query = value, error = null) }
+        mutable.update { it.copy(query = nostrIdentifierFromUrl(value) ?: value, error = null) }
     }
     fun clearHistory() { persist("history", emptyList()); mutable.update { it.copy(history = emptyList()) } }
     fun setRelays(text: String): String? {
@@ -207,7 +207,8 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         mutable.update { it.copy(command = null, commandMessage = null, commandBusy = false, query = "", submitted = "", translation = "", searched = false, error = null, profileFeedAuthor = null, newestFirst = true, events = emptyList(), reactionTargets = emptyMap(), quotes = emptyMap(), loadingQuotes = emptySet(), failedQuotes = emptySet(), loadingParents = emptySet(), failedParents = emptySet(), loadingReactionTargets = false, statuses = emptyMap(), pageId = ++nextPageId, followingNewest = true, newerResultIds = emptySet(), backDepth = 0, scrollIndex = 0, scrollOffset = 0, detail = null, detailScroll = 0, detailRaw = false) }
     }
     fun search(query: String = state.value.query) {
-        val raw = query.trim(); if (raw.isBlank()) return
+        if (containsSecret(query)) { rejectSecret(); return }
+        val raw = incomingQuery(query.trim()); if (raw.isBlank()) return
         if (containsSecret(raw)) { rejectSecret(); return }
         val input = if (raw.startsWith('/')) "/" + raw.drop(1).trim().lowercase() else raw
         val newestFirst = if (input == state.value.submitted) state.value.newestFirst else true
@@ -553,6 +554,8 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
 }
 
 fun incomingQuery(value: String): String {
+    if (containsPrivateNostrKey(value)) return value
+    nostrIdentifierFromUrl(value)?.let { return it }
     val uri = Uri.parse(value)
     if (uri.host?.lowercase() in listOf("ants.sh", "www.ants.sh", "search.dergigi.com")) {
         uri.getQueryParameter("q")?.let { return it }

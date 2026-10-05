@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Extract valid Nostr event/profile identifiers from pasted or shared URLs on any site, including paths, query parameters, fragments, and percent-encoded links. Search the identifier directly and preserve its relay hints.
+
 ### Changed
 
 - Tapping the top-left ants icon on the home screen searches for `p:ants.sh`, with an updated tooltip and accessibility label.

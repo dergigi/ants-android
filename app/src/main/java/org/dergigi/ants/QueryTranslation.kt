@@ -40,6 +40,7 @@ internal fun SearchBranch.queryTranslation(): String {
 /** Immediate local expansion while network-dependent names are still resolving. */
 internal fun queryPreview(input: String, identity: String?, now: Instant, resolved: Map<String, String> = emptyMap()): String {
     if (input.startsWith('/')) return input
+    nostrIdentifierFromUrl(input)?.let { return it }
     return runCatching {
         queryLeaves(input).joinToString("\nOR ") { leaves ->
             val plan = compileQueryBranch(leaves, now)

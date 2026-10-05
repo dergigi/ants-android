@@ -39,7 +39,7 @@ class SearchQuery(private val currentPubkey: String? = null,
     private val resolveContacts: suspend () -> List<String> = { error("Contact resolution is unavailable.") },
     private val resolveProfile: suspend (String) -> String) {
     suspend fun parse(input: String, now: Instant = Instant.now()): List<SearchBranch> {
-        val direct = input.trim().removePrefix("nostr:")
+        val direct = (nostrIdentifierFromUrl(input) ?: input.trim()).removePrefix("nostr:")
         require(direct.isNotBlank()) { "Enter a search first." }
         require(input.length <= 2000) { "Please keep searches under 2,000 characters." }
         val f = JSONObject().put("limit", 100)
