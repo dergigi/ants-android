@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Show service names beside the icons in the reverse image search picker, with the whole row tappable.
+
 ## [0.27.0] - 2026-10-05
 
 ### Added

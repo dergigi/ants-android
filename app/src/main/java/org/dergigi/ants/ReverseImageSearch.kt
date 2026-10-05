@@ -1,7 +1,7 @@
 package org.dergigi.ants
 
 import android.net.Uri
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.ImageSearch
@@ -9,11 +9,9 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 
 private data class ImageSearchProvider(val name: String, val endpoint: String, val icon: ImageVector) {
     fun searchUrl(imageUrl: String): String = Uri.parse(endpoint).buildUpon()
@@ -42,13 +40,15 @@ internal fun ReverseImageSearchAction(imageUrl: String, tint: Color) {
             }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            Row(Modifier.padding(horizontal = 4.dp)) {
-                imageSearchProviders.forEach { provider ->
-                    ActionIcon(provider.icon, "Search with ${provider.name}", {
+            imageSearchProviders.forEach { provider ->
+                DropdownMenuItem(
+                    text = { Text(provider.name) },
+                    leadingIcon = { Icon(provider.icon, null) },
+                    onClick = {
                         expanded = false
                         openUrl(context, provider.searchUrl(imageUrl))
-                    })
-                }
+                    },
+                )
             }
         }
     }
