@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-10-05
+
 ### Added
 
 - Offer relative date shortcuts and a calendar picker for `since:` and `until:` query fields, preserving surrounding filters and using UTC dates.
