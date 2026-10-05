@@ -237,7 +237,7 @@ fun AntsApp(model: SearchModel) {
     }
     MaterialTheme(colorScheme = darkColorScheme(primary = blue, background = background, surface = background, surfaceVariant = card, onSurfaceVariant = muted)) {
         CrashReportPrompt(CrashReporter.RECIPIENT_HEX)
-        GalleryHost {
+        GalleryHost(onSearch = { search(it) }) {
         CompositionLocalProvider(LocalThreadState provides ThreadState(state, model::loadParent), LocalQuoteState provides QuoteState(state, model::loadQuote, model::openDetail), LocalLoadMentionProfiles provides model::loadMentionProfiles) {
         if (selected?.kind == 30023) {
             BackHandler(onBack = model::dismissDetail)

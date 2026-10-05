@@ -49,20 +49,23 @@ import kotlin.math.abs
 internal val LocalOpenGallery = staticCompositionLocalOf<(List<String>, Int) -> Unit> { { _, _ -> } }
 
 @Composable
-internal fun GalleryHost(content: @Composable () -> Unit) {
+internal fun GalleryHost(onSearch: (String) -> Unit, content: @Composable () -> Unit) {
     var urls by rememberSaveable { mutableStateOf(arrayListOf<String>()) }
     var index by rememberSaveable { mutableIntStateOf(0) }
     CompositionLocalProvider(LocalOpenGallery provides { images, start ->
         if (images.isNotEmpty()) { urls = ArrayList(images); index = start.coerceIn(images.indices) }
     }) {
         content()
-        if (urls.isNotEmpty()) ImageGallery(urls, index, onPage = { index = it }, onDismiss = { urls = arrayListOf() })
+        if (urls.isNotEmpty()) ImageGallery(urls, index, onPage = { index = it }, onDismiss = { urls = arrayListOf() }, onSearch = { query ->
+            urls = arrayListOf()
+            onSearch(query)
+        })
     }
 }
 
 // Swipe, double-tap/pinch zoom, background cycling and actions follow Boris.
 @Composable
-private fun ImageGallery(urls: List<String>, initialIndex: Int, onPage: (Int) -> Unit, onDismiss: () -> Unit) {
+private fun ImageGallery(urls: List<String>, initialIndex: Int, onPage: (Int) -> Unit, onDismiss: () -> Unit, onSearch: (String) -> Unit) {
     val pager = rememberPagerState(initialPage = initialIndex.coerceIn(urls.indices), pageCount = { urls.size })
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
@@ -135,6 +138,7 @@ private fun ImageGallery(urls: List<String>, initialIndex: Int, onPage: (Int) ->
                 }
             }
             Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                ImageFilenameSearchAction(urls[pager.currentPage], foreground, onSearch)
                 IconButton(enabled = pager.currentPage > 0, onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage - 1) } }) { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, "Previous image", tint = foreground.copy(alpha = if (pager.currentPage > 0) 1f else 0.3f)) }
                 Text("${pager.currentPage + 1} / ${urls.size}", color = foreground, modifier = Modifier.padding(horizontal = 16.dp))
                 IconButton(enabled = pager.currentPage < urls.lastIndex, onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } }) { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, "Next image", tint = foreground.copy(alpha = if (pager.currentPage < urls.lastIndex) 1f else 0.3f)) }
