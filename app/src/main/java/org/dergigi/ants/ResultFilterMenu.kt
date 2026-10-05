@@ -1,6 +1,8 @@
 package org.dergigi.ants
 
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -17,10 +19,21 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun ResultFilterButton(settings: ContentFilterSettings, query: String, total: Int, visible: Int,
+    languageCounts: Map<String, Int> = emptyMap(),
+    onSearchLanguages: () -> Unit = {},
     onChange: (ContentFilterSettings) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
+    var languagesOpen by remember(query) { mutableStateOf(false) }
+    val mixedLanguages = languageCounts.keys.count { it != UNKNOWN_LANGUAGE } > 1
+    val selection = settings.languages.forQuery(query)
+    if (languagesOpen && mixedLanguages) LanguagePicker(languageCounts, selection,
+        enabled = settings.mode != ResultFilterMode.NEVER,
+        onChange = { onChange(settings.copy(languages = it)) },
+        onSearch = { languagesOpen = false; expanded = false; onSearchLanguages() },
+        onDismiss = { languagesOpen = false })
     Box {
-        ActionIcon(Icons.Outlined.FilterAlt, "Filter results · $visible / $total", { expanded = true }, selected = settings.enabled(total) || settings.mode != ResultFilterMode.NEVER && settings.hideEncrypted)
+        ActionIcon(Icons.Outlined.FilterAlt, "Filter results · $visible / $total", { expanded = true }, selected = settings.enabled(total) || settings.mode != ResultFilterMode.NEVER &&
+            (settings.hideEncrypted || mixedLanguages && (selection.excluded.isNotEmpty() || !selection.keepUnknown)))
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.heightIn(max = 560.dp)) {
             Column(Modifier.width(300.dp).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -44,6 +57,11 @@ internal fun ResultFilterButton(settings: ContentFilterSettings, query: String, 
                     OutlinedTextField(settings.resultFilter, { onChange(settings.copy(resultFilter = it)) },
                         modifier = Modifier.weight(1f), enabled = enabled && settings.fuzzyEnabled, singleLine = true,
                         label = { Text("Filter text") }, textStyle = MaterialTheme.typography.bodySmall)
+                }
+                if (mixedLanguages) TextButton(onClick = { languagesOpen = true }) {
+                    Icon(Icons.Outlined.Translate, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Languages · ${languageCounts.keys.count { it != UNKNOWN_LANGUAGE && it !in selection.excluded }} / ${languageCounts.keys.count { it != UNKNOWN_LANGUAGE }}")
                 }
                 FilterToggle("Valid NIP-05", settings.verifiedOnly, enabled) { onChange(settings.copy(verifiedOnly = it)) }
                 val emojiDisabled = settings.emojiAutoDisabled(query)
@@ -90,4 +108,30 @@ private fun FilterLimit(label: String, value: Int?, default: Int, max: Int, enab
         }, Modifier.width(72.dp).semantics { contentDescription = "Maximum $label" }, enabled = enabled, singleLine = true, label = { Text("Max") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), textStyle = MaterialTheme.typography.bodySmall)
     }
+}
+
+@Composable
+private fun LanguagePicker(counts: Map<String, Int>, selection: LanguageSelection, enabled: Boolean,
+    onChange: (LanguageSelection) -> Unit, onSearch: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(onDismissRequest = onDismiss, title = {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Languages", Modifier.weight(1f))
+            ActionIcon(Icons.Outlined.SelectAll, "Show all languages", { onChange(selection.copy(excluded = emptySet(), keepUnknown = true)) })
+            ActionIcon(Icons.Outlined.Close, "Close languages", onDismiss)
+        }
+    }, text = {
+        Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+            counts.keys.filter { it != UNKNOWN_LANGUAGE }.sortedBy(::languageName).forEach { code ->
+                FilterToggle("${languageName(code)} · ${counts[code]}", code !in selection.excluded, enabled) { checked ->
+                    onChange(selection.copy(excluded = if (checked) selection.excluded - code else selection.excluded + code))
+                }
+            }
+            if (UNKNOWN_LANGUAGE in counts) FilterToggle("Unknown · ${counts[UNKNOWN_LANGUAGE]}", selection.keepUnknown, enabled) {
+                onChange(selection.copy(keepUnknown = it))
+            }
+        }
+    }, confirmButton = {
+        if (enabled && selection.excluded.isNotEmpty() && counts.keys.any { it != UNKNOWN_LANGUAGE && it !in selection.excluded })
+            ActionIcon(Icons.Outlined.Search, "Search selected languages", onSearch)
+    })
 }

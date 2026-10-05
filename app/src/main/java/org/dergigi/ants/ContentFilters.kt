@@ -6,6 +6,7 @@ import java.util.Locale
 internal enum class ResultFilterMode(val label: String) { ALWAYS("Always"), SMART("Smart"), NEVER("Never") }
 
 internal data class ContentFilterSettings(
+    val languages: LanguageSelection = LanguageSelection(),
     val mode: ResultFilterMode = ResultFilterMode.SMART,
     val maxEmojis: Int? = 3,
     val maxHashtags: Int? = 3,

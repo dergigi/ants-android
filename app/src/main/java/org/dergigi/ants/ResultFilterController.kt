@@ -4,13 +4,15 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
 internal data class IdentityClaim(val pubkey: String, val nip05: String)
-internal data class FilteredResults(val pageId: Long = -1, val events: List<Nip01Event> = emptyList())
+internal data class FilteredResults(val pageId: Long = -1, val events: List<Nip01Event> = emptyList(),
+    val languageCounts: Map<String, Int> = emptyMap())
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class ResultFilterController(
     state: StateFlow<SearchState>,
     scope: CoroutineScope,
     private val resolver: ProfileResolver,
+    private val languageAnalyzer: ResultLanguageAnalyzer,
 ) {
     private val mutableSettings = MutableStateFlow(ContentFilterSettings())
     val settings = mutableSettings.asStateFlow()
@@ -29,9 +31,18 @@ internal class ResultFilterController(
         withContext(Dispatchers.Default) {
             val settings = input.settings
             if (input.command != null) return@withContext FilteredResults(input.pageId, input.events)
-            val readable = if (settings.mode != ResultFilterMode.NEVER && settings.hideEncrypted)
-                input.events.filterNot { it.encryptedContent } else input.events
-            if (!settings.enabled(input.events.size)) return@withContext FilteredResults(input.pageId, readable)
+            val detected = input.events.mapNotNull { event ->
+                ensureActive()
+                languageAnalyzer.analyze(event)?.let { event.id to it }
+            }.toMap()
+            val counts = detected.values.flatMap { it.buckets }.groupingBy { it }.eachCount()
+            val mixed = counts.keys.count { it != UNKNOWN_LANGUAGE } > 1
+            val selection = settings.languages.forQuery(input.query)
+            val readable = if (settings.mode == ResultFilterMode.NEVER) input.events else input.events.filter { event ->
+                (!settings.hideEncrypted || !event.encryptedContent) &&
+                    (!mixed || detected[event.id]?.let(selection::accepts) != false)
+            }
+            if (!settings.enabled(input.events.size)) return@withContext FilteredResults(input.pageId, readable, counts)
             val emojiDisabled = settings.emojiAutoDisabled(input.query)
             val fuzzy = settings.resultFilter.trim().takeIf { settings.fuzzyEnabled && it.isNotEmpty() }?.let(::ResultFuzzyFilter)
             val matches = readable.mapNotNull { event ->
@@ -47,7 +58,7 @@ internal class ResultFilterController(
                 val notes = matches.filter { it.first.kind != 0 }.map { it.first }
                 profiles + (if (input.newestFirst) notes.sortedByDescending { it.createdAt } else notes.sortedBy { it.createdAt })
             }
-            FilteredResults(input.pageId, events)
+            FilteredResults(input.pageId, events, counts)
         }
     }.stateIn(scope, SharingStarted.Eagerly, FilteredResults())
 

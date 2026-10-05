@@ -12,7 +12,7 @@ import java.time.Instant
 val imagePattern = Regex("https://[^\\s<>\"]+\\.(?:png|jpe?g|gif|webp|avif)(?:\\?[^\\s<>\"]*)?", RegexOption.IGNORE_CASE)
 
 data class SearchBranch(val filter: JSONObject, val media: String? = null, val site: String? = null, val renderedOnly: Boolean = false,
-    val relayHints: List<String> = emptyList(), val outboxAuthors: List<String> = emptyList(), val contactKeys: Set<String> = emptySet()) {
+    val language: String? = null, val relayHints: List<String> = emptyList(), val outboxAuthors: List<String> = emptyList(), val contactKeys: Set<String> = emptySet()) {
     // Contacts can add thousands of keys. Build membership sets once per branch.
     private val filterValues: Map<String, Set<String>> by lazy {
         filter.keys().asSequence().mapNotNull { key ->
@@ -90,7 +90,7 @@ class SearchQuery(private val currentPubkey: String? = null,
             }
             authors?.let { plan.filter.put("authors", JSONArray(it.toList())) }
             plan.mentions?.let { clause -> plan.filter.put("#p", JSONArray(clause.flatMap { keys(it) }.distinct())) }
-            SearchBranch(plan.filter, contactKeys = contacts)
+            SearchBranch(plan.filter, contactKeys = contacts, language = plan.language)
         }
     }
 
@@ -100,7 +100,7 @@ class SearchQuery(private val currentPubkey: String? = null,
     }
 }
 
-internal data class QueryPlan(val filter: JSONObject, val authors: List<List<String>>, val mentions: List<String>?)
+internal data class QueryPlan(val filter: JSONObject, val authors: List<List<String>>, val mentions: List<String>?, val language: String? = null)
 
 internal fun compileQueryBranch(leaves: List<QueryNode>, now: Instant): QueryPlan {
     val filter = JSONObject().put("limit", 100)
@@ -161,5 +161,5 @@ internal fun compileQueryBranch(leaves: List<QueryNode>, now: Instant): QueryPla
     if (profile != null && extensions.isNotEmpty()) leaves.first().fail("NIP-50 extensions cannot be combined with p:")
     val search = (listOfNotNull(profile) + text + extensions.map { "${it.key}:${it.value}" }).joinToString(" ")
     if (search.isNotBlank()) filter.put("search", search)
-    return QueryPlan(filter, authors, mentions)
+    return QueryPlan(filter, authors, mentions, extensions["language"]?.lowercase())
 }

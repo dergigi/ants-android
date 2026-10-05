@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Bundle fastText language identification for offline detection without an external service.
+- Bundle fastText language identification for offline detection without an external service, with NIP-32 self-labels as a fallback for uncertain text.
+- Show a language picker only for mixed-language search results, with languages and counts taken from all fetched notes. Selections are query-specific; unknown text stays visible by default.
+- Add an optional Search selected languages action using bounded NIP-50 language requests alongside the original broad search. Local filtering remains effective when relays ignore language extensions.
 
 ## [0.30.0] - 2026-10-05
 

@@ -1,6 +1,6 @@
 # Result filters
 
-The filter icon beside the result sort control opens a native menu. Changes apply to the retained results without another relay search. Counts show visible / fetched results when they differ. Clear and reset actions use icons with tooltips; switches and numeric limits have labels.
+The filter icon beside the result sort control opens a native menu. Checkbox changes apply to the retained results without another relay search. The language picker also offers an explicit Search selected languages action. Counts show visible / fetched results when they differ. Clear and reset actions use icons with tooltips; switches and numeric limits have labels.
 
 The implementation follows the web app at commit `23dc652870926ed622a74d9c179dade6a210d86b`: `src/lib/contentAnalysis.ts`, `src/hooks/useResultPipeline.ts`, `src/components/ClientFilters.tsx`, and their URL and identifier helpers.
 
@@ -34,3 +34,5 @@ The raw event set remains bounded by the existing result and memory limits. Cont
 Boundary and regression checks are in `ContentFiltersTest.kt`. They have not been run under the project's no-local-tests policy. Device validation should cover toggling filters, streaming past 69 results, metadata arriving after notes, all results hidden, navigation, and restoring defaults.
 
 Encrypted content is hidden by default in Smart and Always modes, including below 69 results. Never mode or disabling Hide encrypted content reveals placeholders; raw event inspection remains available. Detection covers known encrypted kinds and kind-1 content consisting entirely of at least 128 Base64 characters decoding to non-UTF-8 binary. This is a payload heuristic, not proof of encryption; mixed prose and encoded plain text are left alone.
+
+Language choices use a dynamic picker for mixed-language result sets. Language detection and counts use all fetched text notes, not just the currently visible subset. See [LANGUAGES.md](LANGUAGES.md) for fastText, NIP-32 and NIP-50 behavior.
