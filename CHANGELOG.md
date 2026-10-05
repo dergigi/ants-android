@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-10-05
+
 ### Added
 
 - Add a native result-filter menu with the web's Smart/Always/Never modes, default emoji/hashtag/mention limits, bridged-account detection, optional bot/NSFW/link and verified-author filters, and fuzzy text matching.
