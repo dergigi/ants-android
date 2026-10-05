@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-10-05
+
 ### Changed
 
 - Show purple progress indicators and a NIP-05 tooltip during NIP-05 requests; retain amber for other profile lookups. Track concurrent requests and clear the indicator on completion or cancellation.
