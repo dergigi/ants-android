@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add TinEye and Yandex Images alongside Google Lens in the reverse image lookup popover. Only the chosen provider receives the image URL.
+
 ## [0.26.0] - 2026-10-05
 
 ### Added
