@@ -15,7 +15,8 @@ import kotlinx.coroutines.sync.withPermit
 import org.json.JSONArray
 import org.json.JSONObject
 
-data class Profile(val name: String, val about: String, val picture: String?, val timestamp: Long)
+data class Profile(val name: String, val about: String, val picture: String?, val timestamp: Long,
+    val nip05: String = "", val bot: Boolean = false)
 data class SearchState(
     val command: String? = null, val commandMessage: String? = null, val commandBusy: Boolean = false,
     val pubkey: String? = null, val signerRequest: String? = null,
@@ -108,6 +109,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         }
     }
     private val profileResolver = ProfileResolver(relay, ::signProfileRequest, outbox)
+    internal val resultFilters = ResultFilterController(state, viewModelScope, profileResolver)
     private var nextPageId = 0L
     private val backStack = ArrayDeque<SearchState>()
 
@@ -297,9 +299,11 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 }
                 val snapshot = state.value
                 val authors = withContext(Dispatchers.Default) {
-                    (snapshot.events + snapshot.reactionTargets.values).asSequence()
-                        .flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) + linkedProfileKeys(it) }
-                        .distinct().filter { it !in snapshot.profiles }.take(200).toList()
+                    // Fetch result authors first so bridge/bot filters cover the entire retained result set.
+                    (snapshot.events.asSequence().map { it.pubkey } +
+                        (snapshot.events + snapshot.reactionTargets.values).asSequence()
+                            .flatMap { listOfNotNull(it.pubkey, highlightAuthor(it)) + linkedProfileKeys(it) })
+                        .distinct().filter { it !in snapshot.profiles }.take(700).toList()
                 }
                 if (current != generation) return@launch
                 if (authors.isNotEmpty()) {
@@ -360,6 +364,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             }
             "clear" -> {
                 profileResolver.clear(); outbox.clear(); ProfileIndicatorLookup.clear()
+                resultFilters.clearVerification()
                 backStack.clear()
                 mutable.update { it.copy(backDepth = 0, profiles = emptyMap(), commandBusy = true, commandMessage = "Clearing cache…") }
                 try {
@@ -529,7 +534,8 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             val profiles = events.mapNotNull { event -> runCatching {
                 val json = JSONObject(event.content)
                 val fields = profileFields(event)
-                event.pubkey to Profile(fields.display.ifBlank { fields.name }.ifBlank { event.pubkey.take(12) }.take(256), json.optString("about").take(4000), json.optString("picture").takeIf { it.startsWith("https://") && it.length <= 2048 }, event.createdAt)
+                event.pubkey to Profile(fields.display.ifBlank { fields.name }.ifBlank { event.pubkey.take(12) }.take(256), json.optString("about").take(4000), json.optString("picture").takeIf { it.startsWith("https://") && it.length <= 2048 }, event.createdAt,
+                    nip05 = fields.nip05, bot = json.opt("bot") == true || json.opt("is_bot") == true || ContentAnalysis.hasBotHint(json.optString("about")))
             }.getOrNull() }
             mutable.update { state ->
                 if (state.pageId != pageId) state else {

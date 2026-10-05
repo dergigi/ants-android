@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add a native result-filter menu with the web's Smart/Always/Never modes, default emoji/hashtag/mention limits, bridged-account detection, optional bot/NSFW/link and verified-author filters, and fuzzy text matching.
+- Show visible/fetched result counts, retain hidden events for immediate filter changes, and provide clear/reset actions. Smart mode activates at 69 results and bypasses the emoji limit for multi-emoji searches.
+
 ### Changed
 
 - Show service names beside the icons in the reverse image search picker, with the whole row tappable.

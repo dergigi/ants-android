@@ -103,6 +103,9 @@ private val muted = Color(0xFF9CA3AF)
 @Composable
 fun AntsApp(model: SearchModel) {
     val state by model.state.collectAsStateWithLifecycle()
+    val filterSettings by model.resultFilters.settings.collectAsStateWithLifecycle()
+    val filteredResults by model.resultFilters.results.collectAsStateWithLifecycle()
+    val visibleEvents = if (filteredResults.pageId == state.pageId) filteredResults.events else emptyList()
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
     var searchFocused by remember { mutableStateOf(false) }
     val suggestingCommands = searchFocused && state.query.trimStart().startsWith("/")
@@ -211,7 +214,7 @@ fun AntsApp(model: SearchModel) {
     // measure, so arriving results cannot silently push the top out of view.
     var pinnedHead by remember(state.pageId) { mutableStateOf<String?>(null) }
     SideEffect {
-        val head = state.events.firstOrNull { state.profileFeedAuthor == null || it.kind != 0 }?.id
+        val head = visibleEvents.firstOrNull { state.profileFeedAuthor == null || it.kind != 0 }?.id
         if (state.searched && state.followingNewest && head != pinnedHead && !listState.isScrollInProgress) {
             listState.requestScrollToItem(0)
             pinnedHead = head
@@ -307,16 +310,23 @@ fun AntsApp(model: SearchModel) {
                 if (!suggestingCommands && state.searched && (state.command == null || state.command == "tutorial") &&
                     (!state.loading || state.events.isNotEmpty() || state.newerResultIds.isNotEmpty())) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        val feedCount = state.events.count { it.kind != 0 }
-                        val resultSummary = if (state.profileFeedAuthor != null) "$feedCount events"
-                            else "${state.events.size} results"
+                        val totalCount = state.events.count { state.profileFeedAuthor == null || it.kind != 0 }
+                        val visibleCount = visibleEvents.count { state.profileFeedAuthor == null || it.kind != 0 }
+                        val count = if (visibleCount == totalCount) "$totalCount" else "$visibleCount / $totalCount"
+                        val resultSummary = if (state.profileFeedAuthor != null) "$count events" else "$count results"
                         Text(resultSummary, Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
+                        if (state.command == null) ResultFilterButton(filterSettings, state.submitted, state.events.size, visibleEvents.size) {
+                            model.resultFilters.update(it)
+                            model.followNewest()
+                            listState.requestScrollToItem(0)
+                        }
                         if (state.events.any { it.kind != 0 }) ResultSortButton(state.newestFirst) {
                             model.toggleSort()
                             listState.requestScrollToItem(0)
                         }
-                        if (state.newerResultIds.isNotEmpty()) {
-                            ActionIcon(Icons.Outlined.VerticalAlignTop, "${state.newerResultIds.size} new results · jump to top", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
+                        val newVisibleCount = visibleEvents.count { it.id in state.newerResultIds }
+                        if (newVisibleCount > 0) {
+                            ActionIcon(Icons.Outlined.VerticalAlignTop, "$newVisibleCount new results · jump to top", { model.followNewest(); listState.requestScrollToItem(0) }, selected = true)
                         }
                         if (!state.loading && !showTranslation) IconButton(onClick = { search(state.submitted) }) { Icon(Icons.Outlined.Refresh, "Retry search") }
                     }
@@ -348,7 +358,13 @@ fun AntsApp(model: SearchModel) {
                     if (state.searched && (state.command == null || state.command == "tutorial") && !state.loading && state.events.isEmpty() && state.error == null) {
                         item { if (state.command == "tutorial") CommandTerminal { Text("Tutorial unavailable") } else MessageCard("No results yet", "Try fewer filters, another keyword, or different search relays. Relay coverage varies.") }
                     }
-                    items(state.events, key = { it.id }) { event ->
+                    if (state.command == null && state.events.isNotEmpty() && visibleEvents.isEmpty() && filteredResults.pageId == state.pageId) {
+                        item { Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("All results hidden", Modifier.weight(1f), color = muted)
+                            ActionIcon(Icons.Outlined.FilterAltOff, "Show all results", { model.resultFilters.update(filterSettings.copy(mode = ResultFilterMode.NEVER)) })
+                        } }
+                    }
+                    items(visibleEvents, key = { it.id }) { event ->
                         if (state.command == "tutorial") CommandTerminal {
                             EventContent(event, state.profiles[event.pubkey], state.profiles, compact = false, onNavigate = { navigateContent(it) })
                         } else EventCard(event, state.profiles[event.pubkey], state.profiles, onNavigate = { navigateContent(it) }, onOpen = { model.openDetail(event) }, onAuthor = { search("p:${Nip19.npubEncode(event.pubkey)}") })
