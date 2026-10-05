@@ -32,3 +32,5 @@ The raw event set remains bounded by the existing result and memory limits. Cont
 `ResultFuzzyFilter.kt` ports the matching subset of Fuse.js 7.1.0 with the web's options. License notices for both dependencies are in `licenses/` and packaged in the APK under `META-INF/`.
 
 Boundary and regression checks are in `ContentFiltersTest.kt`. They have not been run under the project's no-local-tests policy. Device validation should cover toggling filters, streaming past 69 results, metadata arriving after notes, all results hidden, navigation, and restoring defaults.
+
+Encrypted content is hidden by default in Smart and Always modes, including below 69 results. Never mode or disabling Hide encrypted content reveals placeholders; raw event inspection remains available. Detection covers known encrypted kinds and kind-1 content consisting entirely of at least 128 Base64 characters decoding to non-UTF-8 binary. This is a payload heuristic, not proof of encryption; mixed prose and encoded plain text are left alone.

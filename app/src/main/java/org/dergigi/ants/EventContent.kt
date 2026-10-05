@@ -68,6 +68,7 @@ private data class PreparedContent(
 
 @Composable
 internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<String, Profile>, compact: Boolean, onNavigate: (String) -> Unit) {
+    if (event.encryptedContent) { Text("Encrypted content", color = MaterialTheme.colorScheme.onSurfaceVariant); return }
     if (event.kind == 1063) { FileContent(event, profiles, compact, onNavigate); return }
     if (event.kind in listKinds) { ListContent(event, profiles, compact, onNavigate); return }
     if (!event.isRenderable()) { GenericEventContent(event, profiles, compact, onNavigate); return }

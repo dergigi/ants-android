@@ -10,6 +10,7 @@ internal data class ContentFilterSettings(
     val maxEmojis: Int? = 3,
     val maxHashtags: Int? = 3,
     val maxMentions: Int? = 6,
+    val hideEncrypted: Boolean = true,
     val hideLinks: Boolean = false,
     val hideBridged: Boolean = true,
     val hideBots: Boolean = false,
@@ -23,7 +24,7 @@ internal data class ContentFilterSettings(
 
     companion object {
         fun cleared() = ContentFilterSettings(mode = ResultFilterMode.NEVER, maxEmojis = null, maxHashtags = null,
-            maxMentions = null, hideBridged = false, fuzzyEnabled = false)
+            maxMentions = null, hideEncrypted = false, hideBridged = false, fuzzyEnabled = false)
     }
 }
 

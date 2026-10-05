@@ -20,7 +20,7 @@ internal fun ResultFilterButton(settings: ContentFilterSettings, query: String, 
     onChange: (ContentFilterSettings) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        ActionIcon(Icons.Outlined.FilterAlt, "Filter results · $visible / $total", { expanded = true }, selected = settings.enabled(total))
+        ActionIcon(Icons.Outlined.FilterAlt, "Filter results · $visible / $total", { expanded = true }, selected = settings.enabled(total) || settings.mode != ResultFilterMode.NEVER && settings.hideEncrypted)
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.heightIn(max = 560.dp)) {
             Column(Modifier.width(300.dp).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -54,6 +54,7 @@ internal fun ResultFilterButton(settings: ContentFilterSettings, query: String, 
                 FilterLimit("Mentions", settings.maxMentions, 6, 20, enabled) { onChange(settings.copy(maxMentions = it)) }
                 FilterToggle("Hide external links", settings.hideLinks, enabled) { onChange(settings.copy(hideLinks = it)) }
                 FilterToggle("Hide bridged accounts", settings.hideBridged, enabled) { onChange(settings.copy(hideBridged = it)) }
+                FilterToggle("Hide encrypted content", settings.hideEncrypted, enabled) { onChange(settings.copy(hideEncrypted = it)) }
                 FilterToggle("Hide bots", settings.hideBots, enabled) { onChange(settings.copy(hideBots = it)) }
                 FilterToggle("Hide NSFW", settings.hideNsfw, enabled) { onChange(settings.copy(hideNsfw = it)) }
             }

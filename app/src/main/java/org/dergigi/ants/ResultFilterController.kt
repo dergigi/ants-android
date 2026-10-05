@@ -28,10 +28,13 @@ internal class ResultFilterController(
     }.distinctUntilChanged().mapLatest { input ->
         withContext(Dispatchers.Default) {
             val settings = input.settings
-            if (input.command != null || !settings.enabled(input.events.size)) return@withContext FilteredResults(input.pageId, input.events)
+            if (input.command != null) return@withContext FilteredResults(input.pageId, input.events)
+            val readable = if (settings.mode != ResultFilterMode.NEVER && settings.hideEncrypted)
+                input.events.filterNot { it.encryptedContent } else input.events
+            if (!settings.enabled(input.events.size)) return@withContext FilteredResults(input.pageId, readable)
             val emojiDisabled = settings.emojiAutoDisabled(input.query)
             val fuzzy = settings.resultFilter.trim().takeIf { settings.fuzzyEnabled && it.isNotEmpty() }?.let(::ResultFuzzyFilter)
-            val matches = input.events.mapNotNull { event ->
+            val matches = readable.mapNotNull { event ->
                 ensureActive()
                 val profile = input.profiles[event.pubkey]
                 val isVerified = profile?.let { input.verified[IdentityClaim(event.pubkey, it.nip05)] == true } ?: false

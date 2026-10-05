@@ -16,7 +16,7 @@ internal fun GenericEventContent(event: Nip01Event, profiles: Map<String, Profil
     var tagCount by remember(event.id, compact) { mutableIntStateOf(if (compact) 3 else 20) }
     val context = LocalContext.current
     val open = LocalQuoteState.current.open
-    val encrypted = event.kind in setOf(4, 44, 1059, 24133, 23194, 23195)
+    val encrypted = event.encryptedContent
     val pageSize = 4000
     val pages = ((event.content.length.toLong() + pageSize - 1) / pageSize).toInt().coerceAtLeast(1)
     val text = event.content.substring((page * pageSize).coerceAtMost(event.content.length),
