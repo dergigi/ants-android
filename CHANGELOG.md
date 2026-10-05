@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-10-05
+
 ### Fixed
 
 - Render GIF/image file attachments directly instead of dumping JSON metadata into search cards. Extract titles and media URLs from file tags or JSON, reuse the gallery and video player, and move file metadata and alternate sources into an icon-accessed details popover.
