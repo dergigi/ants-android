@@ -63,7 +63,7 @@ internal fun withoutRenderedImages(content: String, images: List<String>): Strin
 
 private data class PreparedContent(
     val gallery: List<String>, val images: List<String>, val videos: List<VideoAttachment>,
-    val text: String, val quotes: List<QuoteReference>,
+    val text: String, val quotes: List<QuoteReference>, val preview: String?,
 )
 
 @Composable
@@ -89,7 +89,7 @@ internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<St
             val fullText = withoutEmbeddedQuotes(withoutRenderedImages(content, gallery + videos.map { it.url }), event, quotes)
             // maxLines alone still asks Android to shape the entire input string.
             val text = if (compact && fullText.length > 4000) fullText.take(4000) + "…" else fullText
-            PreparedContent(gallery, gallery.take(if (compact) 4 else 20), videos, text, quotes)
+            PreparedContent(gallery, gallery.take(if (compact) 4 else 20), videos, text, quotes, firstPreviewUrl(content, gallery + videos.map { it.url }))
         }
     }
     val rendered = prepared ?: return
@@ -113,6 +113,7 @@ internal fun EventContent(event: Nip01Event, profile: Profile?, profiles: Map<St
             }
         }
         videos.forEach { video -> key(video.url) { EventVideo(video) } }
+        if (ancestors.size == 1) rendered.preview?.let { RichLinkPreview(it) }
         rendered.quotes.forEach { reference -> key(reference.key) { EmbeddedNote(reference, ancestors, onNavigate) } }
         if (!embedQuotes) quotedQueries(event).forEach { query ->
             IconButton(onClick = { onNavigate(query) }) { Icon(Icons.Outlined.FormatQuote, "Open quoted note") }

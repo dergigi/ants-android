@@ -105,6 +105,15 @@ private val muted = Color(0xFF9CA3AF)
 @Composable
 fun AntsApp(model: SearchModel) {
     val state by model.state.collectAsStateWithLifecycle()
+    val appSettings by model.appSettings.state.collectAsStateWithLifecycle()
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle, model) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_START) model.appSettings.refresh()
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
     val filterSettings by model.resultFilters.settings.collectAsStateWithLifecycle()
     val filteredResults by model.resultFilters.results.collectAsStateWithLifecycle()
     val visibleEvents = if (filteredResults.pageId == state.pageId) filteredResults.events else emptyList()
@@ -253,7 +262,7 @@ fun AntsApp(model: SearchModel) {
     MaterialTheme(colorScheme = darkColorScheme(primary = blue, background = background, surface = background, surfaceVariant = card, onSurfaceVariant = muted)) {
         CrashReportPrompt(CrashReporter.RECIPIENT_HEX)
         GalleryHost(onSearch = { search(it) }) {
-        CompositionLocalProvider(LocalThreadState provides ThreadState(state, model::loadParent), LocalQuoteState provides QuoteState(state, model::loadQuote, model::openDetail), LocalLoadMentionProfiles provides model::loadMentionProfiles) {
+        CompositionLocalProvider(LocalLinkPreviews provides (if (appSettings.richPreviews) model.linkPreviews else null), LocalThreadState provides ThreadState(state, model::loadParent), LocalQuoteState provides QuoteState(state, model::loadQuote, model::openDetail), LocalLoadMentionProfiles provides model::loadMentionProfiles) {
         if (selected?.kind == 30023) {
             BackHandler(onBack = model::dismissDetail)
             Scaffold(topBar = {
@@ -277,7 +286,7 @@ fun AntsApp(model: SearchModel) {
             } }, actions = {
                 IconButton(onClick = { search("/history") }) { Icon(Icons.Outlined.History, "Search history") }
                 IconButton(onClick = { search("/help") }) { Icon(Icons.Outlined.HelpOutline, "Search help") }
-                IconButton(onClick = { dialog = "relays" }) { Icon(Icons.Outlined.Settings, "Relay settings") }
+                ActionIcon(Icons.Outlined.Settings, "Settings", { dialog = "relays" })
                 AccountMenu(state.pubkey, state.profiles[state.pubkey], onSearch = { search(it) })
             })
             }
@@ -421,6 +430,7 @@ fun AntsApp(model: SearchModel) {
                 }
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { search("/history") }) { Icon(Icons.Outlined.History, "Search history", tint = muted) }
+                ActionIcon(Icons.Outlined.Settings, "Settings", { dialog = "relays" })
                 IconButton(onClick = { search("/help") }) { Icon(Icons.Outlined.HelpOutline, "Search help", tint = muted) }
                 AccountMenu(state.pubkey, state.profiles[state.pubkey], onSearch = { search(it) })
             }
@@ -600,10 +610,25 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
 
 @Composable
 private fun RelayDialog(state: SearchState, model: SearchModel, onDismiss: () -> Unit) {
+    val settings by model.appSettings.state.collectAsStateWithLifecycle()
     var text by remember { mutableStateOf(state.relays.joinToString("\n")) }
     var error by remember { mutableStateOf<String?>(null) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Search relays") }, text = {
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Settings") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Rich link previews", Modifier.weight(1f))
+                Switch(settings.richPreviews, model.appSettings::setRichPreviews)
+            }
+            Text("Previews contact linked websites.", style = MaterialTheme.typography.bodySmall, color = muted)
+            if (state.pubkey != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(settings.sync, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = muted)
+                    ActionIcon(Icons.Outlined.Refresh, "Sync app settings", model.appSettings::refresh)
+                }
+                Text("App settings sync publicly over Nostr. Search relays stay on this device.", style = MaterialTheme.typography.bodySmall, color = muted)
+            }
+            HorizontalDivider()
+            Text("Search relays", style = MaterialTheme.typography.titleSmall)
             Text("Queries are sent to these relays. Choose relays that support Nostr text search (NIP-50).", color = muted)
             OutlinedTextField(text, { text = it; error = null }, Modifier.fillMaxWidth(), label = { Text("One wss:// URL per line") }, minLines = 5, isError = error != null, textStyle = MaterialTheme.typography.bodySmall)
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -612,7 +637,7 @@ private fun RelayDialog(state: SearchState, model: SearchModel, onDismiss: () ->
             state.statuses.forEach { (url, status) -> Column { Text(url.removePrefix("wss://"), fontSize = 13.sp); Text(status, color = if (status == "Complete") blue else muted, fontSize = 12.sp) } }
             Text("Direct lookups also use Damus, nos.lol, and Primal. Public profile names and avatars are fetched from purplepag.es and Damus. Queries are visible to relays and image requests go to their hosts.", style = MaterialTheme.typography.bodySmall, color = muted)
         }
-    }, confirmButton = { TextButton(onClick = { error = model.setRelays(text); if (error == null) onDismiss() }) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
+    }, confirmButton = { TextButton(onClick = { error = model.setRelays(text); if (error == null) onDismiss() }) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } })
 }
 
 internal fun openUrl(context: android.content.Context, url: String) {

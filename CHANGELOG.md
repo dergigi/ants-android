@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Render one rich link preview per visible result with Open Graph and Twitter metadata, bounded requests and cached images. Rich previews default to on and can be switched off in Settings.
+- Sync the rich-preview setting over Nostr using NIP-78 and the connected Android signer. Keep separate local settings for each account and logged-out use, retain pending changes offline, and provide a sync action.
 - Add cursor-aware query suggestions for registered keywords, including all `is:` kinds and `has:`, `site:` and `nip:` aliases. Tap a suggestion to complete the active token without submitting the search or replacing the rest of the query.
 
 ## [0.32.0] - 2026-10-05

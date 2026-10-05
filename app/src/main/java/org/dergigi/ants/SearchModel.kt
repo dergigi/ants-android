@@ -108,6 +108,8 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             if (pendingSignature?.id == request.id && state.value.pubkey == request.event.pubkey) waiter.complete(result)
         }
     }
+    internal val linkPreviews = LinkPreviewRepository()
+    internal val appSettings = AppSettingsStore(preferences, viewModelScope, relay, ::signProfileRequest)
     private val profileResolver = ProfileResolver(relay, ::signProfileRequest, outbox)
     internal val resultFilters = ResultFilterController(state, viewModelScope, profileResolver,
         ResultLanguageAnalyzer(FastTextLanguage(app)::predict),
@@ -130,6 +132,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         // Retire device-only saved searches, including data from older versions.
         if (preferences.contains("saved")) preferences.edit().remove("saved").apply()
         refreshAccountProfile()
+        appSettings.connect(state.value.pubkey)
     }
 
     private fun refreshAccountProfile() {
@@ -211,7 +214,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         if (urls.any { url -> runCatching { val uri = Uri.parse(url); uri.scheme != "wss" || uri.host.isNullOrBlank() || uri.userInfo != null || uri.fragment != null }.getOrDefault(true) }) return "Use secure wss:// relay URLs, one per line."
         persist("relays", urls); mutable.update { it.copy(relays = urls) }; return null
     }
-    fun stop() { generation++; mentionJob?.cancel(); mentionJob = null; pendingMentions.clear(); requestedMentions.clear(); signingWaiter?.cancel(); pendingSignature = null; signingWaiter = null; mutable.update { it.copy(eventSignRequest = null) }; searchJob?.cancel(); parentJobs.values.forEach { it.cancel() }; parentJobs.clear(); quoteJobs.values.forEach { it.cancel() }; quoteJobs.clear(); mutable.update { it.copy(loadingParents = emptySet(), failedQuotes = it.failedQuotes + it.loadingQuotes, loadingQuotes = emptySet()) }; mutable.update { it.copy(loading = false, resolvingProfiles = false, resolvingNip05 = false, commandBusy = false, loadingReactionTargets = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
+    fun stop() { generation++; mentionJob?.cancel(); mentionJob = null; pendingMentions.clear(); requestedMentions.clear(); if (pendingSignature?.event?.kind != 30078) { signingWaiter?.cancel(); pendingSignature = null; signingWaiter = null; mutable.update { it.copy(eventSignRequest = null) } }; searchJob?.cancel(); parentJobs.values.forEach { it.cancel() }; parentJobs.clear(); quoteJobs.values.forEach { it.cancel() }; quoteJobs.clear(); mutable.update { it.copy(loadingParents = emptySet(), failedQuotes = it.failedQuotes + it.loadingQuotes, loadingQuotes = emptySet()) }; mutable.update { it.copy(loading = false, resolvingProfiles = false, resolvingNip05 = false, commandBusy = false, loadingReactionTargets = false, statuses = it.statuses.mapValues { (_, v) -> if (v in listOf("Connecting", "Searching")) "Stopped" else v }) } }
     fun home() {
         stop()
         backStack.clear()
@@ -379,9 +382,11 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 accountProfileJob?.cancel()
                 preferences.edit().remove("pubkey").remove("signerPackage").apply()
                 mutable.update { it.copy(pubkey = null, signerRequest = null, commandMessage = "Logged out.") }
+                appSettings.connect(null)
             }
             "clear" -> {
                 profileResolver.clear(); outbox.clear(); ProfileIndicatorLookup.clear()
+                linkPreviews.clear()
                 resultFilters.clearVerification()
                 backStack.clear()
                 mutable.update { it.copy(backDepth = 0, profiles = emptyMap(), commandBusy = true, commandMessage = "Clearing cache…") }
@@ -429,6 +434,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         preferences.edit().putString("pubkey", key).putString("signerPackage", validPackage).apply()
         mutable.update { it.copy(pubkey = key, signerRequest = null, commandBusy = false, commandMessage = "Connected.") }
         refreshAccountProfile()
+        appSettings.connect(state.value.pubkey)
     }
 
     internal fun loadMentionProfiles(keys: List<String>) {
@@ -566,6 +572,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     }
     override fun onCleared() {
         super.onCleared()
+        linkPreviews.close()
         NetworkCleanup.close(relay.http)
     }
 }
