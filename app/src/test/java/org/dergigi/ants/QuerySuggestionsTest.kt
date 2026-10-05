@@ -70,4 +70,22 @@ class QuerySuggestionsTest {
         assertNull(querySuggestions("https://example.com/by:@m", 24, loggedIn = true))
     }
 
+    @Test fun mentionsShortcutsRequireLoginAndSupportPartialTokens() {
+        assertNull(querySuggestions("mentions:", 9))
+        assertEquals(listOf("mentions:@me", "mentions:@contacts"), querySuggestions("mentions:", 9, loggedIn = true)?.choices)
+        assertEquals(listOf("mentions:@contacts"), querySuggestions("mentions:@c", 11, loggedIn = true)?.choices)
+    }
+
+    @Test fun personTokensSupportNamesAndAddressesWithoutMatchingUrlsOrQuotes() {
+        val text = "GM (by:alice@example.com OR p:日本)"
+        val token = checkNotNull(activeQueryToken(text, text.indexOf("@example") + 3))
+        assertEquals("by", token.field)
+        assertEquals("alice@ex", token.value)
+        assertEquals("by:alice@example.com", text.substring(token.start, token.end))
+        assertEquals("日本", activeQueryToken(text, text.length - 1)?.value)
+        assertNull(activeQueryToken("https://example.com/p:gi", 23))
+        assertNull(activeQueryToken("by:\"gi\"", 6))
+        assertNull(activeQueryToken("p:gi", 2, 4))
+    }
+
 }

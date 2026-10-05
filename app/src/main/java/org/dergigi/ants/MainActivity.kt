@@ -129,6 +129,18 @@ fun AntsApp(model: SearchModel) {
             querySuggestions(editorValue.text, editorValue.selection.start, editorValue.selection.end, loggedIn = state.pubkey != null)
         else null
     }
+    val personToken = remember(editorValue, searchFocused) {
+        if (searchFocused) activeQueryToken(editorValue.text, editorValue.selection.start, editorValue.selection.end)
+            ?.takeIf { it.field in setOf("by", "p", "mentions") && it.value.isNotBlank() && !it.value.startsWith("@") }
+        else null
+    }
+    val people by produceState<List<SuggestedProfile>>(emptyList(), personToken, state.pubkey, state.relays) {
+        value = emptyList()
+        personToken?.let { token ->
+            model.profileSuggestions.suggestions(token.value, state.pubkey, state.relays, state.profiles).collect { value = it }
+        }
+    }
+    val showSuggestions = keywordSuggestions != null || personToken != null && people.isNotEmpty()
     val suggestingCommands = searchFocused && state.query.trimStart().startsWith("/")
     val centeredHome = !state.searched && !suggestingCommands && state.error == null
     val pullState = rememberPullToRefreshState()
@@ -249,7 +261,7 @@ fun AntsApp(model: SearchModel) {
     }
     fun back() { keyboard?.hide(); focus.clearFocus(); model.back() }
     BackHandler(enabled = (state.searched || state.backDepth > 0) && dialog == null && selected == null) { back() }
-    BackHandler(enabled = suggestingCommands || keywordSuggestions != null) { keyboard?.hide(); focus.clearFocus() }
+    BackHandler(enabled = suggestingCommands || showSuggestions) { keyboard?.hide(); focus.clearFocus() }
     fun search(value: String = state.query) {
         keyboard?.hide(); focus.clearFocus()
         model.rememberScroll(state.pageId, listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset)
@@ -293,8 +305,8 @@ fun AntsApp(model: SearchModel) {
         }) { padding ->
             Box(Modifier.fillMaxSize().padding(padding).imePadding()) {
             Column(Modifier.fillMaxSize().padding(
-                top = if (centeredHome && keywordSuggestions != null) 64.dp else 0.dp,
-                bottom = if (centeredHome && keywordSuggestions != null) 40.dp else 0.dp,
+                top = if (centeredHome && showSuggestions) 64.dp else 0.dp,
+                bottom = if (centeredHome && showSuggestions) 40.dp else 0.dp,
             ), verticalArrangement = if (centeredHome) Arrangement.Center else Arrangement.Top) {
                 AnimatedVisibility(visible = !hideSearchControls) {
                 Column {
@@ -314,6 +326,14 @@ fun AntsApp(model: SearchModel) {
                 keywordSuggestions?.let { suggestions ->
                     QuerySuggestionMenu(suggestions) { choice ->
                         val completed = completeQuery(editorValue.text, suggestions, choice)
+                        queryEditor = TextFieldValue(completed.text, TextRange(completed.cursor))
+                        model.edit(completed.text)
+                    }
+                }
+                personToken?.takeIf { people.isNotEmpty() }?.let { token ->
+                    ProfileSuggestionMenu(people) { person ->
+                        val choice = "${token.field}:${Nip19.npubEncode(person.pubkey)}"
+                        val completed = completeQuery(editorValue.text, QuerySuggestions(token.start, token.end, listOf(choice)), choice)
                         queryEditor = TextFieldValue(completed.text, TextRange(completed.cursor))
                         model.edit(completed.text)
                     }

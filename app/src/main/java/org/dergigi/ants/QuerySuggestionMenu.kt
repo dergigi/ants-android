@@ -32,3 +32,24 @@ internal fun QuerySuggestionMenu(suggestions: QuerySuggestions, onSelect: (Strin
         }
     }
 }
+
+@Composable
+internal fun ProfileSuggestionMenu(people: List<SuggestedProfile>, onSelect: (SuggestedProfile) -> Unit) {
+    Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp), tonalElevation = 4.dp, shadowElevation = 2.dp) {
+        LazyColumn(Modifier.heightIn(max = 208.dp)) {
+            items(people, key = { it.pubkey }) { person ->
+                Row(Modifier.fillMaxWidth().clickable(role = Role.Button, onClickLabel = "Select ${person.profile.name}") { onSelect(person) }
+                    .padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Avatar(person.profile, person.pubkey, { onSelect(person) }, size = 32)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(person.profile.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        val key = remember(person.pubkey) { Nip19.npubEncode(person.pubkey) }
+                        Text("${key.take(12)}…${key.takeLast(6)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+}

@@ -10,8 +10,9 @@ internal val registeredQuerySuggestions: List<String> by lazy {
     (queryAliases.keys + kindAliases.keys.map { "is:$it" }).distinct().sorted()
 }
 
-internal fun querySuggestions(text: String, cursor: Int, selectionEnd: Int = cursor,
-    registered: List<String> = registeredQuerySuggestions, loggedIn: Boolean = false): QuerySuggestions? {
+internal data class QueryToken(val start: Int, val end: Int, val field: String, val value: String)
+
+internal fun activeQueryToken(text: String, cursor: Int, selectionEnd: Int = cursor): QueryToken? {
     if (cursor != selectionEnd || cursor !in 0..text.length || text.length > 2000 || text.trimStart().startsWith('/')) return null
     var quoted = false
     var escaped = false
@@ -25,14 +26,21 @@ internal fun querySuggestions(text: String, cursor: Int, selectionEnd: Int = cur
     var start = cursor
     while (start > 0 && !boundary(text[start - 1])) start--
     val prefix = text.substring(start, cursor).lowercase(Locale.ROOT)
-    if (!prefix.matches(Regex("[a-z]+:@?[a-z0-9_-]*"))) return null
+    if (!prefix.substringBefore(':').matches(Regex("[a-z]+")) || ':' !in prefix) return null
     var end = cursor
     while (end < text.length && !boundary(text[end])) end++
     // Never replace quoted field values or URL-like tokens.
     if (text.substring(start, end).any { it == '"' || it == '/' || it == '\\' }) return null
-    val available = if (loggedIn) registered + listOf("by:@me", "by:@contacts") else registered
+    return QueryToken(start, end, prefix.substringBefore(':'), prefix.substringAfter(':'))
+}
+
+internal fun querySuggestions(text: String, cursor: Int, selectionEnd: Int = cursor,
+    registered: List<String> = registeredQuerySuggestions, loggedIn: Boolean = false): QuerySuggestions? {
+    val token = activeQueryToken(text, cursor, selectionEnd) ?: return null
+    val prefix = "${token.field}:${token.value}"
+    val available = if (loggedIn) registered + listOf("by:@me", "by:@contacts", "mentions:@me", "mentions:@contacts") else registered
     val choices = available.filter { it.startsWith(prefix) }
-    return choices.takeIf { it.isNotEmpty() }?.let { QuerySuggestions(start, end, it) }
+    return choices.takeIf { it.isNotEmpty() }?.let { QuerySuggestions(token.start, token.end, it) }
 }
 
 internal fun completeQuery(text: String, suggestion: QuerySuggestions, choice: String): CompletedQuery {

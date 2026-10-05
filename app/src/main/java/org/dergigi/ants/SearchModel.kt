@@ -111,6 +111,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
     internal val linkPreviews = LinkPreviewRepository()
     internal val appSettings = AppSettingsStore(preferences, viewModelScope, relay, ::signProfileRequest)
     private val profileResolver = ProfileResolver(relay, ::signProfileRequest, outbox)
+    internal val profileSuggestions = ProfileSuggestions(relay) { identity, urls -> profileResolver.contacts(identity, urls) }
     internal val resultFilters = ResultFilterController(state, viewModelScope, profileResolver,
         ResultLanguageAnalyzer(FastTextLanguage(app)::predict),
         initialLanguages = LanguageSelection(
@@ -377,7 +378,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             "help", "examples", "kinds", "history" -> Unit
             "login" -> requestLogin()
             "logout" -> {
-                profileResolver.clear(); outbox.clear(); ProfileIndicatorLookup.clear()
+                profileResolver.clear(); profileSuggestions.clear(); outbox.clear(); ProfileIndicatorLookup.clear()
                 loginAttempt = null
                 accountProfileJob?.cancel()
                 preferences.edit().remove("pubkey").remove("signerPackage").apply()
@@ -385,7 +386,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
                 appSettings.connect(null)
             }
             "clear" -> {
-                profileResolver.clear(); outbox.clear(); ProfileIndicatorLookup.clear()
+                profileResolver.clear(); profileSuggestions.clear(); outbox.clear(); ProfileIndicatorLookup.clear()
                 linkPreviews.clear()
                 resultFilters.clearVerification()
                 backStack.clear()
@@ -430,7 +431,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
             mutable.update { it.copy(signerRequest = null, commandBusy = false, commandMessage = error ?: "The signer returned an invalid account. Please try again.") }
             return
         }
-        profileResolver.clear(); outbox.clear(); ProfileIndicatorLookup.clear()
+        profileResolver.clear(); profileSuggestions.clear(); outbox.clear(); ProfileIndicatorLookup.clear()
         preferences.edit().putString("pubkey", key).putString("signerPackage", validPackage).apply()
         mutable.update { it.copy(pubkey = key, signerRequest = null, commandBusy = false, commandMessage = "Connected.") }
         refreshAccountProfile()
