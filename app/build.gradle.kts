@@ -42,8 +42,8 @@ android {
         applicationId = "org.dergigi.ants"
         minSdk = 26
         targetSdk = 35
-        versionCode = 56
-        versionName = "0.35.1"
+        versionCode = 57
+        versionName = "0.36.0"
         buildConfigField("String", "GIT_COMMIT", "\"${gitCommit()}\"")
     }
 
