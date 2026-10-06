@@ -19,13 +19,19 @@ import androidx.compose.ui.unit.dp
 internal data class ThreadState(val state: SearchState, val load: (String) -> Unit)
 internal val LocalThreadState = staticCompositionLocalOf<ThreadState> { error("Thread state is required") }
 
+internal fun threadParentReference(event: Nip01Event): QuoteReference? =
+    if (event.kind in setOf(9735, 9321)) taggedNoteReferences(event).firstOrNull()
+    else parentEventId(event)?.let { quoteReference(Nip19.noteEncode(it)) }
+
 @Composable
 internal fun ThreadContext(event: Nip01Event, onNavigate: (String) -> Unit) {
     val context = LocalContext.current
     val thread = LocalThreadState.current
     val state = thread.state
     var requested by rememberSaveable(event.id) { mutableStateOf(emptyList<String>()) }
-    fun find(id: String) = state.reactionTargets[id] ?: state.events.firstOrNull { it.id == id }
+    val quotes = LocalQuoteState.current
+    fun find(reference: QuoteReference) = state.reactionTargets[reference.key] ?: state.quotes[reference.key]
+        ?: state.events.filter(reference::matches).maxByOrNull { it.createdAt }
 
     // Build a flat timeline: each successful load consumes its bar and moves
     // the only remaining load control above the oldest visible ancestor.
@@ -33,32 +39,37 @@ internal fun ThreadContext(event: Nip01Event, onNavigate: (String) -> Unit) {
     val visited = mutableSetOf(event.id)
     var oldest = event
     while (true) {
-        val id = parentEventId(oldest) ?: break
-        if (id !in requested || id in visited) break
-        val parent = find(id) ?: break
-        visited += id
+        val reference = threadParentReference(oldest) ?: break
+        if (reference.key !in requested || reference.key in visited) break
+        val parent = find(reference) ?: break
+        if (parent.id in visited) break
+        visited += reference.key
+        visited += parent.id
         parents += parent
         oldest = parent
     }
-    val nextId = parentEventId(oldest)?.takeUnless { it in visited }
+    val next = threadParentReference(oldest)?.takeUnless { it.key in visited || find(it)?.id in visited }
     Column(Modifier.fillMaxWidth()) {
-        if (nextId != null) {
-            val target = find(nextId)
-            val loading = nextId in state.loadingParents
-            val failed = nextId in state.failedParents
-            val relation = if (oldest.kind == 7) "Reaction to" else "Reply to"
+        if (next != null) {
+            val nextId = next.key
+            val target = find(next)
+            val payment = oldest.kind in setOf(9735, 9321)
+            val loading = if (payment) nextId in state.loadingQuotes else nextId in state.loadingParents
+            val failed = if (payment) nextId in state.failedQuotes else nextId in state.failedParents
+            val relation = when (oldest.kind) { 7 -> "Reaction to"; 9735 -> "Zap for"; 9321 -> "Nutzap for"; else -> "Reply to" }
             val preview = target?.let { parent ->
                 val author = state.profiles[parent.pubkey]?.name ?: Nip19.npubEncode(parent.pubkey).take(12) + "…"
                 "$author · ${parent.content.replace('\n', ' ').take(100)}"
-            } ?: Nip19.noteEncode(nextId).let { it.take(12) + "…" + it.takeLast(6) }
+            } ?: next.query.let { it.take(12) + "…" + it.takeLast(6) }
             Row(Modifier.fillMaxWidth().background(Color(0xFF262626)).clickable(
                 enabled = !loading,
                 onClickLabel = if (failed) "Retry loading earlier note" else "Load earlier note",
             ) {
                 if (nextId !in requested) requested = requested + nextId
-                if (target == null) thread.load(nextId)
+                if (target == null) { if (payment) quotes.load(next) else thread.load(nextId) }
             }.padding(end = 14.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                KindSearchIcon(oldest.kind, if (oldest.kind == 7) Icons.Outlined.FavoriteBorder else Icons.AutoMirrored.Outlined.Reply, MaterialTheme.colorScheme.primary, onNavigate)
+                KindSearchIcon(oldest.kind, when { payment -> Icons.Outlined.Bolt; oldest.kind == 7 -> Icons.Outlined.FavoriteBorder; else -> Icons.AutoMirrored.Outlined.Reply },
+                    when (oldest.kind) { 9735 -> Color(0xFFFACC15); 9321 -> Color(0xFFC084FC); else -> MaterialTheme.colorScheme.primary }, onNavigate)
                 Text(when {
                     loading -> "Loading earlier note…"
                     failed -> "$relation · Unavailable — tap to retry"

@@ -69,9 +69,8 @@ internal fun PaymentContent(event: Nip01Event, profiles: Map<String, Profile>, c
     val loadProfiles = LocalLoadMentionProfiles.current
     val pageId = LocalThreadState.current.state.pageId
     LaunchedEffect(event.id, pageId, payment.sender, payment.recipient) { loadProfiles(listOfNotNull(payment.sender, payment.recipient)) }
-    val ancestors = LocalQuoteAncestors.current + event.id
-    val references = remember(event.id) { taggedNoteReferences(event).take(1) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (!compact) ThreadContext(event, onNavigate)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // TooltipBox 1.3.2 applies its modifier to an inner anchor. Row weights
             // must live on these direct children, or the first tooltip consumes the row.
@@ -96,10 +95,7 @@ internal fun PaymentContent(event: Nip01Event, profiles: Map<String, Profile>, c
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else EventContent(event.copy(kind = 1, content = payment.comment, tags = emptyList()), null, profiles, false, onNavigate)
         }
-        references.forEach { reference ->
-            if (!compact && reference.key !in ancestors && ancestors.size <= 2) EmbeddedNote(reference, ancestors, onNavigate)
-            else EventReferenceRow(ListEntry("e", reference.key, reference.query), profiles, onNavigate)
-        }
+
     }
 }
 
