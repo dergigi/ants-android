@@ -1,5 +1,6 @@
 package org.dergigi.ants
 
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -11,8 +12,15 @@ private val profileSearchAliases = listOf(
     "muted", "pin", "bookmark", "code", "followpack",
 )
 
+private val profileHasFilters by lazy { queryAliases.keys.filter { it.startsWith("has:") } }
+
 @Composable
 internal fun ProfileSearchMenu(author: String, onSearch: (String) -> Unit) {
+    profileHasFilters.forEach { keyword ->
+        DropdownMenuItem(text = { Text(keyword) },
+            onClick = { onSearch("$keyword by:$author") })
+    }
+    if (profileHasFilters.isNotEmpty()) HorizontalDivider()
     profileSearchAliases.forEach { alias ->
         val keyword = "is:$alias"
         DropdownMenuItem(text = { Text(keyword) },
