@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Add `(is:nutzap or is:zap) by:@contacts` to the Zapstore description as a signed-in query example.
 - Tighten the search header by removing stacked vertical padding around the resolved query and results toolbar, preserving button touch targets.
 
 ## [0.35.0] - 2026-10-06

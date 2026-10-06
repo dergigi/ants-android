@@ -8,6 +8,8 @@ description: |
 
   Combine text with filters for authors, dates, hashtags, and event kinds. Use AND, OR, and nested groups to express queries like `(GM OR 🫂) by:dergigi since:2w`.
 
+  After signing in, combine event kinds with your contacts: `(is:nutzap or is:zap) by:@contacts`.
+
   The query language uses an ANTLR parser and shares its grammar with ants on the web.
 tags:
   - nostr
