@@ -3,9 +3,10 @@ package org.dergigi.ants
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.Icons
@@ -71,12 +72,22 @@ internal fun PaymentContent(event: Nip01Event, profiles: Map<String, Profile>, c
     val ancestors = LocalQuoteAncestors.current + event.id
     val references = remember(event.id) { taggedNoteReferences(event).take(1) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PaymentParty(payment.sender, profiles, "Sender", "Anonymous / unknown", Modifier.weight(1f), onNavigate)
             PaymentAmount(payment, event.kind, onNavigate)
             PaymentParty(payment.recipient, profiles, "Recipient", "Unknown recipient", Modifier.weight(1f), onNavigate)
         }
-        if (payment.comment.isNotBlank()) EventContent(event.copy(kind = 1, content = payment.comment, tags = emptyList()), null, profiles, compact, onNavigate)
+        if (payment.comment.isNotBlank()) {
+            if (compact) {
+                val text = remember(payment.comment) { payment.comment.take(2000) }
+                val navigate by rememberUpdatedState(onNavigate)
+                val comment by produceState(AnnotatedString(text), event.id, text, profiles) {
+                    value = withContext(Dispatchers.Default) { linkedText(text, event.copy(tags = emptyList()), profiles) { navigate(it) } }
+                }
+                Text(comment, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else EventContent(event.copy(kind = 1, content = payment.comment, tags = emptyList()), null, profiles, false, onNavigate)
+        }
         references.forEach { reference ->
             if (!compact && reference.key !in ancestors && ancestors.size <= 2) EmbeddedNote(reference, ancestors, onNavigate)
             else EventReferenceRow(ListEntry("e", reference.key, reference.query), profiles, onNavigate)
@@ -96,11 +107,11 @@ private fun PaymentParty(pubkey: String?, profiles: Map<String, Profile>, role: 
         tooltip = { PlainTooltip { Text("$role: $label") } }, state = rememberTooltipState()) {
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
             .clickable(enabled = pubkey != null, role = Role.Button, onClickLabel = "Open $role profile", onClick = navigate)
-            .padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (pubkey != null) Avatar(profile, pubkey, navigate, size = 32)
-            else Icon(Icons.Outlined.PersonOutline, role, Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            .padding(vertical = 4.dp), horizontalAlignment = if (role == "Sender") Alignment.Start else Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (pubkey != null) Avatar(profile, pubkey, navigate, size = 40)
+            else Icon(Icons.Outlined.PersonOutline, role, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center, color = if (pubkey != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                textAlign = if (role == "Sender") TextAlign.Start else TextAlign.End, color = if (pubkey != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -111,16 +122,20 @@ private fun PaymentAmount(payment: PaymentPreview, kind: Int, onNavigate: (Strin
     var details by remember { mutableStateOf(false) }
     val label = if (kind == 9735) "Zap receipt" else "Nutzap"
     val color = if (kind == 9735) Color(0xFFFACC15) else Color(0xFFC084FC)
-    Box(Modifier.widthIn(max = 112.dp)) {
+    Box(Modifier.widthIn(max = 140.dp)) {
         TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
             tooltip = { PlainTooltip { Text("$label: ${payment.amount ?: "unknown amount"}") } }, state = rememberTooltipState()) {
             Column(Modifier.clip(RoundedCornerShape(6.dp)).clickable(role = Role.Button, onClickLabel = "Transaction details") { details = true }
                 .heightIn(min = 48.dp).padding(horizontal = 4.dp, vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Icon(Icons.Outlined.Bolt, label, Modifier.size(18.dp), tint = color)
-                Text(payment.amount ?: label, style = MaterialTheme.typography.titleMedium, maxLines = 2,
-                    overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, color = color)
-                Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Sender to recipient", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(Modifier.heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Icon(Icons.Outlined.Bolt, label, Modifier.size(28.dp), tint = color)
+                    Text(payment.amount?.substringBeforeLast(' ') ?: "—", style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, color = color)
+                }
+                Text(payment.amount?.substringAfterLast(' ') ?: label, style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         DropdownMenu(expanded = details, onDismissRequest = { details = false }) {

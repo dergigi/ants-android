@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Align zap and nutzap cards as sender avatar on the left, colored zap symbol in the middle, and recipient avatar on the right, with a prominent amount beside the symbol and names and units underneath. Remove the extra direction arrow and limit transaction comments to three lines in results.
+
 ### Fixed
 
 - Include the phrase “Nostr search” in the Zapstore summary and description so the listing matches that search query.
