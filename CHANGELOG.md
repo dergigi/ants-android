@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-10-06
+
 ### Changed
 
 - Show zap and nutzap target notes in a tappable header, like replies and reactions. Load the target in place above the transaction, including addressable notes, with retry support instead of a separate reference below the card.
