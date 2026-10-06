@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.Ants" parent="Theme.Ants.Base">
+        <item name="android:windowSplashScreenBackground">#1A1A1A</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ant</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+    </style>
+</resources>
