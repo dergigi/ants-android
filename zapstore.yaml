@@ -21,6 +21,7 @@ website: https://ants.sh
 icon: ./zapstore-icon.png
 images:
   - ./screenshots/grouped-search.png
+  - ./screenshots/contacts-zaps.png
   - ./screenshots/author-search.png
   - ./screenshots/hashtag-search.png
   - ./screenshots/gif-search.png

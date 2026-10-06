@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add a Zapstore screenshot showing zap and nutzap searches from contacts, with the Android status bar cropped out.
 - Share the submitted search as an ants.sh query link from the results toolbar using Android's share sheet.
 
 ## [0.35.1] - 2026-10-06
