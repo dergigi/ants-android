@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.36.1] - 2026-10-06
+
 ### Fixed
 
 - Use the transparent ants logo on a dark startup screen on Android 12 and newer, without the white icon backdrop.
