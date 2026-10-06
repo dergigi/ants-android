@@ -2,9 +2,9 @@ repository: https://github.com/dergigi/ants-android
 pubkey: npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc
 release_notes: ./CHANGELOG.md
 name: ants
-summary: Advanced Nostr text search, native on Android
+summary: Nostr search for notes and profiles, native on Android
 description: |
-  ants is an opinionated search interface for Nostr, native on Android, with its own query language. Search notes and profiles without an account.
+  ants is an opinionated Nostr search interface for Android with its own query language. Search notes and profiles without an account.
 
   Combine text with filters for authors, dates, hashtags, and event kinds. Use AND, OR, and nested groups to express queries like `(GM OR 🫂) by:dergigi since:2w`.
 
