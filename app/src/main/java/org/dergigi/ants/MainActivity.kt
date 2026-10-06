@@ -359,7 +359,7 @@ fun AntsApp(model: SearchModel) {
                 }
                 val showTranslation = !suggestingCommands && state.translation.isNotBlank() && state.query.trim() == state.submitted
                 if (showTranslation || state.loading) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.Top) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.Top) {
                         if (showTranslation) {
                             QueryTranslationView(state.translation, state.pageId, Modifier.weight(1f))
                         } else Spacer(Modifier.weight(1f))
@@ -382,7 +382,7 @@ fun AntsApp(model: SearchModel) {
                 }
                 if (!suggestingCommands && state.searched && (state.command == null || state.command == "tutorial") &&
                     (!state.loading || state.events.isNotEmpty() || state.newerResultIds.isNotEmpty())) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                         val totalCount = state.events.count { state.profileFeedAuthor == null || it.kind != 0 }
                         val visibleCount = visibleEvents.count { state.profileFeedAuthor == null || it.kind != 0 }
                         val count = if (visibleCount == totalCount) "$totalCount" else "$visibleCount / $totalCount"
