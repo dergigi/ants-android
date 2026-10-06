@@ -142,6 +142,8 @@ internal val searchExamples = listOf(
     "#yestr by:dergigi OR #nostr by:dergigi OR #yestr by:IntuitiveGuy OR #nostr by:IntuitiveGuy",
 
     // Grouped and scoped expressions
+    "(is:nutzap or is:zap)",
+    "(is:nutzap or is:zap) by:@contacts",
     "(GM OR 🫂) by:dergigi since:2w",
     "(bitcoin OR lightning) by:dergigi",
     "since:2w (bitcoin OR nostr)",

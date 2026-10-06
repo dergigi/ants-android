@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add combined zap/nutzap query examples, with a contacts-only variant for logged-in users.
 - Add registered `has:` filters (`has:image`, `has:video`, and `has:gif`) to profile search menus, scoped to the selected profile or your own account.
 
 ## [0.34.3] - 2026-10-06
