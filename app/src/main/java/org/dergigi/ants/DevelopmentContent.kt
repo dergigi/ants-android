@@ -60,6 +60,13 @@ internal fun ReportContent(event: Nip01Event, profiles: Map<String, Profile>, co
     }
     val targets = preparedTargets ?: return
     var limit by remember(event.id, compact) { mutableIntStateOf(if (compact) 3 else 20) }
+    val pageId = LocalThreadState.current.state.pageId
+    val loadProfiles by rememberUpdatedState(LocalLoadMentionProfiles.current)
+    LaunchedEffect(event.id, pageId, limit, targets) {
+        loadProfiles(targets.take(limit).mapNotNull { (entry, _) ->
+            if (entry.type == "p") Nip19.normalizePubkey(entry.value) else null
+        }.distinct().take(100))
+    }
     val open = LocalQuoteState.current.open
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Report", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)

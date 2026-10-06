@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Resolve reported accounts in report cards to profile names and avatars, including targets revealed when expanding a report. Keep shortened npubs when metadata is unavailable.
+
 ## [0.34.0] - 2026-10-05
 
 ### Added
