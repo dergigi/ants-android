@@ -73,9 +73,17 @@ internal fun PaymentContent(event: Nip01Event, profiles: Map<String, Profile>, c
     val references = remember(event.id) { taggedNoteReferences(event).take(1) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PaymentParty(payment.sender, profiles, "Sender", "Anonymous / unknown", Modifier.weight(1f), onNavigate)
-            PaymentAmount(payment, event.kind, onNavigate)
-            PaymentParty(payment.recipient, profiles, "Recipient", "Unknown recipient", Modifier.weight(1f), onNavigate)
+            // TooltipBox 1.3.2 applies its modifier to an inner anchor. Row weights
+            // must live on these direct children, or the first tooltip consumes the row.
+            Box(Modifier.weight(1f)) {
+                PaymentParty(payment.sender, profiles, "Sender", "Anonymous / unknown", onNavigate)
+            }
+            Box(Modifier.weight(1.25f), contentAlignment = Alignment.TopCenter) {
+                PaymentAmount(payment, event.kind, onNavigate)
+            }
+            Box(Modifier.weight(1f)) {
+                PaymentParty(payment.recipient, profiles, "Recipient", "Unknown recipient", onNavigate)
+            }
         }
         if (payment.comment.isNotBlank()) {
             if (compact) {
@@ -98,12 +106,12 @@ internal fun PaymentContent(event: Nip01Event, profiles: Map<String, Profile>, c
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PaymentParty(pubkey: String?, profiles: Map<String, Profile>, role: String, fallback: String,
-    modifier: Modifier, onNavigate: (String) -> Unit) {
+    onNavigate: (String) -> Unit) {
     val profile = pubkey?.let(profiles::get)
     val npub = remember(pubkey) { pubkey?.let(Nip19::npubEncode) }
     val label = profile?.name?.takeIf { it.isNotBlank() } ?: npub?.let { it.take(9) + "…" + it.takeLast(4) } ?: fallback
     val navigate = { if (npub != null) onNavigate("p:$npub") }
-    TooltipBox(modifier = modifier, positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+    TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
         tooltip = { PlainTooltip { Text("$role: $label") } }, state = rememberTooltipState()) {
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
             .clickable(enabled = pubkey != null, role = Role.Button, onClickLabel = "Open $role profile", onClick = navigate)
