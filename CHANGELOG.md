@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Compact zap and nutzap cards into a sender–amount–recipient row. Move transaction details and mint links into an amount popover, and show linked notes as compact references in search results.
+
 ### Fixed
 
 - Resolve reported accounts in report cards to profile names and avatars, including targets revealed when expanding a report. Keep shortened npubs when metadata is unavailable.

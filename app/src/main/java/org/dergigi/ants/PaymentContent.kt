@@ -1,6 +1,13 @@
 package org.dergigi.ants
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -59,27 +66,19 @@ internal fun PaymentContent(event: Nip01Event, profiles: Map<String, Profile>, c
     }
     val payment = preview ?: return
     val loadProfiles = LocalLoadMentionProfiles.current
-    LaunchedEffect(event.id, payment.sender, payment.recipient) { loadProfiles(listOfNotNull(payment.sender, payment.recipient)) }
+    val pageId = LocalThreadState.current.state.pageId
+    LaunchedEffect(event.id, pageId, payment.sender, payment.recipient) { loadProfiles(listOfNotNull(payment.sender, payment.recipient)) }
     val ancestors = LocalQuoteAncestors.current + event.id
     val references = remember(event.id) { taggedNoteReferences(event).take(1) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Bolt, if (event.kind == 9735) "Zap receipt" else "Nutzap", tint = if (event.kind == 9735) Color(0xFFFACC15) else Color(0xFFC084FC))
-            Text(payment.amount ?: if (event.kind == 9735) "Zap receipt" else "Nutzap", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-            PaymentVerificationInfo()
-        }
-        payment.sender?.let { EventReferenceRow(ListEntry("p", it, "p:${Nip19.npubEncode(it)}"), profiles, onNavigate) }
-            ?: Text("Anonymous / unknown sender", style = MaterialTheme.typography.labelMedium)
-        payment.recipient?.let {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.ArrowDownward, "Recipient", Modifier.size(16.dp))
-                Box(Modifier.weight(1f)) { EventReferenceRow(ListEntry("p", it, "p:${Nip19.npubEncode(it)}"), profiles, onNavigate) }
-            }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PaymentParty(payment.sender, profiles, "Sender", "Anonymous / unknown", Modifier.weight(1f), onNavigate)
+            PaymentAmount(payment, event.kind, onNavigate)
+            PaymentParty(payment.recipient, profiles, "Recipient", "Unknown recipient", Modifier.weight(1f), onNavigate)
         }
         if (payment.comment.isNotBlank()) EventContent(event.copy(kind = 1, content = payment.comment, tags = emptyList()), null, profiles, compact, onNavigate)
-        payment.mint?.let { url -> TextButton(onClick = { onNavigate(url) }) { Text(android.net.Uri.parse(url).host ?: url.take(80)) } }
         references.forEach { reference ->
-            if (reference.key !in ancestors && ancestors.size <= 2) EmbeddedNote(reference, ancestors, onNavigate)
+            if (!compact && reference.key !in ancestors && ancestors.size <= 2) EmbeddedNote(reference, ancestors, onNavigate)
             else EventReferenceRow(ListEntry("e", reference.key, reference.query), profiles, onNavigate)
         }
     }
@@ -87,9 +86,51 @@ internal fun PaymentContent(event: Nip01Event, profiles: Map<String, Profile>, c
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PaymentVerificationInfo() {
-    TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-        tooltip = { PlainTooltip { Text("Published amount; payment not independently verified") } }, state = rememberTooltipState()) {
-        Icon(Icons.Outlined.Info, "Published amount; payment not independently verified", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun PaymentParty(pubkey: String?, profiles: Map<String, Profile>, role: String, fallback: String,
+    modifier: Modifier, onNavigate: (String) -> Unit) {
+    val profile = pubkey?.let(profiles::get)
+    val npub = remember(pubkey) { pubkey?.let(Nip19::npubEncode) }
+    val label = profile?.name?.takeIf { it.isNotBlank() } ?: npub?.let { it.take(9) + "…" + it.takeLast(4) } ?: fallback
+    val navigate = { if (npub != null) onNavigate("p:$npub") }
+    TooltipBox(modifier = modifier, positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        tooltip = { PlainTooltip { Text("$role: $label") } }, state = rememberTooltipState()) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
+            .clickable(enabled = pubkey != null, role = Role.Button, onClickLabel = "Open $role profile", onClick = navigate)
+            .padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (pubkey != null) Avatar(profile, pubkey, navigate, size = 32)
+            else Icon(Icons.Outlined.PersonOutline, role, Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center, color = if (pubkey != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PaymentAmount(payment: PaymentPreview, kind: Int, onNavigate: (String) -> Unit) {
+    var details by remember { mutableStateOf(false) }
+    val label = if (kind == 9735) "Zap receipt" else "Nutzap"
+    val color = if (kind == 9735) Color(0xFFFACC15) else Color(0xFFC084FC)
+    Box(Modifier.widthIn(max = 112.dp)) {
+        TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+            tooltip = { PlainTooltip { Text("$label: ${payment.amount ?: "unknown amount"}") } }, state = rememberTooltipState()) {
+            Column(Modifier.clip(RoundedCornerShape(6.dp)).clickable(role = Role.Button, onClickLabel = "Transaction details") { details = true }
+                .heightIn(min = 48.dp).padding(horizontal = 4.dp, vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Icon(Icons.Outlined.Bolt, label, Modifier.size(18.dp), tint = color)
+                Text(payment.amount ?: label, style = MaterialTheme.typography.titleMedium, maxLines = 2,
+                    overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, color = color)
+                Icon(Icons.AutoMirrored.Outlined.ArrowForward, "Sender to recipient", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        DropdownMenu(expanded = details, onDismissRequest = { details = false }) {
+            Text("$label · ${payment.amount ?: "Unknown amount"}", Modifier.padding(horizontal = 16.dp, vertical = 8.dp), style = MaterialTheme.typography.labelLarge)
+            Text("Published amount; payment not independently verified.", Modifier.widthIn(max = 260.dp).padding(horizontal = 16.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall)
+            payment.mint?.let { url ->
+                DropdownMenuItem(text = { Text(android.net.Uri.parse(url).host ?: url.take(80)) },
+                    leadingIcon = { Icon(Icons.Outlined.AccountBalance, "Mint") },
+                    onClick = { details = false; onNavigate(url) })
+            }
+        }
     }
 }
