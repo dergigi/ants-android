@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Share the submitted search as an ants.sh query link from the results toolbar using Android's share sheet.
+
 ## [0.35.1] - 2026-10-06
 
 ### Changed

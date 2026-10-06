@@ -388,6 +388,16 @@ fun AntsApp(model: SearchModel) {
                         val count = if (visibleCount == totalCount) "$totalCount" else "$visibleCount / $totalCount"
                         val resultSummary = if (state.profileFeedAuthor != null) "$count events" else "$count results"
                         Text(resultSummary, Modifier.weight(1f), color = muted, style = MaterialTheme.typography.labelMedium)
+                        if (state.command == null && state.submitted.isNotBlank()) {
+                            ActionIcon(Icons.Outlined.Share, "Share search", {
+                                val url = Uri.parse("https://ants.sh/").buildUpon()
+                                    .appendQueryParameter("q", state.submitted).build().toString()
+                                context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, url)
+                                }, "Share search"))
+                            })
+                        }
                         if (state.command == null) ResultFilterButton(filterSettings, state.submitted, state.events.size, visibleEvents.size,
                             languageCounts = if (filteredResults.pageId == state.pageId) filteredResults.languageCounts else emptyMap(),
                             onSearchLanguages = { search(state.submitted) }) {
