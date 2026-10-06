@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.34.3] - 2026-10-06
+
 ### Fixed
 
 - Fix zap and nutzap layout sizing: apply column weights outside tooltip wrappers so the sender cannot consume the entire row and hide the amount and recipient.
