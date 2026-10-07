@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add public mute-list search examples using a name, NIP-05 address, npub, or your logged-in identity.
+- Add public mute-list search examples using fiatjaf's name, NIP-05 address, npub, or your logged-in identity.
 
 ## [0.36.1] - 2026-10-06
 

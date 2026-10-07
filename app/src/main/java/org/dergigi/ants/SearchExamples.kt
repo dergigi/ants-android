@@ -68,9 +68,9 @@ internal val searchExamples = listOf(
 
     // Combined filters and text
     "is:muted mentions:@me",
-    "is:muted mentions:dergigi",
-    "is:muted mentions:dergigi.com",
-    "is:muted mentions:npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc",
+    "is:muted mentions:fiatjaf",
+    "is:muted mentions:fiatjaf.com",
+    "is:muted mentions:npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6",
     "GM by:dergigi",
     "#YESTR by:dergigi",
     "knowledge by:platobot@dergigi.com",
