@@ -24,7 +24,7 @@ internal data class ContentFilterSettings(
     fun emojiAutoDisabled(query: String): Boolean = mode == ResultFilterMode.SMART && ContentAnalysis.countEmojis(query) >= 2
 
     companion object {
-        fun cleared() = ContentFilterSettings(mode = ResultFilterMode.NEVER, maxEmojis = null, maxHashtags = null,
+        fun cleared() = ContentFilterSettings(languages = LanguageSelection(enabled = false), mode = ResultFilterMode.NEVER, maxEmojis = null, maxHashtags = null,
             maxMentions = null, hideEncrypted = false, hideBridged = false, fuzzyEnabled = false)
     }
 }

@@ -116,12 +116,14 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         ResultLanguageAnalyzer(FastTextLanguage(app)::predict),
         initialLanguages = LanguageSelection(
             preferred = preferences.getStringSet("preferredLanguages", null)?.toSet(),
-            keepUnknown = preferences.getBoolean("keepUnknownLanguage", true)),
+            keepUnknown = preferences.getBoolean("keepUnknownLanguage", true),
+            enabled = preferences.getBoolean("languageFilterEnabled", true)),
         persistLanguages = { selection ->
             preferences.edit().apply {
                 if (selection.preferred == null) remove("preferredLanguages")
                 else putStringSet("preferredLanguages", selection.preferred.toSet())
                 putBoolean("keepUnknownLanguage", selection.keepUnknown)
+                putBoolean("languageFilterEnabled", selection.enabled)
             }.apply()
         })
     private var nextPageId = 0L
@@ -227,7 +229,7 @@ class SearchModel(app: Application) : AndroidViewModel(app) {
         if (containsSecret(raw)) { rejectSecret(); return }
         val input = if (raw.startsWith('/')) "/" + raw.drop(1).trim().lowercase() else raw
         val languageSettings = resultFilters.settings.value
-        val relayLanguages = if (languageSettings.mode != ResultFilterMode.NEVER)
+        val relayLanguages = if (languageSettings.mode != ResultFilterMode.NEVER && languageSettings.languages.enabled)
             languageSettings.languages.preferred.orEmpty() else emptySet()
         val newestFirst = if (input == state.value.submitted) state.value.newestFirst else true
         val command = if (input.startsWith('/')) input.drop(1) else null

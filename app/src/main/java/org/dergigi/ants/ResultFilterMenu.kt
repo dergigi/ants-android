@@ -27,7 +27,7 @@ internal fun ResultFilterButton(settings: ContentFilterSettings, query: String, 
     val mixedLanguages = languageCounts.keys.count { it != UNKNOWN_LANGUAGE } > 1
     val selection = settings.languages
     if (languagesOpen && mixedLanguages) LanguagePicker(languageCounts, selection,
-        enabled = settings.mode != ResultFilterMode.NEVER,
+        enabled = settings.mode != ResultFilterMode.NEVER && selection.enabled,
         onChange = { onChange(settings.copy(languages = it)) },
         onSearch = { languagesOpen = false; expanded = false; onSearchLanguages() },
         onDismiss = { languagesOpen = false })
@@ -61,10 +61,17 @@ internal fun ResultFilterButton(settings: ContentFilterSettings, query: String, 
                         modifier = Modifier.weight(1f), enabled = enabled && settings.fuzzyEnabled, singleLine = true,
                         label = { Text("Filter text") }, textStyle = MaterialTheme.typography.bodySmall)
                 }
-                if (mixedLanguages) TextButton(onClick = { languagesOpen = true }) {
-                    Icon(Icons.Outlined.Translate, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Languages")
+                if (mixedLanguages || selection.preferred != null || !selection.keepUnknown) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(selection.enabled, enabled = enabled,
+                            modifier = Modifier.semantics { contentDescription = "Enable language filter" },
+                            onCheckedChange = { onChange(settings.copy(languages = selection.copy(enabled = it))) })
+                        TextButton(onClick = { languagesOpen = true }, enabled = enabled && selection.enabled && mixedLanguages) {
+                            Icon(Icons.Outlined.Translate, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Languages")
+                        }
+                    }
                 }
                 FilterToggle("Valid NIP-05", settings.verifiedOnly, enabled) { onChange(settings.copy(verifiedOnly = it)) }
                 val emojiDisabled = settings.emojiAutoDisabled(query)

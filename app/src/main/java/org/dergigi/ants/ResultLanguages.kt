@@ -13,14 +13,15 @@ internal data class EventLanguages(val codes: Set<String> = emptySet(), val unce
 internal data class LanguageSelection(
     val preferred: Set<String>? = null,
     val keepUnknown: Boolean = true,
+    val enabled: Boolean = true,
 ) {
-    val active: Boolean get() = preferred != null || !keepUnknown
+    val active: Boolean get() = enabled && (preferred != null || !keepUnknown)
     fun includes(code: String): Boolean = preferred?.contains(code) ?: true
     fun toggle(code: String, enabled: Boolean, available: Set<String>): LanguageSelection {
         val selected = preferred ?: (available - UNKNOWN_LANGUAGE)
         return copy(preferred = if (enabled) selected + code else selected - code)
     }
-    fun accepts(result: EventLanguages): Boolean = result.codes.any(::includes) ||
+    fun accepts(result: EventLanguages): Boolean = !enabled || result.codes.any(::includes) ||
         keepUnknown && (result.uncertain || result.codes.isEmpty())
 }
 
