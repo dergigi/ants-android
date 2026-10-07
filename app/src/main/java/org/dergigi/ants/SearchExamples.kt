@@ -90,7 +90,7 @@ internal val searchExamples = listOf(
     "by:rektbot 💀💀💀💀💀💀💀💀💀💀",
     "\"car crash\" by:dergigi",
     "free by:ulbricht",
-    "\"GM PV\" by:derek",
+    "\"GM PV\" by:derekross",
     "free by:ross",
     "freedom by:ulbricht",
     "bitcoin since:2w",

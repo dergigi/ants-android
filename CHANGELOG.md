@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update the quoted `"GM PV"` search example to use `by:derekross`.
 - Add a checkbox to enable or disable language filtering without losing saved language selections. Remember the toggle across restarts and disable language search hints while it is off.
 
 ### Added
