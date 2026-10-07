@@ -67,6 +67,10 @@ internal val searchExamples = listOf(
     "kind:10002",
 
     // Combined filters and text
+    "is:muted mentions:@me",
+    "is:muted mentions:dergigi",
+    "is:muted mentions:dergigi.com",
+    "is:muted mentions:npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc",
     "GM by:dergigi",
     "#YESTR by:dergigi",
     "knowledge by:platobot@dergigi.com",
