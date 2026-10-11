@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Include configured search relays when fetching profile metadata and discovering profile relays, including exact npub/NIP-05 lookups and Vertex results. Scope metadata caches to the relay configuration and retry empty lookups without a cached miss.
+
 ## [0.37.0] - 2026-10-07
 
 ### Changed

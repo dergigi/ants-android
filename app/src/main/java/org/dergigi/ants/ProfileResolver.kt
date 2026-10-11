@@ -26,11 +26,11 @@ internal class ProfileResolver(
         event.retainedBytes
     }
     private val searchCache = ProfileLookupCache<List<Nip01Event>>(50,
-        lifetime = { if (it.isEmpty()) 30_000L else 300_000L }, weight = ::eventWeight)
+        lifetime = { if (it.isEmpty()) 0L else 300_000L }, weight = ::eventWeight)
     private val vertexCache = ProfileLookupCache<List<Nip01Event>?>(50,
         lifetime = { if (it.isNullOrEmpty()) 30_000L else 300_000L }, weight = { eventWeight(it.orEmpty()) })
     private val metadataCache = ProfileLookupCache<List<Nip01Event>>(100,
-        lifetime = { if (it.isEmpty()) 30_000L else 300_000L }, weight = ::eventWeight)
+        lifetime = { if (it.isEmpty()) 0L else 300_000L }, weight = ::eventWeight)
     private val contactsCache = ProfileLookupCache<List<String>>(8,
         lifetime = { if (it.isEmpty()) 30_000L else 300_000L }, weight = { it.size * 192L })
     private val resolvedCache = ProfileLookupCache<String>(200)
@@ -97,19 +97,22 @@ internal class ProfileResolver(
 
     private fun metadata(events: List<Nip01Event>) = events.filter { it.kind == 0 && it.isRenderable() }
         .sortedByDescending { it.createdAt }.distinctBy { it.pubkey }
-    private suspend fun profiles(keys: List<String>): List<Nip01Event> {
+    private suspend fun profiles(keys: List<String>, urls: List<String>): List<Nip01Event> {
         val normalized = keys.distinct().sorted()
         if (normalized.isEmpty()) return emptyList()
-        return metadataCache.get(normalized.joinToString(",")) {
+        // Exact identities still need the user's relays for both metadata and
+        // NIP-65 discovery: a profile may exist only on one of those relays.
+        val relays = (urls + "wss://purplepag.es" + generalRelays).mapNotNull(::secureRelayUrl).distinct()
+        return metadataCache.get("${normalized.joinToString(",")}:${relays.sorted().joinToString(",")}") {
             metadata(collect(listOf(JSONObject().put("kinds", JSONArray().put(0))
-                .put("authors", JSONArray(normalized)).put("limit", normalized.size)), listOf("wss://purplepag.es") + generalRelays))
+                .put("authors", JSONArray(normalized)).put("limit", normalized.size)), relays))
         }
     }
 
-    private suspend fun vertex(query: String, identity: String): List<Nip01Event>? =
-        vertexCache.get("$identity:${query.trim().lowercase()}") { fetchVertex(query, identity) }
+    private suspend fun vertex(query: String, identity: String, urls: List<String>): List<Nip01Event>? =
+        vertexCache.get("$identity:${urls.distinct().sorted().joinToString()}:${query.trim().lowercase()}") { fetchVertex(query, identity, urls) }
 
-    private suspend fun fetchVertex(query: String, identity: String): List<Nip01Event>? {
+    private suspend fun fetchVertex(query: String, identity: String, urls: List<String>): List<Nip01Event>? {
         if (query.length <= 3) return null
         val unsigned = Nip01Event.complete(identity, Instant.now().epochSecond, 5315, listOf(
             listOf("param", "search", query), listOf("param", "sort", "personalizedPagerank"),
@@ -129,7 +132,7 @@ internal class ProfileResolver(
             (0 until results.length()).mapNotNull { Nip19.normalizePubkey(results.getJSONObject(it).optString("pubkey")) }.distinct().take(10)
         } } ?: return null
         if (keys.isEmpty()) return null
-        val found = profiles(keys).associateBy { it.pubkey }
+        val found = profiles(keys, urls).associateBy { it.pubkey }
         return keys.mapNotNull(found::get).takeIf { it.isNotEmpty() }
     }
     suspend fun search(query: String, identity: String?, urls: List<String>): List<Nip01Event> {
@@ -138,8 +141,8 @@ internal class ProfileResolver(
         return searchCache.get(key) {
             val direct = Nip19.normalizePubkey(term.removePrefix("nostr:"))
             val address = if (direct == null && ('@' in term || '.' in term && !term.contains(' '))) nip05(term) else null
-            if (direct != null || address != null) profiles(listOf(checkNotNull(direct ?: address)))
-            else (if (identity != null) vertex(term, identity) else null) ?: fallback(term, identity, urls)
+            if (direct != null || address != null) profiles(listOf(checkNotNull(direct ?: address)), urls)
+            else (if (identity != null) vertex(term, identity, urls) else null) ?: fallback(term, identity, urls)
         }
     }
     private suspend fun fallback(term: String, identity: String?, urls: List<String>): List<Nip01Event> = coroutineScope {
