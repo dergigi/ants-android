@@ -4,6 +4,18 @@ A native Android search and discovery app for Nostr, based on [ants](https://git
 
 [Get it on Zapstore](https://zapstore.dev/apps/org.dergigi.ants) · [Download APK](https://github.com/dergigi/ants-android/releases)
 
+[Source, issues, and pull requests on GitWorkshop](https://gitworkshop.dev/npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc/relay.ngit.dev/ants-android) · [GitHub mirror](https://github.com/dergigi/ants-android)
+
+## Source mirrors
+
+The repository is hosted on `relay.ngit.dev`, `gitnostr.com`, and GitHub. With [ngit](https://ngit.dev) installed:
+
+```sh
+git clone nostr://npub1dergggklka99wwrs92yz8wdjs952h2ux2ha2ed598ngwu9w7a6fsh9xzpc/relay.ngit.dev/ants-android
+```
+
+In the maintainer checkout, `origin` is the Nostr remote and `github` is the direct GitHub remote. `git push origin main` updates the announced servers through ngit. Push release tags with `git push origin vX.Y.Z` and verify the refs on each mirror. The configured remote signer must be available; signing credentials stay outside the repository.
+
 ## MVP
 
 - Vertex results, direct profile lookups, and resolved names are cached in memory for five minutes; empty results expire after 30 seconds. Identical concurrent lookups share work. `/clear` and account changes reset discovery caches.

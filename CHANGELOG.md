@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Mirror the repository and release tags to GRASP on relay.ngit.dev and gitnostr.com, with GitWorkshop access and GitHub kept in the push workflow.
+
 ### Fixed
 
 - Include configured search relays when fetching profile metadata and discovering profile relays, including exact npub/NIP-05 lookups and Vertex results. Scope metadata caches to the relay configuration and retry empty lookups without a cached miss.

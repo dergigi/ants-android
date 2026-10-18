@@ -5,6 +5,7 @@
 - Maintain CHANGELOG.md using Keep a Changelog 1.1.0 with an Unreleased section and dated releases.
 - Use Semantic Versioning 2.0.0; increment Android versionCode for every published APK.
 - Reuse the boris-android publishing setup. Never commit signing secrets, keystores, .env, or local.properties.
+- Mirror source and release tags through the ngit `origin` remote to both GRASP servers and GitHub; `github` is the direct GitHub remote. Verify published refs on all three servers. Reuse the configured remote signer without copying credentials into the repository.
 - For the initial MVP, the user requested publishing directly for phone testing: do not run local tests or an emulator.
 
 # UI and writing
