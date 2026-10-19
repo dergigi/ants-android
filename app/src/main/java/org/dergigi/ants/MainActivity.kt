@@ -652,7 +652,7 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
         CompositionLocalProvider(LocalArticleScroll provides scrollState) {
         SelectionContainer {
             when {
-                raw -> Text(event.toJsonString(), fontFamily = FontFamily.Monospace)
+                raw -> JsonContent(event)
                 event.kind == 7 -> ReactionContent(event)
                 event.kind == 9802 -> HighlightContent(event, profiles, compact = false, onNavigate = onNavigate)
                 else -> EventContent(event, profile, profiles, compact = false, onNavigate = onNavigate)
@@ -663,7 +663,7 @@ private fun EventDetails(event: Nip01Event, profile: Profile?, profiles: Map<Str
             ActionIcon(Icons.Outlined.PhoneAndroid, "Open in app", { openInNostrApp(context, event) })
             ActionIcon(Icons.AutoMirrored.Outlined.OpenInNew, "Open in browser", { openUrl(context, "https://njump.to/${Nip19.noteEncode(event.id)}") })
             ActionIcon(Icons.Outlined.Share, "Share event", { context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, eventUrl(event)) }, "Share event")) })
-            ActionIcon(Icons.Outlined.ContentCopy, if (raw) "Copy event JSON" else "Copy event ID", { clipboard.setText(AnnotatedString(if (raw) event.toJsonString() else "nostr:${Nip19.noteEncode(event.id)}")) })
+            ActionIcon(Icons.Outlined.ContentCopy, if (raw) "Copy event JSON" else "Copy event ID", { clipboard.setText(AnnotatedString(if (raw) prettyEventJson(event) else "nostr:${Nip19.noteEncode(event.id)}")) })
             ActionIcon(Icons.Outlined.DataObject, if (raw) "Show rendered event" else "Show raw event JSON", onToggleRaw, selected = raw)
         }
     }

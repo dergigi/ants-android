@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Pretty-print raw event JSON in details with syntax highlighting, horizontal scrolling, and formatted JSON copying.
 - Mirror the repository and release tags to GRASP on relay.ngit.dev and gitnostr.com, with GitWorkshop access and GitHub kept in the push workflow.
 
 ### Fixed
